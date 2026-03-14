@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>時女 守愛のときめきサマー</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+		<meta name="description"  content="ばーばと仲良くなると、限定NFTをプレゼント。ラヴ・タンクを愛で満たそう。">
+	<meta property="og:url" content="https://jojima-george.com/tokimekibb" />
+	<meta property="og:type" content="website" />
+	<meta property="og:title" content="時女守愛のときめきサマー" />
+	<meta property="og:description" content="ばーばと仲良くなると、限定NFTをプレゼント。ラヴ・タンクを愛で満たそう。" />
+	<meta property="og:site_name" content="時女守愛のときめきサマー" />
+<link rel="stylesheet" type="text/css" href="bb.css">
+<link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
+</head>
+<body>
+
+<!-- ホワイトアウト用の要素 -->
+<div id="whiteoutEffect" class="whiteout" style="display: none;"><span>LOVE FOREVER...</span></div>
+	
+
+  <p class="love"> <span class="heart">♥♥♥♥</span> ラヴ・タンク <span class="heart">♥♥♥♥</span> </p>
+  <div id="progress-bar-container">
+    <div id="progress-bar"></div>
+  </div>
+  <br>
+  <div id="baba-container"> <img id="baba-image" alt="ばーば">
+    <div id="time-message"></div>
+    <div id="popup" class="hidden"> <img id="babalove-image" alt="好感度">
+      <p id="popup-message">好感度が上がりました！</p>
+    </div>
+  </div>
+  <br>
+  <div class="button-container">
+    <button id="talk-button">話しかける</button>
+    <a href="#" id="twitter-share-link" rel="nofollow" target="_blank" class="my-twitter-share-button">ｴｯｸｾｽﾞ(笑)</a>
+    <button id="reset-button">👼</button>
+  </div>
+
+	
+<div id="popup-download" class="hidden">
+  <div id="popup-content">
+    <p id="congratulations-message"></p>
+    <img id="download-babalove-image" alt="ばーばの好感度画像"> <a id="download-button">キス画像をDLする</a>
+    <button id="close-button">閉じる</button>
+  </div>
+</div>
+
+<!-- NFT発行のポップアップ要素 -->
+<div id="nft-popup" class="hidden">
+  <p id="nft-popup-message">NFTを発行するため、外部サイト(Spread)へ移動します。<br>
+    <br>
+    ・発行手数料は掛かりません。<br>
+    ・発行するための合言葉は(loveforever)です。<br>
+    ・PCやスマホの別デバイスで発行したい場合は、ミントサイトのURLを控えてください。<br>
+    ※他人にURLを共有するのはお止めください。
+  </p><br>
+  <button id="nft-issue-button">ミントサイトへ移動</button>
+</div>
+
+<!-- リセット用のポップアップ要素 -->
+<div id="reset-popup" class="hidden">
+  <button id="close-reset">×</button>
+  <br>
+  <p>ばーばの記憶がリセットされ、輪廻転生します。いいのか？</p>
+  <br>
+  <button id="confirm-reset-button">森羅万象</button>
+</div>
+
+<!-- タイトル画面のポップアップ要素 -->
+<div id="title-popup"> <img class="title-image" src="images/logo.gif" alt="タイトル画像">
+	  <button id="next-button" class="blinking-button">PRESS START</button><br>
+  <p id="title-text">トゥンクフルな夏をばーばと過ごそう！ラヴ・ゲームを攻略だ。</p>
+</div>
+
+<div id="description-popup" class="hidden">
+ <div id="white">
+  <p id="playtitle">遊び方を知りたいか？</p>
+	真夏の燃えるようなアヴァンチュールを求め彷徨うばーば。君はイケナイ火遊びを始めようとしています。<br>
+  時間帯によって様々なばーばが現れるよ！<br>話しかけると、ラヴ・タンクがどんどん満たされていく。<br>仲良くなると、態度も変わるぞ。<br>
+	<img class="play-image1" src="images/lovetank.png" alt="ラヴ・タンク">
+  1時間に10回まで話しかけることができるぞ！<br>時間が経ったらまた遊びに来てね。ラヴ・タンクゲージは自動で保存されるぞ！<br>
+  燃える恋に飽きちゃった？「👼」ボタンを押してみよう…<br>
+  <button id="start-button">はじめる</button>
+  </div>
+	
+		<div id="video-area">
+		<video id="video" poster="images/logo.gif" webkit-playsinline playsinline muted autoplay loop>
+		<!--
+		poster：動画ファイルが利用できない環境で代替表示される画像
+		webkit-playsinline：iOS 9までのSafari用インライン再生指定
+		playsinline：iOS 10以降のSafari用インライン再生指定
+		muted：音声をミュートさせる
+		autoplay：動画を自動再生させる
+		loop：動画をループさせる
+		controls：コントロールバーを表示する
+		-->
+		<source src="images/sea.mp4" type="video/mp4">
+		<source src="images/sea.ogv" type="video/ogv">
+		<source src="images/sea.webm" type="video/webm">
+		</video>
+		<!--/video-area--></div>
+</div>
+</body>
+<script src="cc2.js" charset="utf-8"></script>
+</html>

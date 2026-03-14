@@ -1,0 +1,1194 @@
+@charset "utf-8";
+/* CSS Document */
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+	background: linear-gradient(-45deg, #F7CABC, #F3ADC8, #9DD8EE, #8DEBD5);
+	overflow-x: hidden;
+	font-family: "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", "メイリオ", "Meiryo, Osaka", "ＭＳ Ｐゴシック", "MS P Gothic", "sans-serif";
+  }
+
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+
+
+/* ハンバーガーメニュー付きナビゲーション */
+#global-navi {
+  top: 0;
+  right: 0px;
+  width: 100%;
+  z-index: 100;
+  transition: background-color 0.3s ease-in-out;
+}
+
+
+#wrappernavi{
+  position: fixed;
+    width: 100%;
+z-index: 100;
+transition: top 0.3s ease-in-out;
+}
+
+#wrappernavi.hide {
+  top: -100px;
+}
+
+#wrappernavi.show {
+  top: 0;
+}
+
+#wrappernavi nav ul li {
+  display: inline-block;
+  padding-top: 20px;
+  font-size: 16px;
+  padding: 20px 20px 25px 20px;
+  position: relative;
+  transition: background-color 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+#wrappernavi nav ul li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  background: rgba(255,255,255,0.35); /* 白色の線 */
+  transition: width 0.1s ease-in-out; /* アニメーショントランジション */
+  z-index: -1;
+}
+
+#wrappernavi nav ul li:hover {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+#wrappernavi nav ul li:hover::before {
+  width: 100%; /* マウスオーバー時に白色の線を横幅100%に拡大 */
+}
+
+
+
+#wrappernavi nav ul li a {
+  color: #FFFFFF;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.menu {
+  transition: background 0.7s;
+}
+
+.scrolled .menu {
+}
+
+.letter {
+  float: right;
+  padding-right: 15px;
+}
+
+.logo {
+  height: 50px;
+  float: left;
+  padding-left: 150px;
+}
+
+
+
+@media screen and (max-width: 600px) {
+#wrappernavi nav {
+    position: fixed;
+    top: 0;
+    right: -300px;
+    width: 200px;
+    height: 100%;
+    padding-top: 50px;
+    backdrop-filter: blur(20px);
+    background-image: linear-gradient(to bottom, rgba(129,114,255,0.57), rgba(255,77,187,0.64));
+    font-size: 16px;
+    box-sizing: border-box;
+    z-index: 2
+}
+#wrappernavi nav ul li {
+    display:block;
+    padding: 20px 28px
+}
+  
+#wrappernavi nav ul li a {
+    text-decoration: none;
+    color: #FFFFFF;
+	padding-right: 40px;
+}
+.menu {
+  background: rgba(255,252,240,0.00);
+}
+
+.logo {
+  height: 50px;
+  float: right;
+  padding-right: 10px;
+}
+	
+#wrappernavi .btn-gnavi {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 30px;
+    height: 24px;
+    z-index: 3;
+    box-sizing: border-box;
+    cursor: pointer;
+    -webkit-transition: all 400ms;
+    transition: all 400ms
+}
+  
+#wrappernavi .btn-gnavi span {
+    position: absolute;
+    width: 30px;
+    height: 4px;
+    background: #666;
+    border-radius: 10px;
+    -webkit-transition: all 400ms;
+    transition: all 400ms
+}
+  
+#wrappernavi .btn-gnavi span:nth-child(1) {
+    top: 0
+}
+  
+#wrappernavi .btn-gnavi span:nth-child(2) {
+    top: 10px
+}
+  
+#wrappernavi .btn-gnavi span:nth-child(3) {
+    top: 20px
+}
+  
+#wrappernavi .btn-gnavi.open {
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg)
+}
+  
+#wrappernavi .btn-gnavi.open span {
+    background: #fff
+}
+  
+#wrappernavi .btn-gnavi.open span {
+    width: 24px;
+}
+#wrappernavi .contents section p {
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    line-height: 1.4;
+    font-size: 20px;
+    color: #fff;
+    text-shadow: 0 0 6px #666
+}
+  
+#wrappernavi .contents section:nth-child(odd) p {
+    left: 10%
+}
+  
+#wrappernavi .contents section:nth-child(even) p {
+    right: 10%
+}
+}
+
+
+
+
+
+
+section {
+  padding: 40px;
+  color: #fff;
+  text-align: center;
+}
+
+h2 {
+  font-size: 24px;
+}
+
+.yellow-bg {
+  background-color: #F9E424;
+}
+
+.gray-bg {
+  background-color: #BFBFBF;
+}
+
+.orange-bg {
+  background-color: orange;
+}
+
+.character-introduction img,
+.nft-introduction .nft-item img,
+.merchandise-introduction .merchandise-item img {
+  max-width: 200px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.nft-introduction .nft-item p,
+.merchandise-introduction .merchandise-item p {
+  margin-bottom: 20px;
+}
+
+
+
+
+
+#header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  transition: top 0.3s;
+  z-index: 9999;
+}
+
+.blackbox {
+  background-color: rgba(0, 0, 0, 0.65);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+
+
+/* 画面左側の5分の1に背景色を表示 */
+.left-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 15%;
+  height: 1000px;
+  backdrop-filter: blur(15px);
+  background-color: rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+}
+
+
+
+
+/* 文字を特大のゴシック体で縦書きで表示 */
+.text {
+  position: fixed;
+  top: 50%;
+  left: 7%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  font-family: Osaka, Helvetica Neue, sans-serif;
+  font-size: 80px;
+  font-weight: bold;
+  color: whitesmoke;
+  writing-mode: vertical-rl;
+  line-height: 1.2;
+}
+
+.line {
+  display: inline-block;
+  white-space: nowrap; /* 改行しないように設定 */
+  letter-spacing: 3px; /* 字間の値を調整してください */
+}
+
+
+#background {
+  position: static;
+  width: 85%; 
+  margin-left: 15%; 
+  height: 100%;
+  background-color: rgba(0,0,0,0.00);
+  z-index: 1;
+  pointer-events: none; 
+}
+
+    .empty-space {
+      width: 100vw;
+      height: 100vh;
+    }
+
+
+
+/* box編集 */
+#rightbox {
+  overflow-x: hidden;
+  width: 85%;
+  margin-left: 15%;
+  height: 100%;
+  filter: blur(0px);
+  background-image: linear-gradient(to bottom, rgba(0,76,255,0.7), rgba(255,0,128,0.7), rgba(255,255,255,0.00)  );
+  color: rgba(245, 245, 245, 1.00);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.yellowline {
+  content: "";
+  position: absolute;
+  left: 2%; 
+  top: 0;
+  height: 100%;
+  width: 8px;
+  background-image: linear-gradient(to bottom, rgba(240,255,0,1.00), rgba(240,255,0,1.00), rgba(255,255,255,0.00)  );
+}
+
+
+/* 背景ライン
+#rightbox::before {
+  content: "";
+  position: absolute;
+  left: 2%; 
+  top: 0;
+  height: 100%;
+  width: 8px;
+  background-image: linear-gradient(to bottom, rgba(240,255,0,1.00), rgba(240,255,0,1.00), rgba(255,255,255,0.00)  );
+}
+ */
+
+
+
+
+/* スライドアニメーションのスタイル */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* アニメーションを適用するクラス */
+.slide-in-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+
+/* H1要素のスタイル */
+#rightbox h1 {
+  align-self: flex-start; /* H1要素を左揃えに設定 */
+  animation: slideInLeft 0.5s ease-out; /* アニメーションを適用 */
+  font-size: 50px;
+}
+
+
+/*==================================================
+背景色が伸びて出現
+===================================*/
+
+/*全共通*/
+
+.bgextend{
+  animation-name:bgextendAnimeBase;
+  animation-duration:1s;
+  animation-fill-mode:forwards;
+  position: relative;
+  overflow: hidden;/*　はみ出た色要素を隠す　*/
+  opacity:0;
+}
+
+@keyframes bgextendAnimeBase{
+  from {
+    opacity:0;
+  }
+
+  to {
+    opacity:1;  
+}
+}
+
+/*中の要素*/
+.bgappear{
+  animation-name:bgextendAnimeSecond;
+  animation-duration:1s;
+  animation-delay: 0.6s;
+  animation-fill-mode:forwards;
+  opacity: 0;
+}
+
+@keyframes bgextendAnimeSecond{
+  0% {
+  opacity: 0;
+  }
+  100% {
+  opacity: 1;
+}
+}
+
+/*左から右*/
+.bgLRextend::before{
+  animation-name:bgLRextendAnime;
+  animation-duration:1s;
+  animation-fill-mode:forwards;
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: #FFF24D;/*伸びる背景色の設定*/
+}
+@keyframes bgLRextendAnime{
+  0% {
+    transform-origin:left;
+    transform:scaleX(0);
+  }
+  50% {
+    transform-origin:left;
+    transform:scaleX(1);
+  }
+  50.001% {
+    transform-origin:right;
+  }
+  100% {
+    transform-origin:right;
+    transform:scaleX(0);
+  }
+}
+
+/* スクロールをしたら出現する要素にはじめに透過0を指定　*/
+.bgappearTrigger,
+.bgLRextendTrigger{
+    opacity: 0;
+}
+
+
+
+
+/* ニュースボタン */
+.btn {
+  /* アニメーションの起点とするためrelativeを指定 */
+  position: relative;
+  /* ボタンの形状 */
+  text-decoration: none;
+  display: inline-flex; /* display: flex; を inline-flex; に変更 */
+  align-items: center;
+  width: 800px; /* 任意の幅を指定（統一したい幅に設定） */
+  height: 120px; /* 任意の幅を指定（統一したい幅に設定） */
+  border: 1px solid #FFFFFF; /* ボーダーの色と太さ */
+  padding: 10px 30px;
+  text-align: left; /* ボタン内のテキストを左詰めに配置 */
+  outline: none;
+  background: rgba(255, 255, 255, 0.7);
+  /* アニメーションの指定 */
+  transition: ease .2s;
+}
+
+
+/* ボタン内spanの形状 */
+.btn span {
+  position: relative;
+  z-index: 3; /* z-indexの数値をあげて文字を背景よりも手前に表示 */
+  color: #333;
+  font-weight: bold;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  /* なめらかな色の変化を設定 */
+  transition: color 0.3s ease;
+}
+
+.btn:hover span {
+  /* ホバー時の文字色を指定 */
+  color: #fff;
+}
+
+/* 背景が流れる（左から右） */
+.bgleft:before {
+  content: '';
+  /* 絶対配置で位置を指定 */
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  /* 色や形状 */
+  background: linear-gradient(to right, #4C60FF, rgba(255,109,135,1.00)); /* 背景色 */
+  width: 100%;
+  height: 100%;
+  /* アニメーション */
+  transition: transform .6s cubic-bezier(0.8, 0, 0.2, 1) 0s;
+  transform: scale(0, 1);
+  transform-origin: right top;
+}
+
+/* hoverした際の形状 */
+.bgleft:hover:before {
+  transform-origin: left top;
+  transform: scale(1, 1);
+}
+
+
+/* ニュースページのプロパティ */
+.date-box {
+  height: 40px;
+  background-color: orange;
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.date {
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+
+
+.leftrightbox {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  margin: 20px 0px 20px 100px;
+}
+
+.boxleft,
+.boxright {
+  width: 80%;
+  box-sizing: border-box;
+  text-align: center;
+  margin: 0px 40px 80px 40px;
+  background-color: rgba(255,255,255,0.87); 
+  padding: 20px 50px 50px 50px;
+  border-radius: 10px;
+}
+
+.boxleft p,
+.boxright p {
+  text-align: left;
+  font-family: meiryo;
+  color: #000000;
+  margin-left: 200px;
+  margin-right: 120px;
+  line-height: 30px; /* 行間を調整する値 */
+}
+
+.boxleft h3,
+.boxright h3 {
+  color: #000000;
+}
+
+  .square {
+  width: 450px;
+}
+
+
+/* 矢印のスタイル */
+.arrow {
+  position: relative;
+  display: inline-block;
+  margin-left: auto; /* 矢印を右端に配置するために左側に自動的にマージンを設定 */
+}
+
+.arrow::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -5px; /* 矢印の位置を調整 */
+  transform: translateY(-50%) rotate(45deg);
+  border: solid #FF2D95;
+  border-width: 2px 2px 0 0; /* 矢印の方向を調整 */
+  padding: 4px;
+  transition: right 0.3s ease;
+}
+
+.btn:hover .arrow::before {
+  right: -15px;
+  transform: translateY(-50%) rotate(45deg); 
+}
+
+
+
+/* 日付のスタイル */
+.date {
+  position: absolute;
+  display: inline-block;
+  text-align: left;
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
+}
+
+
+#profile {
+  display: flex;
+  align-items: center;
+}
+
+#profile-left {
+  display: flex;
+  justify-content: flex-start;
+}
+
+#profile-left .profile-text {
+  flex-basis: calc(100% - 240px);
+  line-height: 2.0; 
+  margin-left: 100px;
+  margin-right: 100px;
+  font-weight: bold;
+  max-width: 500px;
+}
+
+
+/* プロフィール画像 */
+#profile img {
+  width: 300px;
+  margin-top: 50px;
+  margin-left: 50px;
+  border-radius: 50%;
+  transform: translateY(5px);
+}
+
+
+
+
+#profile .profile-text {
+  flex-basis: calc(100% - 240px); /* プロフィール文の幅を計算して指定 */
+  line-height: 2.0; 
+  margin-left: 100px;
+  margin-right: 100px;
+  font-weight: bold;
+  max-width: 500px;
+}
+
+.floating-text {
+  display: inline-block;
+  animation: floatUp 1s linear forwards;
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+
+.center-box {
+  align-self: flex-start;
+  max-width: 800px;
+  flex-basis: calc(100% - 240px);
+  line-height: 2.0;
+  margin: 0 auto; /* 水平方向に中央配置 */
+  font-weight: bold;
+}
+
+
+.left-box {
+  align-self: flex-start;
+  max-width: 500px;
+  flex-basis: calc(100% - 240px);
+  line-height: 2.0; 
+  margin-left: 150px;
+  margin-right: 20px;
+  font-weight: bold;
+}
+
+.right-box {
+  align-self: flex-start;
+  max-width: 500px;
+  flex-basis: calc(100% - 240px);
+  line-height: 2.0; 
+  margin-left: auto;
+  margin-right: 150px;
+  font-weight: bold;
+}
+
+
+/* 視差効果 */
+.parallaxbox {
+  height: 100%;
+  margin: 200px auto 80px;
+  overflow: hidden;
+  position: relative; 
+  width: 80%;
+}
+
+.thumbnail {
+  width: 100%;
+}
+
+.title {
+  position: absolute; 
+  font-size: 3rem; /* タイトルのフォントサイズ */
+  font-weight: bold;
+  color:rgba(0,0,0,0.74); /* タイトルのテキストカラー */
+}
+
+
+.link-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 400px;
+}
+
+.link-item {
+  width: 400px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.link-image {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+.link-description {
+  margin-top: 10px;
+}
+
+
+
+footer {
+  background-color: rgba(255,255,255,0.77);
+  padding: 40px;
+  text-align: center;
+}
+
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  margin-left: 50%; /* 左から3/5の位置に移動 */
+}
+
+.footer-content .footer-image {
+  width: 100%;
+}
+
+
+
+/*リンク文ホバーエフェクト2*/
+.cp_block {
+	margin: 5em auto;
+	text-align: center;
+}
+.cp_textlink07 {
+    margin: 0px;
+	position: relative;
+	display: inline-block;
+    padding: 0.3em 0.9em;
+	text-decoration: none;
+	font-weight: bold;
+	font-size: 14px;
+	color: #000357;
+	z-index: 1;
+}
+.cp_textlink07::after,
+.cp_textlink07::before {
+	position: absolute;
+	content: '';
+	border-radius: 10px;
+}
+.cp_textlink07::after {
+	z-index: -1;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(255,255,255,0.75);
+	transition: all 0.3s ease;
+}
+.cp_textlink07::before {
+	top: -4px;
+	bottom: -5px;
+	left: -4px;
+	right: -5px;
+	width: calc(100% + 6px);
+	height: calc(100% + 6px);
+	border: 1px solid #FFFFFF;
+	opacity: 0;
+	transition: all 0.3s;
+}
+.cp_textlink07:hover:after {
+	background: linear-gradient(to bottom, rgba(255,254,188,0.75), rgba(205,255,24,0.77));
+}
+.cp_textlink07:hover:before {
+	top: 2px;
+	left: 2.5px;
+	width: calc(100% - 6px);
+	height: calc(100% - 6px);
+	opacity: 1;
+}
+
+
+
+.social-icons {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+}
+
+
+.social-icons a {
+  display: inline-block;
+  margin-left: 10px;
+}
+
+.social-icons a img {
+  width: 50px;
+  height: 50px;
+}
+
+
+.mini {
+  width: 20%;
+  vertical-align: middle; /* 画像をテキストの中央に揃えるための設定 */
+}
+
+
+
+
+/* !!!!!!!!!!!!!スマホサイズ設定!!!!!!!!!!!!!!!!! */
+
+@media screen and (max-width: 768px) {
+  .text {
+    font-size: 40px;
+    white-space: normal;
+    writing-mode: vertical-rl;
+    text-align: center;
+	white-space: nowrap;
+  }
+	
+	.social-icons {
+	  bottom: 10px;
+	  right: 10px;
+}
+    .social-icons a img {
+    width: 40px;
+    height: 40px;
+  }	
+	
+	#rightbox {
+	display: flex;
+	flex-direction:column; /* 縦並びにする */
+	}
+
+#rightbox h1 {
+  font-size: 30px;
+}
+	
+	#rightbox::before {
+  width: 5px;
+  left: 2.5%; /* 左からの位置を調整 */
+}
+
+	.date {
+	  font-size: 15px;
+	}
+	
+	.btn span {
+	  display: block; /* ブロック要素として配置 */
+	}
+
+	
+  #profile {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  #profile img {
+    width: 100%; /* 画像の幅を100%に変更 */
+    max-width: 200px;
+    margin: 10px;
+  }
+  
+  #profile .profile-text {
+  margin: 30px;
+}
+	
+  .left-box, .right-box {
+	margin: 30px;
+  }
+
+.btn {
+  width: 90%;
+
+  }
+	
+.parallaxbox {
+  height: 100%;
+  margin: 100px auto 10px;
+  overflow: hidden;
+  position: relative; 
+  width: 90%;
+  }	
+
+.blackbox {
+  padding: 10px;
+}
+
+.link-item {
+  width: 270px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  margin-left: 10%; /* 左から3/5の位置に移動 */
+}
+	
+/* ニュースページのプロパティ */
+
+.leftrightbox {
+  margin: 20px 20px 20px 35px;
+}
+
+.boxleft,
+.boxright {
+  width: 75%;
+  box-sizing: border-box;
+  text-align: center;
+  margin: 0px 40px 80px 40px;
+  background-color: rgba(255,255,255,0.87); 
+  padding: 20px 35px 50px 25px;
+}
+
+.boxleft p,
+.boxright p {
+  margin-left: 5px;
+  margin-right: 0px;
+
+}
+
+.boxleft h3,
+.boxright h3 {
+  color: #000000;
+}
+
+  .square {
+  width: 250px;
+}
+
+	
+}
+
+
+/* !!!!!!!!!!!!!ここまでスマホサイズ!!!!!!!!!!!!!!!!! */
+
+
+.title {
+  position: absolute; 
+  top: 50%; /* タイトルの上端が中央に来るように調整 */
+  left: 50%; /* タイトルの左端が中央に来るように調整 */
+  transform: translate(-10%, -50%); /* タイトルを中央に配置 */
+  font-size: 2rem; /* タイトルのフォントサイズ */
+
+}
+
+
+
+/* 浮かび上がるアニメーション */
+.animation-element {
+  transform: translateX(100%);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.animation-element.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* 狭い画面幅用のメディアクエリ */
+@media screen and (max-width: 768px) {
+.animation-element {
+  transform: translateX(50%);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.animation-element.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+}
+
+
+/*=== 9-1-4 矢印が動いてスクロールを促す  ====*/
+
+/*スクロールダウン全体の場所*/
+.scrolldown4{
+    /*描画位置※位置は適宜調整してください*/
+  position:absolute;
+  bottom:1%;
+  right:45%;
+    /*矢印の動き1秒かけて永遠にループ*/
+  animation: arrowmove 1s ease-in-out infinite;
+}
+
+/*下からの距離が変化して全体が下→上→下に動く*/
+@keyframes arrowmove{
+      0%{bottom:1%;}
+      50%{bottom:3%;}
+     100%{bottom:1%;}
+ }
+
+/*Scrollテキストの描写*/
+.scrolldown4 span{
+    /*描画位置*/
+  position: absolute;
+  left:-20px;
+  bottom:10px;
+    /*テキストの形状*/
+  color: #eee;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  /*縦書き設定*/
+  -ms-writing-mode: tb-rl;
+    -webkit-writing-mode: vertical-rl;
+    writing-mode: vertical-rl;
+}
+
+/* 矢印の描写 */
+.scrolldown4:before {
+    content: "";
+    /*描画位置*/
+    position: absolute;
+    bottom: 0;
+    right: -6px;
+    /*矢印の形状*/
+    width: 1px;
+    height: 20px;
+    background: #eee;
+    transform: skewX(-31deg);
+}
+
+.scrolldown4:after{
+  content:"";
+    /*描画位置*/
+  position: absolute;
+  bottom:0;
+  right:0;
+    /*矢印の形状*/
+  width:1px;
+  height: 50px;
+  background:#eee;
+}
+
+
+
+
+
+.bgimg {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    background: #000000;
+    z-index: -1;
+}
+.bgimg li {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: 50% 50%;
+    background-repeat: none;
+    opacity: 0;
+    animation: anime 40s linear 0s infinite ;
+}
+
+
+
+/* イラスト背景 */
+.bgimg li:nth-child(1) { 
+    background-image: url("../image/winter.webp");
+    -webkit-animation-delay: 0s;
+    animation-delay: 0s;
+}
+.bgimg li:nth-child(2) {
+    background-image: url("../image/babaman.webp");
+    -webkit-animation-delay: 10s;
+    animation-delay: 10s;
+}
+.bgimg li:nth-child(3) {
+    background-image: url("../image/summer.webp");
+    -webkit-animation-delay: 20s;
+    animation-delay: 20s;
+}
+.bgimg li:nth-child(4) {
+    background-image: url("../image/sushidaruma.gif");
+    -webkit-animation-delay: 28s;
+    animation-delay: 28s;
+}
+
+@media screen and (max-width: 600px) {
+    .bgimg li:nth-child(1) {
+        background-image: url("../image/m_winter.webp"); /* スマホ用の画像パスを指定 */
+    }
+
+    .bgimg li:nth-child(2) {
+        background-image: url("../image/m_babaman.webp"); /* スマホ用の画像パスを指定 */
+    }
+
+    .bgimg li:nth-child(3) {
+        background-image: url("../image/m_summer.webp"); /* スマホ用の画像パスを指定 */
+    }
+
+    .bgimg li:nth-child(4) {
+        background-image: url("../image/akisake.webp"); /* スマホ用の画像パスを指定 */
+    }
+}
+
+
+@keyframes anime {
+    0% {
+        animation-timing-function: ease-in;
+        opacity: 0;
+    }
+    10% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    40% {
+        transform: scale(1.2);
+        animation-timing-function: ease-out;
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.3);
+        opacity: 0;
+    }
+    90% {
+        transform: scale(1.3);
+        opacity: 0;
+    }
+    100% {
+        opacity: 0;
+    }
+}

@@ -1,0 +1,407 @@
+/* 全体のスタイル */
+body.stylish-bg {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    color: #e0e4ff; /* 少し青みがかった白に変更 */
+    background-image: url('images/bg_hekiga.png');
+    background-size: cover;
+    background-attachment: fixed;
+    text-shadow: 0 0 3px #8a2be2, 0 0 6px #4b0082, 0 0 9px #9400d3;
+}
+
+h1, h2, h3, h4, h5, h6, .cool-button {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+    color: #f0f4ff; /* 見出しはより明るい色に */
+    text-shadow: 
+        0 0 2px #8a2be2,
+        0 0 4px #4b0082,
+        0 0 6px #9400d3; /* より強い発光効果 */
+}
+
+/* 通常のテキストリンクにも発光効果を追加 */
+a {
+    color: #b19cd9;
+    text-decoration: none;
+    text-shadow: 0 0 2px #8a2be2, 0 0 4px #4b0082;
+    transition: all 0.3s ease;
+}
+
+a:hover {
+    color: #e6e6fa;
+    text-shadow: 0 0 3px #9400d3, 0 0 6px #8a2be2, 0 0 9px #4b0082;
+}
+
+/* フォーム要素の文字色も調整 */
+input, select, textarea {
+    color: #e0e4ff;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid #FF004F;
+}
+
+/* プレースホルダーテキストの色も調整 */
+::placeholder {
+    color: #b19cd9;
+    opacity: 0.7;
+}
+.imgtitle {
+	max-width: 200px;
+}
+
+.content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    position: relative;
+    animation: color-change-glow 10s linear infinite;
+}
+
+@keyframes color-change-glow {
+    0%, 100% {
+        box-shadow: 0 0 10px #00ffff, 0 0 20px #0066ff;
+    }
+    25% {
+        box-shadow: 0 0 10px #4b0082, 0 0 20px #8a2be2;
+    }
+    50% {
+        box-shadow: 0 0 10px #9900FF, 0 0 20px #B713FF;
+    }
+    75% {
+        box-shadow: 0 0 10px #8a2be2, 0 0 20px #4b0082;
+    }
+}
+
+/* ヘッダーのスタイル */
+.stylish-header {
+    text-align: center;
+    padding: 3px 0;
+    border-bottom: 2px solid #gold;
+}
+
+.stylish-title.flame-title {
+    font-size: 3rem;
+    letter-spacing: 2px;
+	color: #e0f0ff;  /* 薄い青白色のテキスト */
+	text-shadow: 0 0 2px #00ffff, 0 0 4px #0066ff;  /* 青白い輝き */
+}
+
+.stylish-subtitle {
+    font-size: 2rem;
+    letter-spacing: 1px;
+}
+
+/* コンテナとカラムのスタイル */
+.stylish-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.stylish-column {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+}
+
+/* フォーム要素のスタイル */
+.stylish-controls label {
+    display: block;
+	margin-top: 15px;
+    margin-bottom: 15px;
+    color: #gold;
+}
+
+.stylish-select, .stylish-input, .stylish-textarea {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid #gold;
+    color: #fff;
+    border-radius: 5px;
+}
+
+.stylish-button {
+    background-color: #ff0000;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 5px;
+}
+
+.stylish-button:hover {
+    background-color: #ff3333;
+    box-shadow: 0 0 10px #ff0000;
+}
+
+.button-container {
+    display: flex;
+    gap: 20px; /* ボタン間の間隔、調整してええで */
+}
+
+.cool-button {
+	font-size: 1rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, #8A2BE2, #FF1493);
+    color: #fff;
+    font-weight: bold;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.cool-button::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    background: inherit;
+    filter: blur(10px);
+    opacity: 0;
+    transition: opacity 0.3s ease, filter 0.3s ease;
+    border-radius: 15px;
+    z-index: -1;
+}
+
+.cool-button:hover::before {
+    opacity: 0.7;
+    filter: blur(8px);
+}
+
+.cool-button::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: inherit;
+    border-radius: 10px;
+    z-index: -1;
+}
+
+.cool-button:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 20px rgba(138, 43, 226, 0.5);
+}
+
+.cool-button span {
+    position: relative;
+    z-index: 1;
+}
+
+.flame-title {
+  display: inline-block;
+  position: relative;
+}
+
+.flame-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 2px;
+  background: #0066ff;
+  box-shadow: 
+    0 0 2px #00ffff,
+    0 0 4px #0066ff,
+    0 0 6px #0066ff,
+    0 0 8px #00ffff;
+  animation: flame-glow 3s infinite;
+}
+
+.flame-title span {
+  display: inline-block;
+  position: relative;
+}
+
+.flame-title span::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: transparent;
+  animation: flame-sway 3s ease-in-out infinite;
+}
+
+.flame-title span:nth-child(2n)::after {
+  animation-delay: 0.2s;
+}
+
+.flame-title span:nth-child(3n)::after {
+  animation-delay: 0.4s;
+}
+
+@keyframes flame-sway {
+  0%, 100% {
+    transform: translateX(0);
+    text-shadow: 0 0 3px #00ffff, 0 0 6px #0066ff;
+  }
+  25% {
+    transform: translateX(-2px);
+    text-shadow: -1px 0 3px #00ccff, -1px 0 6px #0099ff;
+  }
+  75% {
+    transform: translateX(2px);
+    text-shadow: 1px 0 3px #00ccff, 1px 0 6px #0099ff;
+  }
+}
+
+@keyframes flame-glow {
+  0%, 100% { opacity: 1; filter: blur(0px); }
+  50% { opacity: 0.8; filter: blur(1px); }
+}
+
+@media (max-width: 768px) {
+  .flame-title {
+    font-size: 1.5rem;
+    line-height: 1.2;
+    white-space: normal;
+    word-wrap: break-word;
+    max-width: 100%;
+  }
+}
+
+.stylish-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+      flex-grow: 1; /* 残りのスペースを埋める */
+    overflow-y: auto; /* 縦方向にスクロール可能 */
+    padding-right: 10px; /* スクロールバー分の余白 */
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  width: 100%; /* 全幅を使用 */
+}
+
+.control-group label {
+  flex: 1;
+  margin-right: 10px;
+  min-width: 150px; /* ラベルの最小幅を設定 */
+}
+
+.control-group select {
+  flex: 2;
+  width: auto;
+}
+
+@media (max-width: 768px) {
+	
+	
+	#customizer {
+        height: auto; /* スマホではビューポート全体を使わない */
+    }
+
+    .stylish-controls {
+        max-height: 50vh; /* ビューポートの60%をコントロールエリアに */
+    }
+  .control-group {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .control-group label {
+    margin-bottom: 5px;
+  }
+  
+  .control-group select {
+    width: 100%;
+  }
+}
+/* プレビュー領域のスタイル */
+.stylish-preview {
+    width: 100%;
+    text-align: center;
+}
+
+.stylish-preview canvas {
+    max-width: 100%;
+    height: auto;
+    border: 2px solid #gold;
+    border-radius: 10px;
+}
+
+/* レスポンシブデザイン */
+@media (min-width: 768px) {
+    .stylish-container {
+        flex-direction: row;
+    }
+
+    .stylish-column {
+        flex: 1;
+    }
+}
+
+/* フッターのスタイル */
+.stylish-footer {
+    text-align: center;
+    padding: 20px 0;
+    border-top: 2px solid #gold;
+    margin-top: 20px;
+}
+
+/* ユーティリティクラス */
+.hidden {
+    display: none;
+}
+
+/* ステップインジケーターのスタイル */
+.step-indicator {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.step-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8A2BE2, #FF1493); /* 青紫から赤紫へのグラデーション */
+    color: #fff; /* 文字色を白に変更 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.step-title {
+    font-size: 24px;
+    color: #gold;
+}
+
+/* アニメーション効果 */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.step-circle {
+    animation: pulse 2s infinite;
+}

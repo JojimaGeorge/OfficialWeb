@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>婆婆王 デュエル老婆ぁず</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="game-container">
+    <div id="header-container">
+        <div id="logo-container">
+            <img src="image/rogo.png" alt="婆婆王 デュエル老婆ぁず" id="game-logo">
+        </div>
+    </div>
+
+		<div id="attribute-container">
+            <img src="image/attribute.png" alt="属性相関図" id="attribute-diagram">
+        </div>
+
+		<div id="game-info">
+			フェイズ：<span id="round-counter">1</span>/5　
+			WIN：<span id="player-wins">0</span>　
+			LOSE：<span id="cpu-wins">0</span>
+		</div>
+        <div id="card-selection" style="display: none;">
+            <h2>対戦カードを5枚選択するんや</h2>
+            <div id="selection-area"></div>
+        </div>
+        <div id="game-board">
+            <div id="field">
+                <div id="player-field" class="field-side"></div>
+                <div id="cpu-field" class="field-side"></div>
+            </div>
+            <div id="player-hand" class="hand"></div>
+        </div>
+        <button id="start-game">ゲーム開始</button>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    <script src="cardData.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,517 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  margin: 0;
+  font-family: "M PLUS Rounded 1c";
+  font-weight: bold;
+  background-size: auto auto;
+  background-color: rgba(255, 255, 255, 1);
+  background-image: repeating-linear-gradient(39deg, transparent, transparent 10px, rgba(163, 242, 255, 1.00) 10px, rgba(163, 242, 255, 1.00) 20px);
+}
+.wf-roundedmplus1c {
+  font-family: "M PLUS Rounded 1c";
+}
+
+
+p {
+  color: #AA1B45;
+  display: inline-block;
+  position: relative;
+}
+/* ハートのスタイル */
+.heart {
+  font-size: 18px;
+  color: #FF4B4E;
+  animation: pulse 2s infinite; /* エフェクトのアニメーションを適用 */
+}
+/* ハートのアニメーション定義 */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 5px #e75480);
+  }
+  50% {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 20px #ff00ff);
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 5px #e75480);
+  }
+}
+/* レインボーのテキストエフェクト */
+.rainbow-text {
+  background: linear-gradient(180deg, #FF84D0, #FF49AF, #FF5050);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: rainbow 6s infinite; /* エフェクトのアニメーションを適用 */
+}
+/* レインボーのアニメーション定義 */
+@keyframes rainbow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+#content {
+  text-align: center;
+  max-height: 100%;
+}
+#baba-container {
+  text-align: center;
+  position: relative;
+}
+#time-message {
+  text-align: center;
+  margin: 1em auto;
+  padding: 1em; /*内側余白*/
+  border-left: solid 5px #e9b3a3; /*線の種類・太さ・色*/
+  background-color: #f5f5f5; /*背景色*/
+  box-shadow: 3px 1px 4px rgba(0, 0, 0, 0.2);
+}
+#popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+#popup-download {
+  position: absolute;
+  text-align: center;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+.hidden {
+  display: none;
+}
+#progress-bar-container {
+  width: 50vh;
+  height: 20px;
+  background-color: #f9c1e1;
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+#progress-bar {
+  height: 100%;
+  background-color: #ff5a8f;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+#talk-button {
+  background-color: #ff8abf;
+  color: #fff;
+  font-size: 18px;
+  padding: 10px 20px;
+  border-radius: 50px;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+}
+#talk-button:hover {
+  background-color: #ff5a8f;
+  cursor: pointer;
+}
+#talk-button:active {
+  background-color: #ff3070;
+}
+#download-button, #close-button {
+  background-color: #ff8abf;
+  color: #fff;
+  font-size: 12px;
+  padding: 10px 20px;
+  border-radius: 50px;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+  text-decoration: none;
+  cursor: pointer;
+}
+#baba-image {
+  position: relative;
+  height: 50vh;
+}
+#babalove-image {
+  width: 500px;
+  height: 500px;
+  display: none;
+}
+#download-babalove-image {
+  width: 500px;
+  height: 500px;
+}
+#close-button {
+  margin-top: 10px;
+}
+#description-popup {
+  display: flex;
+  text-align: center;
+  justify-content: center;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #69ADFF;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  z-index: 1; /* ポップアップを手前に表示 */
+  white-space: pre-wrap; /* 文の改行を有効にする */
+}
+
+#white {
+  display: inline-block; /* コンテンツに合わせて幅を調整 */
+  background-color: rgba(169,198,255,0.70); /* 白色の背景に透明度を指定 */
+  border-radius: 20px; /* 角丸の半径を指定 */
+  padding: 20px; /* 内側の余白を指定 */
+}
+
+
+
+#video-area{
+    position: fixed;
+    z-index: -1;/*最背面に設定*/
+    top: 0;
+    right:0;
+    left:0;
+    bottom:0;
+    overflow: hidden;
+}
+
+#video {
+    /*天地中央配置*/
+    position: absolute;
+    z-index: -1;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /*縦横幅指定*/
+    width: 177.77777778vh; /* 16:9 の幅→16 ÷ 9＝ 177.77% */
+    height: 56.25vw; /* 16:9の幅 → 9 ÷ 16 = 56.25% */
+    min-height: 100%;
+    min-width: 100%;
+}
+
+
+#next-button {
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0; /* テキストの周りの余白をなくす */
+  font-size: 20px; /* テキストのフォントサイズを設定 */
+  color: white; /* テキストの色を設定 */
+}
+
+/* ボタン点滅アニメーションの定義 */
+@keyframes blink {
+  0% { opacity: 1; } /* 0%のときに表示 */
+  50% { opacity: 0; } /* 50%のときに非表示 */
+  100% { opacity: 1; } /* 100%のときに再び表示 */
+}
+
+/* 点滅アニメーションを適用するクラス */
+.blinking-button {
+  animation: blink 1s infinite; /* blinkアニメーションを1秒ごとに無限に繰り返す */
+}
+
+
+/* タイトル画面のポップアップ要素のスタイル */
+#title-popup {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #62A6FF;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  z-index: 2; /* ポップアップを手前に表示 */
+
+}
+@keyframes fadeInPopup {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -55%); /* 初期位置をやや上に設定 */
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%); /* 通常位置に移動 */
+  }
+}
+img.title-image {
+  width: 90vw;
+}
+
+@media screen and (min-width: 768px) {
+	img.title-image {
+	  width: 40vw;
+	}	
+}
+
+#playtitle {
+font-size: 20px;
+}
+
+#title-text {
+  text-align: center;
+  font-size: 25px;
+  margin: 10px 0;
+  color: #020613;
+}
+img.play-image1 {
+  width: 400px;
+}
+img.play-image2 {
+  width: 100px;
+}
+#start-button {
+  background-color: #ff8abf;
+  color: #fff;
+  font-size: 18px;
+  padding: 10px 20px;
+  border-radius: 50px;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+}
+#start-button:hover {
+  background-color: #ff5a8f;
+  cursor: pointer;
+}
+#start-button:active {
+  background-color: #ff3070;
+}
+#close-title-button {
+  margin-top: 10px;
+}
+a.my-twitter-share-button {
+  background-color: #007CFF;
+  color: #fff;
+  font-size: 14px;
+  padding: 10px 10px;
+  border-radius: 50px;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-image 0.3s ease;
+  text-decoration: none;
+}
+a.my-twitter-share-button:hover {
+  background-image: linear-gradient(45deg, #ff5a8f, #D874FF, #8FB0FF, #9CFFDB, #D1FFA9, #FFED00, #FF1111);
+  cursor: pointer;
+}
+.button-container {
+  display: flex;
+}
+.button-container button, .button-container a {
+  margin-right: 10px; /* ボタン間のスペースを調整するためのオプションです */
+}
+#nft-popup {
+  position: absolute;
+  text-align: center;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  z-index: 1; /* ポップアップを手前に表示 */
+}
+#nft-popup-message {
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+#nft-issue-button {
+  background-image: linear-gradient(45deg, #FF2878, #FF6B8B, #FF1111);
+  color: #fff;
+  font-size: 18px;
+  padding: 10px 20px;
+  border-radius: 50px;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+}
+#reset-button {
+  background-color: #FFE6F1;
+  color: #fff;
+  font-size: 20px;
+  padding: 10px 10px;
+  border-radius: 50px;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+}
+#reset-popup {
+  position: absolute;
+  text-align: center;
+  color: aliceblue;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-image: linear-gradient(45deg, #FF2878, #FF6B8B, #FF1111);
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  z-index: 1;
+}
+#confirm-reset-button {
+  background-color: #FFEDF5;
+  color: #BA83FF;
+  font-size: 18px;
+  padding: 10px 20px;
+  border-radius: 50px;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+}
+#confirm-reset-button:hover {
+  background-color: #000000;
+  cursor: pointer;
+}
+#confirm-reset-button:active {
+  background-color: #000000;
+}
+#close-reset {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 20px;
+  background-color: transparent;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+/* ホワイトアウトエフェクト用のスタイル */
+.whiteout {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: #FF1AE1;
+  background-color: white;
+  animation-name: whiteoutAnimation;
+  animation-duration: 2s;
+  animation-fill-mode: forwards;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.whiteout span {
+  font-family: "MS Serif", "New York", "serif";
+  font-style: italic;
+  font-size: 50px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+/* ホワイトアウトのアニメーションキーフレーム */
+@keyframes whiteoutAnimation {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* スマートフォン向けの設定 */
+@media screen and (max-width: 768px) {
+	
+  body {
+    background-size: cover; /* 画像を背景全体に表示 */
+  }
+  #progress-bar-container {
+    width: 40vh;
+    height: 20px;
+  }
+  #baba-image {
+    height: 40vh;
+  }
+  #babalove-image {
+    width: 80vw;
+    height: 80vw;
+  }
+  #download-babalove-image {
+    width: 90vw;
+    height: 90vw;
+  }
+  .rainbow-text {
+    font-size: 20px; /* レインボーのテキストエフェクトのサイズを調整 */
+  }
+  #nft-popup {
+    width: 90%; /* NFTポップアップの幅を画面幅の90%に設定 */
+    max-width: 400px; /* 最大幅を400pxに制限 */
+  }
+  #nft-popup-message {
+    font-size: 14px; /* NFTポップアップのメッセージのサイズを調整 */
+    margin-bottom: 10px;
+  }
+  #nft-issue-button {
+    font-size: 16px; /* NFT発行ボタンのサイズを調整 */
+    padding: 8px 16px; /* パディングを調整 */
+  }
+  #reset-button {
+    font-size: 15px;
+    padding: 10px 10px;
+    border-radius: 50px;
+    top: 10px;
+    right: 10px;
+  }
+	
+img.play-image1 {
+  width: 300px;
+}
+img.play-image2 {
+  width: 50px;
+}	
+
+#white {
+  padding-top: 3px; /* 内側の余白を指定 */
+}
+#video {
+height: 100%; 
+min-height: 100%;
+min-width: 100%;
+}
+#playtitle {
+font-size: 25px;
+}
+	
+}

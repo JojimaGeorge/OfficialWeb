@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>すしだるま診断 - あなたにぴったりのすしだるまを見つけよう！</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>すしだるま診断</h1>
+            <p class="subtitle">あなたにぴったりのすしだるまを見つけよう！</p>
+        </header>
+
+        <div class="quiz-container">
+            <div id="start-screen" class="screen active">
+                <h2>あなたはどのすしだるま？</h2>
+                <p>質問に答えて、あなたにぴったりのすしだるまを見つけよう！</p>
+                
+                <div class="sushi-characters">
+                    <div class="sushi-character">
+                        <img src="img/maguro.png" alt="まぐろ" class="sushi-icon">
+                    </div>
+                    <div class="sushi-character">
+                        <img src="img/salmon.png" alt="サーモン" class="sushi-icon">
+                    </div>
+                    <div class="sushi-character">
+                        <img src="img/amaebi.png" alt="あまえび" class="sushi-icon">
+                    </div>
+                    <div class="sushi-character">
+                        <img src="img/uni.png" alt="うに" class="sushi-icon">
+                    </div>
+                    <div class="sushi-character">
+                        <img src="img/madako.png" alt="まだこ" class="sushi-icon">
+                    </div>
+                    <div class="sushi-character">
+                        <img src="img/hamachi.png" alt="はまち" class="sushi-icon">
+                    </div>
+                    <div class="sushi-character">
+                        <img src="img/hotaruika.png" alt="ほたるいか" class="sushi-icon">
+                    </div>
+                </div>
+                
+                <button id="start-btn" class="btn">診断スタート！</button>
+            </div>
+
+            <div id="question-screen" class="screen">
+                <div id="progress-bar">
+                    <div id="progress"></div>
+                </div>
+                <h2 id="question-text">質問がここに表示されます</h2>
+                <div id="answers" class="answers-container">
+                    <!-- 回答ボタンはJavaScriptで生成 -->
+                </div>
+            </div>
+
+            <div id="result-screen" class="screen">
+                <h2>診断結果</h2>
+                <div class="result-container">
+                    <div class="result-image-container">
+                        <img id="result-image" src="" alt="あなたのすしだるま">
+                    </div>
+                    <div class="result-text">
+                        <h3 id="result-title">あなたは〇〇タイプ！</h3>
+                        <p id="result-description">説明文がここに表示されます</p>
+                    </div>
+                </div>
+                <button id="restart-btn" class="btn">もう一度診断する</button>
+                <div class="share-buttons">
+                    <button id="twitter-share" class="btn share-btn twitter">X(Twitter)でシェア</button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2025 すしだるま診断 | すしだるまの詳細は<a href="https://sushi-daruma.com/" target="_blank">公式サイト</a>をチェック！</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

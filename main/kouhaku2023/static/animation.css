@@ -1,0 +1,62 @@
+/* Loading背景画面設定　*/
+#splash {
+  /*fixedで全面に固定*/
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  text-align: center;
+  color: #fff;
+}
+
+/* Loading画像中央配置　*/
+#splash_text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 999;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  width: 100%;
+}
+#splash_text img {
+  width: 160px;
+}
+
+/*割れる画面のアニメーション*/
+.loader_cover {
+  width: 100%;
+  height: 50%;
+  backdrop-filter: blur(20px);
+  transition: all 0.5s cubic-bezier(0.04, 0.435, 0.315, 0.9);
+  transform: scaleY(1);
+}
+/*上の画面*/
+.loader_cover-up {
+  background-color: rgba(255, 43, 43, 0.85);
+  transform-origin: center top;
+}
+
+/*下の画面*/
+.loader_cover-down {
+  background-color: rgba(228, 228, 228, 0.85);
+  position: absolute;
+  bottom: 0;
+  transform-origin: center bottom;
+}
+/*クラス名がついたらY軸方向に0*/
+.coveranime {
+  transform: scaleY(0);
+}
+
+/* 浮かび上がるアニメーション */
+.animation-element {
+  transform: translateY(5px);
+  opacity: 0;
+  transition: transform 1s ease, opacity 1s ease;
+}
+
+.animation-element.show {
+  transform: translateY(0);
+  opacity: 1;
+}

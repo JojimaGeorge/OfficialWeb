@@ -1,0 +1,473 @@
+@charset "utf-8";
+
+
+body {
+    background-image: linear-gradient(to bottom, rgba(0,76,255,0.62), rgba(255,0,128,0.45));
+	font-family: "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", "メイリオ", "Meiryo, Osaka", "ＭＳ Ｐゴシック", "MS P Gothic", "sans-serif";
+  }
+
+
+/*========= LoadingのためのCSS ===============*/
+
+/* Loading背景画面設定　*/
+
+#splash {
+    /*fixedで全面に固定*/
+  position: fixed;
+  z-index: 999;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(121,127,255,1.00);
+  text-align:center;
+  color:#fff;
+}
+
+/* Loadingバー中央配置　*/
+#splash_text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+    z-index: 999;
+  width: 100%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+}
+
+
+ 
+/* コンテンツ部分の装飾 */
+.gallery {
+  display: grid;
+  gap: .5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+
+
+img:focus {
+  outline: none;
+}
+
+/* ハンバーガーメニュー付きナビゲーション */
+#global-navi {
+  top: 0;
+  right: 0px;
+  width: 100%;
+  z-index: 100;
+  transition: background-color 0.3s ease-in-out;
+}
+
+
+#wrappernavi{
+  position: fixed;
+    width: 100%;
+z-index: 100;
+transition: top 0.3s ease-in-out;
+}
+
+#wrappernavi.hide {
+  top: -100px;
+}
+
+#wrappernavi.show {
+  top: 0;
+}
+
+#wrappernavi nav ul li {
+  display: inline-block;
+  padding-top: 20px; 
+  font-size: 16px;
+  padding: 20px 20px 25px 20px;
+  transition: background-color 0.3s ease-in-out;
+}
+
+#wrappernavi nav ul li:hover {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+
+#wrappernavi nav ul li a {
+  color: #FFFFFF;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.menu {
+  transition: background 0.7s;
+}
+
+.scrolled .menu {
+}
+
+.letter {
+  float: right;
+  padding-right: 15px; 
+}
+
+.logo {
+  height: 50px;
+  float: left;
+  padding-left: 150px;
+}
+
+
+
+@media screen and (max-width: 600px) {
+#wrappernavi nav {
+    position: fixed;
+    top: 0;
+    right: -300px;
+    width: 200px;
+    height: 100%;
+    padding-top: 50px;
+    backdrop-filter: blur(20px);
+    background-image: linear-gradient(to bottom, rgba(64,62,255,0.57), rgba(255,51,215,0.64));
+    font-size: 16px;
+    box-sizing: border-box;
+    z-index: 2
+}
+#wrappernavi nav ul li {
+    display:block;
+    padding: 20px 28px
+}
+  
+#wrappernavi nav ul li a {
+    text-decoration: none;
+    color: #FFFFFF;
+	padding-right: 40px;
+}
+.menu {
+  background: rgba(255,252,240,0.00);
+}
+
+.logo {
+  height: 50px;
+  float: right;
+  padding-right: 10px;
+}
+	
+#wrappernavi .btn-gnavi {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 30px;
+    height: 24px;
+    z-index: 3;
+    box-sizing: border-box;
+    cursor: pointer;
+    -webkit-transition: all 400ms;
+    transition: all 400ms
+}
+  
+#wrappernavi .btn-gnavi span {
+    position: absolute;
+    width: 30px;
+    height: 4px;
+    background: #666;
+    border-radius: 10px;
+    -webkit-transition: all 400ms;
+    transition: all 400ms
+}
+  
+#wrappernavi .btn-gnavi span:nth-child(1) {
+    top: 0
+}
+  
+#wrappernavi .btn-gnavi span:nth-child(2) {
+    top: 10px
+}
+  
+#wrappernavi .btn-gnavi span:nth-child(3) {
+    top: 20px
+}
+  
+#wrappernavi .btn-gnavi.open {
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg)
+}
+  
+#wrappernavi .btn-gnavi.open span {
+    background: #fff
+}
+  
+#wrappernavi .btn-gnavi.open span {
+    width: 24px;
+}
+#wrappernavi .contents section p {
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    line-height: 1.4;
+    font-size: 20px;
+    color: #fff;
+    text-shadow: 0 0 6px #666
+}
+  
+#wrappernavi .contents section:nth-child(odd) p {
+    left: 10%
+}
+  
+#wrappernavi .contents section:nth-child(even) p {
+    right: 10%
+}
+}
+
+
+/*リンク文ホバーエフェクト2*/
+.cp_block {
+	margin: 5em auto;
+	text-align: center;
+}
+.cp_textlink07 {
+    margin: 10px;
+	position: relative;
+	display: inline-block;
+    padding: 0.3em 0.9em;
+	text-decoration: none;
+	font-weight: bold;
+	font-size: 14px;
+	color: #000357;
+	z-index: 1;
+}
+.cp_textlink07::after,
+.cp_textlink07::before {
+	position: absolute;
+	content: '';
+	border-radius: 10px;
+}
+.cp_textlink07::after {
+	z-index: -1;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(255,255,255,0.59);
+	transition: all 0.3s ease;
+}
+.cp_textlink07::before {
+	top: -4px;
+	bottom: -5px;
+	left: -4px;
+	right: -5px;
+	width: calc(100% + 6px);
+	height: calc(100% + 6px);
+	border: 1px solid #FFFFFF;
+	opacity: 0;
+	transition: all 0.3s;
+}
+.cp_textlink07:hover:after {
+	background: linear-gradient(to bottom, rgba(73,0,255,0.57), rgba(255,51,196,0.64));
+}
+.cp_textlink07:hover:before {
+	top: 3px;
+	left: 2.5px;
+	width: calc(100% - 6px);
+	height: calc(100% - 6px);
+	opacity: 1;
+}
+
+
+footer {
+  background-color: rgba(255,255,255,0.77);
+  padding: 20px;
+  text-align: center;
+}
+
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.footer-content .copyright {
+  margin-bottom: 10px;
+}
+
+.footer-content .footer-image {
+  width: 100%;
+}
+
+
+
+/*==================================================
+ギャラリーのためのcss
+===================================*/
+/*＝＝＝並び替えボタンチェックマークのCSS*/
+.sort-btn{
+  background-image: linear-gradient(to right, rgba(129,114,255,0.57), rgba(255,77,187,0.64), rgba(255,255,255,0.00));
+  padding: 10px;
+  margin:50px 0;
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+
+
+.sort-btn dt{
+	font-weight: bold;
+	margin:0 0 10px 0;
+}
+
+.sort-btn dd{
+	margin:0 0 10px 0;
+}
+
+.sort-btn ul{
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.sort-btn li{
+	margin:0 10px;
+list-style:none;
+}
+
+.sort-btn ul li{
+	position: relative;
+	cursor: pointer;
+	padding:0 0 0 30px;
+	margin:0 10px 0 0;
+}
+
+/*横幅が810px以下になった際の指定*/
+@media only screen and (max-width: 810px) {
+.sort-btn li{
+	width:100%;
+	margin:0;
+}
+	
+.sort-btn ul li{
+	width:auto;
+}
+	
+}
+
+/*チェックマークの設定*/
+.sort-btn ul li::before{
+	content:'';
+	position: absolute;
+	left:0;
+	width:20px;
+	height:20px;
+	border:2px solid #ccc;
+}
+
+.sort-btn ul li.active::after{/*現在地＝activeというクラス名がついたらチェックマークを出現*/
+	content:'';
+	position: absolute;
+	left:5px;	
+	top:0;
+    /*チェックマークの色や形*/
+	border-left:2px solid #333;
+	border-bottom:2px solid #333;
+	width:16px;
+	height:9px;
+	transform:rotate(-45deg);
+}
+
+
+
+/*＝＝＝Muuriのレイアウトのための調整 */
+.grid {
+  position: relative;/*並び替えの基準点を指定*/
+}
+
+/*各画像の横幅などの設定*/
+.item {
+  display: block;
+  position: absolute;
+  width: 30%;/*横並びで3つ表示*/
+  padding:0 10px 10px 10px;/*画像に余白をつける*/
+  z-index: 1;
+list-style:none;
+}
+
+/*内側のボックスの高さが崩れないように維持*/
+.item-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/*画像の横幅を100%にしてレスポンシブ化*/
+.grid img{
+	width:100%;
+	height:auto;
+	vertical-align: bottom;/*画像の下にできる余白を削除*/
+}
+
+/*横幅が768px以下になった際の指定*/
+@media only screen and (max-width: 768px) {
+.item {
+  width: 45%;/*横並びで2つ表示*/
+  padding: 0 5px 10px 5px;
+}
+}
+
+
+/*＝＝＝fancyboxサムネイル背景と画像選択時の枠線の指定*/
+.fancybox-thumbs {
+    background: transparent!important;
+}
+
+.fancybox-thumbs__list a:before {
+    border: 6px solid #FA999B;
+}
+
+/*========= レイアウトのためのCSS ===============*/
+ul{
+  margin:0;
+  padding: 0;
+  list-style: none;
+}
+
+a{
+  color: #333;
+}
+
+a:hover,
+a:active{
+  text-decoration: none;
+}
+
+h1{
+  text-align: center;
+  font-size:6vw;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin:30px 0;
+}
+
+p{
+  margin:0 10px 10px 10px;
+  word-wrap : break-word;
+}
+
+
+.animation-element {
+  opacity: 0;
+  transform: translateX(100px);
+  animation: floatIn 0.5s ease forwards;
+}
+
+@keyframes floatIn {
+  0% {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
+.centered-text {
+  text-align: center; /* 文章を中央に表示する */
+}
+
+.explain {
+  font-size: 12px; /* フォントサイズを調整する */
+}

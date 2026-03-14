@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>婆婆王カードカスタマイザー</title>
+	<link rel="icon" href="images/pfpfav.png" sizes="16x16" type="image/png" /> 
+	<link rel="icon" href="images/pfpfav.png" sizes="32x32" type="image/png" />  
+	<link rel="icon" href="images/pfpfav.png" sizes="48x48" type="image/png" /> 
+	<link rel="icon" href="images/pfpfav.png" sizes="62x62" type="image/png" />
+	<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="cardcustom.css">
+</head>
+<body class="stylish-bg">
+    <div class="content-wrapper">
+		
+        <header class="stylish-header">
+			<img class="imgtitle" src="images/rogo.png"><br>
+
+<h1 id="婆婆王カードカスタマイザー" class="stylish-title flame-title">
+  <span data-text="婆">婆</span><span data-text="婆">婆</span><span data-text="王">王</span><span data-text="カ">カ</span><span data-text="ー">ー</span><span data-text="ド">ド</span><span data-text="カ">カ</span><span data-text="ス">ス</span><span data-text="タ">タ</span><span data-text="マ">マ</span><span data-text="イ">イ</span><span data-text="ザ">ザ</span><span data-text="ー">ー</span>
+</h1>
+        </header>
+
+        <main>
+            <div id="customizer" class="container stylish-container">
+				
+				<div class="column stylish-column">
+					<div class="step-indicator">
+						<div class="step-circle">1</div>
+						<h2 class="step-title">キャラカスタマイズ</h2>
+					</div>
+                    <div id="preview-container" class="stylish-preview">
+                        <canvas id="preview"></canvas>
+                    </div>
+                </div>
+				
+                <div class="column stylish-column">
+
+                    <div id="controls" class="stylish-controls">
+					 <div class="control-group">	
+                        <label for="attribute">属性を選んでや</label>
+                        <select id="attribute" class="stylish-select">
+                            <option value="">選んでや</option>
+                            <option value="tenshi">天使</option>
+                            <option value="akuma">悪魔</option>
+                            <option value="narikin">成金</option>
+                        </select>
+					 </div>
+
+						<div class="control-group">
+                        <label for="ac">アクセサリー</label>
+                        <select id="ac" class="stylish-select"></select>
+						</div>
+
+						<div class="control-group">
+                        <label for="ha">髪型</label>
+                        <select id="ha" class="stylish-select"></select>
+						</div>
+
+						<div class="control-group">
+                        <label for="dr">服</label>
+                        <select id="dr" class="stylish-select"></select>
+						</div>
+
+						<div class="control-group">
+                        <label for="eb">まゆげ</label>
+                        <select id="eb" class="stylish-select"></select>
+						</div>
+
+						<div class="control-group">
+                        <label for="ey">目</label>
+                        <select id="ey" class="stylish-select"></select>
+						</div>
+
+						<div class="control-group">
+                        <label for="mo">口</label>
+                        <select id="mo" class="stylish-select"></select>
+						</div>
+
+						<div class="control-group">
+                        <label for="bo">素体</label>
+                        <select id="bo" class="stylish-select"></select>
+						</div>
+
+						<div class="control-group">
+                        <label for="bg">背景</label>
+                        <select id="bg" class="stylish-select"></select>
+						</div>
+                    </div>
+					<br>
+
+                    <button id="next-btn" class="cool-button"><span>次へ</span></button>
+                </div>
+            </div>
+
+<div id="info-form" class="container stylish-container hidden">
+    <div class="column stylish-column">
+		<div class="step-indicator">
+		<div class="step-circle">2</div>
+		<h2 class="step-title">オリジナルカード情報入力</h2>
+		</div>
+        <div id="info-preview-container" class="stylish-preview">
+            <canvas id="info-preview"></canvas>
+        </div>
+        <form id="card-info-form" class="stylish-form">
+            <label for="card-title">カードのタイトル（11文字以内）</label>
+            <input type="text" id="card-title" name="cardTitle" maxlength="11" required class="stylish-input">
+
+            <label for="card-description">カードの説明文（ばーばが喋る、50字以内）</label>
+            <textarea id="card-description" name="cardDescription" maxlength="50" required class="stylish-textarea"></textarea>
+
+            <label for="user-name">君の名前</label>
+            <input type="text" id="user-name" name="userName" required class="stylish-input">
+
+            <label for="x-account">Xのアカウント（@から始まる）</label>
+            <input type="text" id="x-account" name="xAccount" pattern="@.*" required class="stylish-input">
+
+            <label for="wallet-address">ウォレットアドレス(無い場合は「なし」と記載)</label>
+            <input type="text" id="wallet-address" name="walletAddress" pattern="0x[a-fA-F0-9]{40}" required class="stylish-input">
+
+            <label for="nft-link">購入したNFTのリンク</label>
+            <input type="url" id="nft-link" name="nftLink" required class="stylish-input"><br><br>
+
+			<div class="button-container">
+            <button type="button" id="back-btn" class="cool-button"><span>戻る</span></button>
+				<br>
+            <button type="submit" class="cool-button"><span>情報を送信</span></button>
+			</div>
+        </form>
+		<br>
+		<br>
+
+        <button id="toggle-sample" class="cool-button"><span>サンプル文表示/非表示</span></button>
+		
+    </div>
+</div>
+        </main>
+
+        <footer class="stylish-footer">
+            <p>&copy; 2024 城島ジョージ</p>
+        </footer>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="cardcustom.js"></script>
+</body>
+</html>

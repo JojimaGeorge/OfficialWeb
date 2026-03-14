@@ -1,0 +1,365 @@
+/* ボックス*/
+.all-box {
+  font-size: 16px;
+  color: #fff;
+}
+.all-box > a:link,
+.all-box > a:hover,
+.all-box > a:visited {
+  color: #fff;
+}
+/*
+    For...・参加作品のお迎えがあった場合・参加特典
+    参加一覧・NFT紅白の楽しみ方・メタバース会場
+   */
+.long-box {
+  width: 100%;
+  max-width: 400px;
+  margin: 20px auto;
+}
+/* 購入者特典申請フォームへ */
+.middle-box {
+  width: 80%;
+  max-width: 350px;
+  margin: 20px auto;
+}
+/* 紹介ページへ・参加方法 */
+.short-box {
+  width: 100%;
+  max-width: 140px;
+  margin: 0 auto;
+}
+/* 紅白エントリー特典・紅白参加作品購入特典 */
+.min-box {
+  width: 80%;
+  max-width: 200px;
+  margin: 0 auto;
+}
+/* 紅組・白組 */
+.macro-box {
+  width: 40%;
+  max-width: 120px;
+  margin: 0 auto;
+}
+
+/* 紹介ページへ */
+.introduction-box {
+  background-color: #c7b199;
+  height: 40px;
+  line-height: 40px;
+}
+/* 参加方法 */
+.method-box {
+  background-color: #c69c6c;
+  height: 40px;
+  line-height: 40px;
+}
+/* Forクリエイター */
+.creator-box {
+  background-color: #01a89e;
+  height: 40px;
+  line-height: 40px;
+  position: relative;
+}
+/* Forコレクター */
+.collector-box {
+  background-color: #e3a33f;
+  height: 40px;
+  line-height: 40px;
+  position: relative;
+}
+.creator-box::after,
+.collector-box::after {
+  content: "▼";
+  position: absolute;
+  right: 20px;
+}
+/* 参加作品のお迎えがあった場合（重要） */
+.infor-box {
+  background-color: #d3145a;
+  height: 40px;
+  line-height: 40px;
+}
+/* 購入者特典申請フォームへ */
+.request-box {
+  background-color: #d3145a;
+  height: 40px;
+  line-height: 40px;
+}
+/* 参加特典 */
+.privelege-box {
+  background-color: #2e3192;
+  height: 60px;
+  line-height: 60px;
+}
+/* 紅白エントリー特典・紅白参加作品購入特典 */
+.entry-box {
+  background-color: #e3a33f;
+  height: 40px;
+  line-height: 40px;
+}
+/* 紅組 */
+.red-box {
+  background-color: rgba(255, 0, 0, 0.5);
+}
+/* 白組 */
+.white-box {
+  background-color: #a67c52;
+}
+/* 参加者一覧 */
+.member-box {
+  background-color: #ed1e79;
+  height: 120px;
+  line-height: 120px;
+}
+/* NFT紅白の楽しみ方 */
+.enjoy-box {
+  background-color: #a67c52;
+  height: 120px;
+  line-height: 120px;
+}
+/* メタバース会場 */
+.meta-box {
+  background-color: #0071bd;
+  height: 120px;
+  line-height: 60px;
+}
+/* ミントサイトに移動（ETH） */
+.eth-box {
+  background-color: #333333;
+  height: 60px;
+  line-height: 60px;
+}
+/* ミントサイトに移動（Polygon） */
+.polygon-box {
+  background-color: #582e92;
+  height: 60px;
+  line-height: 60px;
+}
+.discord-box {
+  height: 60px;
+  line-height: 60px;
+}
+/* ～～～～～～～～～～～スマホサイズ設定 ～～～～～～～～～～～*/
+@media screen and (max-width: 768px) {
+  /* 
+    For...・参加作品のお迎えがあった場合・参加特典
+    参加一覧・NFT紅白の楽しみ方・メタバース会場
+   */
+  .long-box {
+    width: 90%;
+    margin: 20px auto;
+    overflow: hidden;
+  }
+}
+/* @media screen and (max-width: 768px) {
+    .all-box {
+      font-size: 4vw;
+    }
+    .a-box {
+      width: 40%;
+      height: 16vw;
+      line-height: 16vw;
+    }
+    .b-box {
+      width: 30%;
+      height: 10vw;
+      line-height: 10vw;
+    }
+    .f-box {
+      font-size: 14px;
+    }
+  } */
+
+/* 紅白サポートのお願い */
+.wrap-support {
+  width: 80%;
+}
+/********
+      フッター
+  *********/
+.footer-content {
+  line-height: 40px;
+  text-align: center;
+}
+/********
+      得点カウンター
+  *********/
+.wrap-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 600px;
+  margin: 0 auto;
+}
+.wrap-score-red,
+.wrap-score-white {
+  width: 50%;
+  text-align: center;
+  font-size: 80px;
+  border: 1px solid rgba(60, 60, 60, 0.2);
+  height: 240px;
+  line-height: 240px;
+}
+.wrap-score-red {
+  color: #fff;
+  background-color: rgba(255, 0, 0, 0.5);
+}
+.wrap-score-white {
+  color: #a67c52;
+}
+/* ～～～～～～～～～～～スマホサイズ設定 ～～～～～～～～～～～*/
+@media screen and (max-width: 768px) {
+  .wrap-score {
+    width: 80%;
+  }
+  .wrap-score-red,
+  .wrap-score-white {
+    height: 50vw;
+    line-height: 50vw;
+    font-size: 20vw;
+  }
+}
+/********
+      団長・副団長　紹介
+  *********/
+.leader-introduction {
+  width: 60%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.leader-introduction-title {
+  background-color: rgba(153, 153, 153, 1);
+  color: #fff;
+}
+.leader-introduction-red,
+.leader-introduction-purple,
+.leader-introduction-white {
+  width: 20%;
+  max-width: 160px;
+  height: 200px;
+  border: 1px solid rgba(60, 60, 60, 0.2);
+}
+/* ～～～～～～～～～～～タブレットサイズ設定 ～～～～～～～～～～～*/
+@media (max-width: 1200px) {
+  .leader-introduction-red,
+  .leader-introduction-purple,
+  .leader-introduction-white {
+    height: 100px;
+  }
+}
+/* ～～～～～～～～～～～スマホサイズ設定 ～～～～～～～～～～～*/
+@media screen and (max-width: 768px) {
+  .leader-introduction-red,
+  .leader-introduction-purple,
+  .leader-introduction-white {
+    height: 1vw;
+  }
+}
+.leader-introduction-red {
+  background-color: rgba(255, 0, 0, 0.5);
+}
+.leader-introduction-purple {
+  background-color: rgba(103, 58, 183, 0.5);
+}
+.leader-introduction-white {
+  background-color: rgba(199, 199, 199, 0.5);
+}
+.leader-introduction-red img,
+.leader-introduction-purple img,
+.leader-introduction-white img {
+  width: 100%;
+}
+/********
+      参加特典
+  *********/
+.benefits-title {
+  margin: 20px auto;
+}
+/* ばーばメダル */
+.wrap-medal {
+  width: 50%;
+  max-width: 400px;
+}
+/********
+      NFT紅白の楽しみ方
+  *********/
+.information-title {
+  text-align: left;
+  margin: 50px auto 20px;
+  width: 80%;
+  max-width: 550px;
+}
+.information-detail {
+  text-align: left;
+  margin: 0 auto;
+  width: 80%;
+  max-width: 550px;
+}
+/********
+      参加者一覧
+  *********/
+.wrap-member {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 60px;
+}
+.wrap-member-frame {
+  width: 50%;
+  max-width: 200px;
+  margin: 0 1px;
+}
+.wrap-member-red {
+  color: #fff;
+  background-color: rgb(188 38 44);
+}
+.wrap-member-white {
+  color: #fff;
+  background-color: rgb(198 156 108);
+}
+.member-red-name {
+  border-bottom: 1px solid #000;
+  margin: 0 2px;
+  padding: 2px 4px;
+  font-size: 12px;
+  color: rgb(188 38 44);
+  line-height: 30px;
+  text-align: left;
+}
+.member-white-name {
+  border-bottom: 1px solid #000;
+  margin: 0 2px;
+  padding: 2px 4px;
+  font-size: 12px;
+  color: rgb(198 156 108);
+  line-height: 30px;
+  text-align: left;
+}
+/********
+      団長・副団長紹介
+  *********/
+.wrap-member-image img {
+  width: 100%;
+}
+.member-detail-name {
+  text-align: left;
+  margin: 10px auto;
+  width: 50%;
+  max-width: 400px;
+}
+.member-detail-profile {
+  text-align: left;
+  background-color: rgba(199, 199, 199, 0.5);
+  margin: 10px auto;
+  padding: 10px;
+  width: 50%;
+  max-width: 400px;
+}
+.member-detail-comment {
+  text-align: left;
+  border-left: 1px solid #000;
+  margin: 10px auto;
+  padding: 10px;
+  width: 50%;
+  max-width: 400px;
+}

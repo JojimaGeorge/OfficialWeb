@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <title>すしだるま図鑑</title>
+    <meta name="theme-color" content="#FFED4D">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
+    <style>
+        @charset "utf-8";
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+            overflow-x: hidden;
+        }
+        
+        body {
+            font-family: "M PLUS Rounded 1c", "メイリオ", "Meiryo, Osaka", "ＭＳ Ｐゴシック", "MS P Gothic", "sans-serif";
+            background-color: #FFED4D;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        
+        /* 動くドット背景 */
+        .movingdot {
+            z-index: 0;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            pointer-events: none;
+            background-color: rgba(255,255,255,0.00);
+            background-image: radial-gradient(circle, rgba(255,255,255,0.54) 20%, transparent 20%);
+            background-size: 10px 10px;
+            animation: moveDots 50s linear infinite;
+        }
+        
+        @keyframes moveDots {
+            0% { background-position: 0 0; }
+            100% { background-position: 100% 100%; }
+        }
+        
+        .container {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+        
+        /* ロゴ（左上） */
+        .logo-section {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+        }
+        
+        .logo {
+            height: 50px;
+        }
+        
+        /* タイトル（中央） */
+        .title-section {
+            text-align: center;
+            margin-bottom: 30px;
+            margin-top: 80px;
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #555050;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* 言語切り替えボタン（右上） */
+        .language-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+        
+        .lang-btn {
+            background-color: rgba(255,255,255,0.8);
+            border: 2px solid #FC7500;
+            border-radius: 25px;
+            padding: 8px 16px;
+            margin: 0 5px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .lang-btn.active {
+            background-color: #FC7500;
+            color: white;
+        }
+        
+        .lang-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        /* スライドショーコンテナ（元HPスタイル完全準拠） */
+        .slider-container {
+            position: relative;
+            width: 94%;
+            height: 100%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        /* HPのスライダー矢印スタイル流用 */
+        .slider-arrow {
+            position: absolute;
+            top: 50%;
+            cursor: pointer;
+            outline: none;
+            border-top: 2px solid #666;
+            border-right: 2px solid #666;
+            height: 15px;
+            width: 15px;
+            z-index: 20;
+            transition: all 0.3s ease;
+        }
+        
+        .slider-arrow:hover {
+            border-color: #FC7500;
+        }
+        
+        .arrow-left:hover {
+            transform: rotate(-135deg) scale(1.2);
+            border-color: #FC7500;
+        }
+        
+        .arrow-right:hover {
+            transform: rotate(45deg) scale(1.2);
+            border-color: #FC7500;
+        }
+        
+        .arrow-left {
+            left: -1.5%;
+            transform: rotate(-135deg);
+        }
+        
+        .arrow-right {
+            right: -1.5%;
+            transform: rotate(45deg);
+        }
+        
+        /* 3エリア構成 */
+        .side-area {
+            width: 15%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .main-area {
+            width: 70%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* サイドのすしだるま（元HPスタイル準拠） */
+        .side-daruma {
+            width: 300px;
+            height: 300px;
+            transform: scale(0.8);
+            opacity: 0.5;
+            transition: all 0.5s ease;
+            cursor: pointer;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .side-daruma:hover {
+            opacity: 0.7;
+            transform: scale(0.85);
+        }
+        
+        .side-daruma img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        /* メインのすしだるまカード（サイズ拡大） */
+        .zukan-card {
+            background-color: rgba(255,255,255,0.7);
+            border-radius: 10px;
+            padding: 40px 30px 30px 30px;
+            text-align: center;
+            width: 700px;
+            height: 800px;
+            min-height: 800px;
+            max-height: 800px;
+            position: relative;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .daruma-number {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: orange;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        
+        .daruma-image {
+            width: 450px;
+            height: 450px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .daruma-gif {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .daruma-info {
+            height: 250px;
+            min-height: 250px;
+            max-height: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .daruma-info h2 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #555050;
+            margin-bottom: 15px;
+            animation: rainbow 5s infinite;
+        }
+        
+        @keyframes rainbow {
+            0% { color: #00CED1; }
+            20% { color: #00BFFF; }
+            40% { color: #4169E1; }
+            60% { color: #8A2BE2; }
+            80% { color: #9932CC; }
+            100% { color: #00CED1; }
+        }
+        
+        .daruma-description {
+            font-size: 1rem;
+            color: #555050;
+            line-height: 1.6;
+            font-weight: bold;
+            max-width: 600px;
+            height: 150px;
+            margin: 0 auto;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 8;
+            -webkit-box-orient: vertical;
+            text-overflow: ellipsis;
+        }
+        
+        .progress-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 0 0 10px 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: #FC7500;
+            width: 0%;
+            animation: progress 7s linear infinite;
+        }
+        
+        @keyframes progress {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            position: relative;
+            z-index: 100;
+        }
+        
+        .creator-info {
+            font-size: 0.8rem;
+            color: #555050;
+            font-weight: bold;
+        }
+        
+        /* すしだるま診断ボタン（右下固定） */
+        .shindan-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 30px;
+            font-family: "M PLUS Rounded 1c", sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            background: linear-gradient(45deg, #1E40AF, #3B82F6, #06B6D4, #38BDF8);
+            background-size: 300% 300%;
+            animation: gradientShift 5s ease infinite;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+        
+        .shindan-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            animation: gradientShift 2.5s ease infinite;
+        }
+        
+        .shindan-button:active {
+            transform: translateY(-1px);
+        }
+        
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+        
+        /* iPad Pro 12.9インチ横向け最適化 */
+        @media screen and (max-width: 2732px) and (orientation: landscape) {
+            .title {
+                font-size: 3rem;
+            }
+            
+            .daruma-image {
+                width: 500px;
+                height: 500px;
+            }
+            
+            .daruma-info h2 {
+                font-size: 2.5rem;
+            }
+            
+            .daruma-description {
+                font-size: 1.1rem;
+            }
+            
+            .side-daruma {
+                width: 350px;
+                height: 350px;
+            }
+            
+            .zukan-card {
+                height: 800px;
+            }
+        }
+        
+        /* タブレットサイズ */
+        @media (max-width: 1200px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .daruma-image {
+                width: 350px;
+                height: 350px;
+            }
+            
+            .daruma-info h2 {
+                font-size: 1.8rem;
+            }
+            
+            .daruma-description {
+                font-size: 0.9rem;
+            }
+            
+            .side-daruma {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .zukan-card {
+                height: 650px;
+            }
+            
+            /* タブレットでの診断ボタン調整 */
+            .shindan-button {
+                bottom: 18px;
+                right: 18px;
+                padding: 13px 22px;
+                font-size: 15px;
+            }
+        }
+        
+        /* スマホサイズ */
+        @media screen and (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .title-section {
+                margin-top: 60px;
+                margin-bottom: 20px;
+            }
+            
+            .title {
+                font-size: 1.5rem;
+            }
+            
+            .logo {
+                height: 40px;
+            }
+            
+            .language-toggle {
+                top: 10px;
+                right: 10px;
+            }
+            
+            .lang-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .daruma-image {
+                width: 280px;
+                height: 280px;
+            }
+            
+            .daruma-info h2 {
+                font-size: 1.6rem;
+            }
+            
+            .daruma-description {
+                font-size: 0.8rem;
+                padding: 0 10px;
+            }
+            
+            .zukan-card {
+                width: 95%;
+                padding: 30px 20px 20px 20px;
+                height: 550px;
+            }
+            
+            .side-area {
+                display: none;
+            }
+            
+            .main-area {
+                width: 100%;
+            }
+            
+            .arrow-left {
+                left: 1%;
+            }
+            
+            .arrow-right {
+                right: 1%;
+            }
+            
+            /* スマホでの診断ボタン調整 */
+            .shindan-button {
+                bottom: 15px;
+                right: 15px;
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+        }
+        
+        .loading {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s ease-in-out forwards;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 動くドット背景 -->
+    <section class="movingdot"></section>
+    
+    <!-- ロゴ（左上） -->
+    <div class="logo-section">
+        <img src="../image/logo_zukan.png" alt="すしだるまロゴ" class="logo">
+    </div>
+    
+    <!-- 言語切り替えボタン（右上） -->
+    <div class="language-toggle">
+        <button class="lang-btn active" onclick="switchLanguage('ja')" id="btn-ja">日本語</button>
+        <button class="lang-btn" onclick="switchLanguage('en')" id="btn-en">English</button>
+    </div>
+    
+    <div class="container">
+
+        <div class="main-content">
+            <div class="slider-container">
+                <!-- HPスタイルの矢印（左） -->
+                <div class="slider-arrow arrow-left" onclick="previousDaruma()"></div>
+                
+                <!-- 左エリア -->
+                <div class="side-area">
+                    <div class="side-daruma" onclick="previousDaruma()">
+                        <img id="side-left-img" src="../image/ba-ba.webp" alt="前のすしだるま">
+                    </div>
+                </div>
+                
+                <!-- 中央エリア -->
+                <div class="main-area">
+                    <div class="zukan-card loading">
+                        <div class="daruma-number" id="daruma-number">No. 1</div>
+                        <div class="daruma-image">
+                            <img class="daruma-gif" id="daruma-gif" src="../image/maguro.webp" alt="すしだるま">
+                        </div>
+                        <div class="daruma-info">
+                            <h2 id="daruma-name">まぐろ</h2>
+                            <p class="daruma-description" id="daruma-description">お寿司屋さんに入って最初に注文するのはこの一品。シンプルな見た目とは引き換えに、奥深い旨味を楽しめます。飽きのこないバランスの良さで、思わずリピートすること必須です。</p>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar" id="progress-bar"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右エリア -->
+                <div class="side-area">
+                    <div class="side-daruma" onclick="nextDaruma()">
+                        <img id="side-right-img" src="../image/salmon.webp" alt="次のすしだるま">
+                    </div>
+                </div>
+                
+                <!-- HPスタイルの矢印（右） -->
+                <div class="slider-arrow arrow-right" onclick="nextDaruma()"></div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p class="creator-info" id="footer-info">Created by 城島ジョージ | すしだるま公式 | https://sushi-daruma.com/</p>
+        </div>
+    </div>
+    
+    <!-- すしだるま診断ボタン -->
+    <a href="https://sushi-daruma.com/shindan/" target="_blank" class="shindan-button">
+        すしだるま診断
+    </a>
+
+    <script>
+        let currentLanguage = 'ja';
+        let currentIndex = 0;
+        let autoSlideInterval;
+        
+        // 多言語対応のテキスト
+        const uiTexts = {
+            ja: {
+                title: "すしだるま図鑑",
+                footer: "Created by 城島ジョージ | すしだるま公式 | https://sushi-daruma.com/"
+            },
+            en: {
+                title: "Sushi Daruma Encyclopedia", 
+                footer: "Created by George Jojima | Sushi Daruma Official | https://sushi-daruma.com/"
+            }
+        };
+        
+        // すしだるまのデータ（31種類・日英対応）
+        const sushiDarumaData = [
+            {
+                name: { ja: "まぐろ", en: "Maguro" },
+                description: {
+                    ja: "お寿司屋さんに入って最初に注文するのはこの一品。シンプルな見た目とは引き換えに、奥深い旨味を楽しめます。飽きのこないバランスの良さで、思わずリピートすること必須です。",
+                    en: "This is one of the first sushi you order when you enter a sushi restaurant. In exchange for its simple appearance, you can enjoy its deep flavor. It is a well-balanced dish that you will never get tired of, and you will find yourself repeating it."
+                },
+                image: "../image/maguro.webp"
+            },
+            {
+                name: { ja: "サーモン", en: "Salmon" },
+                description: {
+                    ja: "お寿司界のアイドルと呼ばれるに相応しい、老若男女問わず魅了される見た目と味。季節を問わず脂が乗った身は、口に入れた瞬間彼女の世界に引き込まれます。身が厚く切られているため、贅沢な食感が楽しめる一品です。上に乗った大根おろしがお口をリセットしてくれます。",
+                    en: "Worthy of being called the idol of the sushi world, it has a look and taste that appeals to men and women of all ages. No matter the season, the rich fatty fish will draw you into its world the moment you put it in your mouth. The fish is cut thickly, so you can enjoy the luxurious texture of this dish. The grated radish on top will reset your mouth."
+                },
+                image: "../image/salmon.webp"
+            },
+            {
+                name: { ja: "いくら", en: "Ikura" },
+                description: {
+                    ja: "海の宝石といえばパールが有名ですが、いくらはまさに食べる宝石です。噛んだ瞬間に溢れ出る濃厚な旨味は、思わずスタンディングオベーションをしてしまうほど。赤ん坊のいくらですが、存在感は大人に全く引けを取りません。",
+                    en: "Pearls are the most famous jewels of the sea, but Ikura (salmon roe) is truly an eating jewel. The rich flavor of Ikura overflows when you bite into it, and you can't help but give it a standing ovation. Although it is a baby Appearance of Ikura, its presence is second to none."
+                },
+                image: "../image/ikura.webp"
+            },
+            {
+                name: { ja: "たまご", en: "Tamago" },
+                description: {
+                    ja: "魚のネタではないが、無くては困るのがこの一品。職人の技でしか作れない、絶妙な味のバランスが特徴。ふんわりとして肉厚な玉子は、噛み締めた瞬間に幸せが溢れ出てきます。",
+                    en: "This is not a fish food, but it is one that we cannot talk about sushi without. It features a perfect balance of flavors that can only be created by the skills of a professional chef. The fluffy and thick egg overflows with happiness the moment you bite into it."
+                },
+                image: "../image/tamago.webp"
+            },
+            {
+                name: { ja: "うに", en: "Uni" },
+                description: {
+                    ja: "とろっとした雲丹を口に入れると、豊かな海に身を預けるような幸せが訪れてきます。上に乗っている山椒の葉は、山の一部を凝縮したような、力強い香りを放ちます。まさに海と山のコラボレーション。贅沢な時間を過ごすためのマストアイテムです。",
+                    en: "When you put Uni (thesea urchin) in your mouth, you will feel happy as if you were entrusting yourself to the rich ocean. The sansho leaves on top give off a powerful aroma, like a condensed part of the mountain. This is a true collaboration between the sea and the mountains, and a must-have item for a luxurious time."
+                },
+                image: "../image/uni.webp"
+            },
+            {
+                name: { ja: "あなご", en: "Anago" },
+                description: {
+                    ja: "ふわふわな身の食感はさながら、穴子の最大の特徴はタレにあります。タレの旨味は人々を魅了し、もはやタレだけで穴子と勘違いしてしまうこともあります。タレという名の贅沢なドレスを包んだ彼女の魅力には、寿司界の皆さんが嫉妬の拍手を送ることでしょう。",
+                    en: "Not to mention the fluffy taste of the fish meat, the most distinctive feature of Anago (conger eel ) is the sauce. The delicious taste of the sauce fascinates people, and they sometimes mistake it for Anago just because of the sauce anymore. The entire sushi world will applaud jealously at her charm wrapped in the luxurious dress , just named \"the sauce\"."
+                },
+                image: "../image/anago.webp"
+            },
+            {
+                name: { ja: "あまえび", en: "Amaebi" },
+                description: {
+                    ja: "すしだるま界のキュートな天使！甘海老の愛くるしいおさげは、太平洋では流行りのスタイル。誰にでも笑顔を振りまく一面もあるが、それは本心から行っていること。彼女のことを悪く言う人は、もはや誰もいません。味ももちろん絶品です。お楽しみあれ。",
+                    en: "The cute little angel of the Sushi Daruma world! Amaebi's lovely pigtails are a trendy style in the Pacific. She always smiles at everyone, but she does it from her heart. No one has a bad word to say about her anymore. The taste is of course excellent. Just enjoy it."
+                },
+                image: "../image/amaebi.webp"
+            },
+            {
+                name: { ja: "はまち", en: "Hamachi" },
+                description: {
+                    ja: "鰤の幼魚である彼は、とても恥ずかしがり屋。目が合うととっさに顔が赤くなります。脂がしっかり乗っていて、分厚く切られた身を一口で味わうのが礼儀。芯がある味に、彼の今後の活躍が期待されます。",
+                    en: "A juvenile yellowtail, he is very shy. When our eyes meet, his face immediately turns red. It is polite to take a bite of the fatty, thickly cut piece of meat. The taste has a core to it, and we can expect great things from him in the future."
+                },
+                image: "../image/hamachi.webp"
+            },
+            {
+                name: { ja: "ほたるいか", en: "Hotaruika" },
+                description: {
+                    ja: "総長を務めている彼は優しさに溢れています。繊細な心の持ち主で、綺麗な空を眺めると自然に涙が出てくるそう。喧嘩の強さはピカイチで、誰にも負けません。部下からはぴえん総長と呼ばれています。",
+                    en: "It' s Sushi Daruma from the Spring Limited Collection! He is the president of Motorcycle gang and is full of kindness. He has a sensitive heart and tears naturally come to his eyes when he looks at the beautiful sky. He is the best in fighting and is unbeatable. His subordinates call him \"President Pien\"."
+                },
+                image: "../image/hotaruika.webp"
+            },
+            {
+                name: { ja: "さわら", en: "Sawara" },
+                description: {
+                    ja: "漢字に春が使われているとおり、暖かい今が旬のネタとなっています。冬と春では脂の乗り方が違いますが、それぞれに特徴のある風味が楽しめます。夜桜のお供に、光るおろし生姜も添えてお楽しみください。",
+                    en: "As the kanji for spring (春) is used in the name, this is the season for the warmer months of the year. Winter and spring have different fat content, but each has its own distinctive flavor. Please enjoy it with shining grated ginger as an accompaniment to the evening cherry blossoms."
+                },
+                image: "../image/sawara.webp"
+            },
+            {
+                name: { ja: "さより", en: "Sayori" },
+                description: {
+                    ja: "透明に透き通った身と、青く光った綺麗な皮は、食べるのが勿体なく感じるほど美しいです。一級アイドルのすしだるまなので、美しさのあまり発光しているとのこと。梅ソースが色合いを引き立て、味もさっぱりと楽しめる工夫づくりになっています。",
+                    en: "The clear, transparent body and the beautiful blue glowing skin are so beautiful that they are almost too good to eat. Since it is a first-class idol sushi daruma, it is said to be so beautiful that it emits light. The plum sauce enhances the color, and the taste is also an ingenious creation that can be enjoyed in a refreshing way."
+                },
+                image: "../image/sayori.webp"
+            },
+            {
+                name: { ja: "さくらだい", en: "Sakuradai" },
+                description: {
+                    ja: "春の陽気で幸せいっぱい。お酒をついつい飲みすぎて盛り上がっているようです。彼をお迎えするときは、日本酒の用意も忘れずに。",
+                    en: "Full of happiness in the spring weather. He seems to be having a lot of fun drinking too much alcohol. Don't forget to prepare some Japanese sake when you welcome him."
+                },
+                image: "../image/sakuradai.webp"
+            },
+            {
+                name: { ja: "ぶり", en: "Buri" },
+                description: {
+                    ja: "彼と目を合わせてはいけない。時空の歪みを生み出す、ヒーローすしだるまです。そっと口に入れた瞬間、トロリとした舌触りと共に爽やかな香りが広がります。旬の鰤は、締まった身質が特徴。丁寧に味わってください。",
+                    en: "Do not make eye contact with him. It is the hero Sushidaruma, which creates a distortion of time and space. The moment you gently put it in your mouth, a fresh aroma spreads along with a tender texture. Yellowtail (Buri) in season is characterized by its tight flesh. Taste it carefully."
+                },
+                image: "../image/buri.webp"
+            },
+            {
+                name: { ja: "いわし", en: "Iwashi" },
+                description: {
+                    ja: "小さな魚とは思えないほどの、脂の豊かさと旨味が凝縮されています。程よい歯ごたえを楽しませてくれ、噛めば噛むほど青魚のフレッシュな味が溢れ出てきます。青魚は特に健康にも良いとされているので、寿司屋に行って鰯しか注文しない猛者もいるとかいないとか。",
+                    en: "The richness and flavor of the fish fat is so concentrated that it is hard to believe that it is a small fish. It provides a delightful crunch and the more you chew, the more the fresh flavor of the blue fish overflows. Blue fish is especially good for your health, and there are some fierce eaters who go to sushi restaurants and order only iwashi (sardines)."
+                },
+                image: "../image/iwashi.webp"
+            },
+            {
+                name: { ja: "びんちょうまぐろ", en: "Bincho-maguro" },
+                description: {
+                    ja: "鮪にも種類がいくつかあり、こちらはピンク色の身が特徴になっています。しっかりとした噛みごたえなので、厚く切って食感を楽しむのがメジャーな食べ方になります。こちらの鮪を好む人も多く、どの鮪が一番美味しいかで口論になることもしばしば。",
+                    en: "There are several types of tuna, and this one is characterized by its pink body. It has a firm bite, so the major way to eat it is to cut it into thick slices and enjoy the texture. Many people prefer this type of tuna, and often argue over which one is the best."
+                },
+                image: "../image/bincho.webp"
+            },
+            {
+                name: { ja: "あぶりえんがわ", en: "Aburi-engawa" },
+                description: {
+                    ja: "小ぶりな身と思い口に入れると、想像もできない旨味が広がることに驚きます。上質な身を炙ったことにより、白身魚の非常に濃厚な脂が、艶めかしく溢れ出てきます。レモンを絞ると、爽やかな風味に大変身します。濃厚ながらも、リピートして注文するお客様も数多くいらっしゃいます。",
+                    en: "When you put it in your mouth, thinking it is a small piece of meat, you will be surprised at the unimaginable flavor that unfolds. The searing of the high-quality fish meat causes the very rich fat of the white fish to overflow. A squeeze of lemon transforms the flavor into a very refreshing one. Despite its richness, there are many customers who order it repeatedly."
+                },
+                image: "../image/aburiengawa.webp"
+            },
+            {
+                name: { ja: "ねぎとろ", en: "Negitoro" },
+                description: {
+                    ja: "まぐろの身をたたいてペースト状にしています。ネギが乗ってなくてもねぎとろです。ふわふわの食感と共に、まぐろの風味が一層引き立つ、日本の誇るべき調理法。一見スカした見た目をしていますが、ペットを隠れて飼っている優しい一面も。",
+                    en: "Tuna meat is beaten into a paste. It is Negitoro even if there are no Negi（green onions） on top of it. The fluffy texture and the flavor of the tuna are enhanced by this cooking method, which should be a source of pride in Japan. Despite his seemingly scruffy appearance, he has a gentle side that keeps pets in hiding."
+                },
+                image: "../image/negitoro.webp"
+            },
+            {
+                name: { ja: "とびうお", en: "Tobiuo" },
+                description: {
+                    ja: "捕食から逃れるために長距離を滑空する飛魚の姿は圧巻。飛ぶために脂は少なく、身の引き締まった食感です。出汁にも使われるので、想像よりも味わい深くクセになります。",
+                    en: "The sight of a flying fish gliding long distances to escape predation is breathtaking. Because they fly, they have little fat and a firm texture. It is also used in soup stock, which is more flavorful and addictive than you might imagine."
+                },
+                image: "../image/tobiuo.webp"
+            },
+            {
+                name: { ja: "まだこ", en: "Madako" },
+                description: {
+                    ja: "夏のジュージーさを味わいたいならこの一貫。噛めば噛むほど旨味が溢れ出る幸せは、他の寿司では味わえないです。肉厚な身を頬張る瞬間、勝利を確信することでしょう。",
+                    en: "If you want to taste the juiciness of summer, this is the one. The more you bite into it, the more the flavor overflows, a happiness you won't find in any other sushi. The moment you bite into the thick meat, you will be convinced of your victory."
+                },
+                image: "../image/madako.webp"
+            },
+            {
+                name: { ja: "くろだい", en: "Kurodai" },
+                description: {
+                    ja: "夏の黒鯛は、赤鯛の味を凌ぐと言われてます。新鮮な黒鯛の身は透き通っていて歯ごたえがあります。塩を掛けてさっぱりと味わうのもよいでしょう。涼を感じる一品をお試しあれ。",
+                    en: "It is said that summer kuro-dai (black sea bream) surpasses the taste of Aka-dai (red sea bream). The flesh of fresh black sea bream is clear and chewy. It is good to taste it with a dash of salt for a refreshing taste. Try this cool dish."
+                },
+                image: "../image/kurodai.webp"
+            },
+            {
+                name: { ja: "かつお", en: "Katsuo" },
+                description: {
+                    ja: "夏の魚といえばこの鰹。厚切りに切った身を口に入れれば、香り豊かな時間が広がってきます。さっぱりと生姜を乗せると、旨味が倍増します。",
+                    en: "The fish of summer is this Katsuo (bonito). Put the thickly sliced meat in your mouth, and the aromatic time will spread. The flavor is doubled when topped with refreshing ginger."
+                },
+                image: "../image/katsuo.webp"
+            },
+            {
+                name: { ja: "えびてん", en: "Ebiten" },
+                description: {
+                    ja: "みんなが大好きな海老天を、お寿司でも味わいましょう。サクサクの衣とぷりっとした身のコラボレーションは、想像に容易い美味しさになっています。甘だれを掛けて、もっとシャリと相性が良くなりました。",
+                    en: "Everyone loves prawn tempura, and now you can enjoy it in sushi as well. The collaboration of crispy batter and plump flesh is as delicious as you can imagine. Drizzled with sweet sauce, it goes even better with rice."
+                },
+                image: "../image/ebiten.webp"
+            },
+            {
+                name: { ja: "ほっきがい", en: "Hokkigai" },
+                description: {
+                    ja: "生の状態だと黒ずんだ色合いだが、火を通すと鮮やかな赤色に変化します。歯ごたえがしっかりしていて、噛むほどに味わったことのない旨味が溢れ出てきます。普段の海鮮市場ではあまり出会うことがないので、見つけたら食べて損はありません。",
+                    en: "In its raw state, it has a blackish hue, but when cooked, it turns a bright red. It is firm and chewy, and the more you chew it, the more it overflows with a flavor you have never tasted before. You don't usually come across it at seafood markets, so if you find it, you can't go wrong with it."
+                },
+                image: "../image/hokkigai.webp"
+            },
+            {
+                name: { ja: "つぶがい", en: "Tsubugai" },
+                description: {
+                    ja: "コリコリとした食感が楽しい、海辺の人気者。ジュワリと甘みが感じられ、口の中でずっと一緒に踊りたい気分になります。生食で食べると柔らかさを堪能できます。角のような形をした貝殻は、頭に飾れば小悪魔に。",
+                    en: "A seaside favorite with a delightful crunchy texture. It has a juicy sweetness that makes you want to dance with it in your mouth all the time. You can enjoy its softness when eaten raw. The horn-like shape of the shell makes it look like a little devil when adorned on the head."
+                },
+                image: "../image/tsubugai.webp"
+            },
+            {
+                name: { ja: "あきさけ", en: "Akisake" },
+                description: {
+                    ja: "旬を誇った紅の身。贅沢に切られた上質な身は、深い秋の世界への入口となっています。目をつぶれば、育った川のせせらぎが聞こえてくるよう。香りが鼻を通り抜ければ、食べる前と違う景色が目の前に広がっています。",
+                    en: "The red meat boasts the best of the season. The luxuriously cut, high-quality flesh is a gateway to the world of deep autumn. If you close your eyes, you can hear the murmur of the river where salmon grew up. When the aroma passes through your nose, a different landscape unfolds before your eyes than before you ate it."
+                },
+                image: "../image/akisake.webp"
+            },
+            {
+                name: { ja: "しめさば", en: "Shimesaba" },
+                description: {
+                    ja: "分厚い身を口一杯に入れてください。脂のジューシーさが舌を包んだあとに、爽やかな酸味が駆け抜けていきます。噛めば噛むほどに鯖の旨味が滲み出てきて、気づけば幾度となく口に運ぶことになっているでしょう。一振りのごまが楽しい食感のアクセントになります。",
+                    en: "Fill your mouth with the thick meat. The juicy fat envelops your tongue, followed by a refreshing sourness. The more you chew, the more the mackerel's delicious flavor oozes out, and you will find yourself going back to it again and again. A sprinkle of sesame seeds adds a delightful textural accent."
+                },
+                image: "../image/shimesaba.webp"
+            },
+            {
+                name: { ja: "のどぐろ", en: "Nodoguro" },
+                description: {
+                    ja: "すしだるま１周年記念！キラキラと輝く白身は、誰もが憧れる高級魚。希少価値が高く、市場での取引量も限られています。旨味が閉じこもった身を軽く炙れば、幸せいっぱいの香りが広がってきます。この機会をお見逃しなく。",
+                    en: "Sushi Daruma's 1st Anniversary! The sparkling white fish is a luxury fish that everyone longs for. It is highly prized and the amount of trade in the market is limited. When lightly seared, the fish is full of flavor and a happy aroma spreads. Do not miss this opportunity."
+                },
+                image: "../image/nodoguro.webp"
+            },
+            {
+                name: { ja: "ぼたんえび", en: "Botanebi" },
+                description: {
+                    ja: "見た目そのままにぷりっとした食感は、一度味わったら忘れられません。濃厚な甘みが出てくる肉厚な身をゆっくりと味わう。すると目の前には大海原が広がっています。あなたは彼女を育ててくれた母なる海に感謝することになるでしょう。",
+                    en: "Once you taste it, you will never forget its plump texture, just as it looks. Slowly taste the thick meaty flesh, which is rich and sweet. Then the ocean spreads out before your eyes. You will be thankful to Mother Sea for raising her."
+                },
+                image: "../image/botanebi.webp"
+            },
+            {
+                name: { ja: "チョコベリー", en: "Choco Berry" },
+                description: {
+                    ja: "食後のスイーツにチョコだるまはいかがでしょうか。ほろ苦く仕立てたチョコの体に、後味が軽くなるようないちごホイップを頭に乗せています。バラの花びらが彼女の存在を引き立てます。普段は目にすることのない限定の味わいをお楽しみください。",
+                    en: "How about a Choco-daruma for an after-dinner sweet? The bittersweetly tailored chocolate body is topped with strawberry whipped cream on the head for a light aftertaste. Rose petals enhance her presence. Enjoy this limited edition flavor that you would not normally see."
+                },
+                image: "../image/choco.webp"
+            },
+            {
+                name: { ja: "ニャン公", en: "Nyan Co." },
+                description: {
+                    ja: "ニャン公コラボのすしだるまです。寿司ネタは活きの良いアジが入荷したため、贅沢に分厚く切って握っています。生姜を耳の形に仕立て、薬味としての引き立て役としても楽しめます。宇宙の景色を眺めながら頂く絶品を、ご賞味あれ。",
+                    en: "This is Sushi Daruma, a collaboration of Nyan Co. The sushi ingredients are made from fresh horse mackerel that has just arrived, so they are luxuriously cut into thick slices. The ginger is made into the shape of an ear and can be enjoyed as a condiment to enhance the taste. Enjoy this exquisite dish while gazing at the view of the universe."
+                },
+                image: "../image/nyanco.webp"
+            },
+            {
+                name: { ja: "ばーば", en: "Ba-ba" },
+                description: {
+                    ja: "茄子のお出汁を使った寒天を使用しています。見た目からは想像も出来ない奥ゆかしい味に、腰をのけ反らせるお客が続出しているとの噂。熟成する年数によっても価値は変わり、中でも72年モノのこちらは貴重過ぎて値段が付けられないと言われている。",
+                    en: "The agar is made from eggplant soup stock. Rumor has it that many customers are bending over backward to enjoy the profound taste, which cannot be imagined from the appearance. The value of the product varies depending on the number of years it has been aged, and among them, this 72-year-old one is said to be too valuable to be priced."
+                },
+                image: "../image/ba-ba.webp"
+            }
+        ];
+        
+        function switchLanguage(lang) {
+            currentLanguage = lang;
+            
+            // ボタンの状態を更新
+            document.getElementById('btn-ja').classList.toggle('active', lang === 'ja');
+            document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+            
+            // UIテキストを更新
+            document.getElementById('main-title').textContent = uiTexts[lang].title;
+            document.getElementById('footer-info').textContent = uiTexts[lang].footer;
+            
+            // 現在のすしだるまの説明を更新
+            updateCurrentDaruma();
+        }
+        
+        function updateCurrentDaruma() {
+            const daruma = sushiDarumaData[currentIndex];
+            document.getElementById('daruma-name').textContent = daruma.name[currentLanguage];
+            document.getElementById('daruma-description').textContent = daruma.description[currentLanguage];
+        }
+        
+        function updateSideDaruma() {
+            const prevIndex = currentIndex === 0 ? sushiDarumaData.length - 1 : currentIndex - 1;
+            const nextIndex = currentIndex === sushiDarumaData.length - 1 ? 0 : currentIndex + 1;
+            
+            document.getElementById('side-left-img').src = sushiDarumaData[prevIndex].image;
+            document.getElementById('side-left-img').alt = sushiDarumaData[prevIndex].name[currentLanguage];
+            
+            document.getElementById('side-right-img').src = sushiDarumaData[nextIndex].image;
+            document.getElementById('side-right-img').alt = sushiDarumaData[nextIndex].name[currentLanguage];
+        }
+        
+        function updateDaruma() {
+            const daruma = sushiDarumaData[currentIndex];
+            const card = document.querySelector('.zukan-card');
+            
+            // フェードアウト
+            card.style.opacity = '0';
+            
+            setTimeout(() => {
+                document.getElementById('daruma-number').textContent = `No. ${currentIndex + 1}`;
+                document.getElementById('daruma-name').textContent = daruma.name[currentLanguage];
+                document.getElementById('daruma-description').textContent = daruma.description[currentLanguage];
+                
+                // 画像を更新
+                const gifElement = document.getElementById('daruma-gif');
+                gifElement.src = daruma.image;
+                gifElement.alt = daruma.name[currentLanguage];
+                
+                // サイドのすしだるまも更新
+                updateSideDaruma();
+                
+                // フェードイン
+                card.style.opacity = '1';
+            }, 300);
+        }
+        
+        function nextDaruma() {
+            currentIndex = (currentIndex + 1) % sushiDarumaData.length;
+            updateDaruma();
+            resetAutoSlide();
+        }
+        
+        function previousDaruma() {
+            currentIndex = currentIndex === 0 ? sushiDarumaData.length - 1 : currentIndex - 1;
+            updateDaruma();
+            resetAutoSlide();
+        }
+        
+        function resetAutoSlide() {
+            // 既存のタイマーをクリア
+            clearInterval(autoSlideInterval);
+            
+            // プログレスバーをリセット
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.animation = 'none';
+            
+            // 少し待ってから再開
+            setTimeout(() => {
+                progressBar.style.animation = 'progress 7s linear infinite';
+                autoSlideInterval = setInterval(() => {
+                    currentIndex = (currentIndex + 1) % sushiDarumaData.length;
+                    updateDaruma();
+                }, 7000);
+            }, 50);
+        }
+        
+        // 初期化
+        function init() {
+            updateSideDaruma();
+            
+            // 自動スライド開始
+            autoSlideInterval = setInterval(() => {
+                currentIndex = (currentIndex + 1) % sushiDarumaData.length;
+                updateDaruma();
+            }, 7000);
+        }
+        
+        // 初期化実行
+        init();
+        
+        // 右クリック禁止
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+        
+        // ドラッグ禁止
+        window.addEventListener('DOMContentLoaded', function() {
+            var images = document.getElementsByTagName('img');
+            for (var i = 0; i < images.length; i++) {
+                images[i].addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                });
+                images[i].addEventListener('dragstart', function(e) {
+                    e.preventDefault();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
