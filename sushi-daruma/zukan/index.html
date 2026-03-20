@@ -769,6 +769,10 @@
                 img.addEventListener('dragstart', (e) => e.preventDefault());
             });
         });
+        // Service Worker登録（オフライン対応）
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
     </script>
 </body>
 </html>
