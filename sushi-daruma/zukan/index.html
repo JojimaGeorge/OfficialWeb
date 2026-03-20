@@ -433,7 +433,7 @@
 
         /* ===== タブレット・スマホ縦向き ===== */
         @media screen and (max-width: 1024px) {
-            .page { grid-template-rows: 50px 1fr 40px; }
+            .page { grid-template-rows: 50px 1fr 60px; }
             .header { padding: 0 12px; }
             .header-logo { height: 32px; }
             .lang-btn { padding: 4px 8px; font-size: 11px; }
@@ -441,6 +441,8 @@
             .main-content {
                 display: flex;
                 flex-direction: column;
+                align-items: stretch;
+                justify-content: center;
                 padding: 0 8px;
                 min-height: 0;
                 overflow: hidden;
@@ -449,8 +451,8 @@
             .neta-sidebar {
                 border-radius: 12px 12px 0 0;
                 flex-direction: row;
-                min-height: 44px;
-                max-height: 44px;
+                min-height: 66px;
+                max-height: 66px;
                 flex-shrink: 0;
                 margin-right: 0;
                 z-index: auto;
@@ -472,7 +474,8 @@
             .neta-item {
                 flex-direction: column;
                 gap: 1px;
-                padding: 3px 5px;
+                padding: 6px;
+                margin: 0 6px;
                 min-width: 40px;
                 min-height: unset;
                 border-left: none;
@@ -486,14 +489,14 @@
             }
 
             .neta-item-number { display: none; }
-            .neta-item-thumb { width: 28px; height: 28px; }
+            .neta-item-thumb { width: 42px; height: 42px; }
             .neta-item-name { display: none; }
 
             .content-card {
-                flex: 1;
+                flex: 0 1 auto;
                 min-height: 0;
                 margin-left: 0;
-                padding: 8px 10px 0;
+                padding: 12px 10px 10px;
                 border-radius: 0 0 12px 12px;
                 overflow: hidden;
             }
@@ -502,7 +505,7 @@
             .daruma-name { font-size: 16px; }
             .daruma-number { font-size: 10px; padding: 2px 10px; }
 
-            .image-row { gap: 4px; flex: 1 1 0; min-height: 0; }
+            .image-row { gap: 4px; flex: 0 1 auto; max-height: 55vh; }
             .daruma-gif { max-height: 100%; width: auto; }
             .nav-arrow { width: 32px; height: 32px; }
             .nav-arrow::before { width: 8px; height: 8px; }
@@ -520,13 +523,14 @@
 
             .footer {
                 display: flex;
-                flex-direction: row;
+                flex-direction: column;
                 align-items: center;
-                justify-content: space-between;
-                padding: 0 10px;
+                justify-content: center;
+                padding: 4px 10px;
+                gap: 2px;
             }
-            .footer-info { font-size: 9px; text-align: left; }
-            .shindan-button { padding: 6px 14px; font-size: 11px; }
+            .footer-info { font-size: 8px; text-align: center; }
+            .shindan-button { padding: 8px 28px; font-size: 13px; }
         }
 
         /* ===== トランジション ===== */
