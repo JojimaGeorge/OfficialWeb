@@ -6,6 +6,9 @@
     <meta name="theme-color" content="#FFED4D">
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c:400;500;700;800" rel="stylesheet">
     <style>
         @charset "utf-8";
@@ -44,9 +47,11 @@
             position: relative;
             z-index: 10;
             display: grid;
-            grid-template-rows: 80px 1fr 40px;
+            grid-template-rows: 68px 1fr 52px;
             height: 100vh;
             height: 100dvh;
+            max-width: 1500px;
+            margin: 0 auto;
         }
 
         /* ===== ヘッダー ===== */
@@ -97,13 +102,14 @@
 
         /* ===== サイドバー ===== */
         .neta-sidebar {
-            background: rgba(255,255,255,0.65);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: #FFF8E8;
             border-radius: 16px 0 0 16px;
             display: flex;
             flex-direction: column;
             min-height: 0;
+            margin-right: -1px;
+            position: relative;
+            z-index: 1;
         }
 
         .neta-sidebar-header {
@@ -129,7 +135,7 @@
         .neta-list::-webkit-scrollbar { width: 3px; }
         .neta-list::-webkit-scrollbar-track { background: transparent; }
         .neta-list::-webkit-scrollbar-thumb {
-            background: rgba(252,117,0,0.2);
+            background: rgba(0,0,0,0.1);
             border-radius: 3px;
         }
 
@@ -178,7 +184,7 @@
         .neta-item.active {
             background: #FC7500;
             border-left: 3px solid #E06600;
-            border-radius: 0 10px 10px 0;
+            border-radius: 0;
             margin-left: -3px;
         }
 
@@ -310,10 +316,13 @@
         /* 説明エリア（content-cardと同じ横幅） */
         .description-area {
             flex-shrink: 0;
-            padding: 20px 40px 18px;
+            padding: 20px 120px 18px;
             margin: 12px -12px 0;
             background: #fff;
             border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            min-height: calc(17px * 1.85 * 3 + 20px + 18px);
         }
 
         .daruma-description {
@@ -347,36 +356,67 @@
 
         /* ===== フッター ===== */
         .footer {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr auto;
             align-items: center;
-            justify-content: center;
-            gap: 20px;
             padding: 0 28px;
         }
 
         .footer-info {
-            font-size: 10px;
+            font-size: 13px;
             color: #B8A000;
             font-weight: 500;
+            text-align: left;
+        }
+
+        @property --border-angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
         }
 
         .shindan-button {
+            position: relative;
             display: inline-flex;
             align-items: center;
-            padding: 7px 18px;
-            background: linear-gradient(45deg, #1E40AF, #3B82F6, #06B6D4);
-            background-size: 200% 200%;
-            animation: gradientShift 5s ease infinite;
+            justify-content: center;
+            padding: 10px 24px;
+            background: #2A2A2A;
+            background-size: 300% 300%;
+            animation: gradientShift 4s ease infinite;
             color: #FFF;
             border: none;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 700;
             font-family: inherit;
             cursor: pointer;
             text-decoration: none;
-            box-shadow: 0 2px 8px rgba(30,64,175,0.25);
+            box-shadow: 0 2px 10px rgba(6,182,212,0.3);
             transition: all 0.2s ease;
+            overflow: hidden;
+        }
+
+        .shindan-button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            padding: 3px;
+            background: conic-gradient(
+                from var(--border-angle),
+                #10B981, #06B6D4, #3B82F6, #8B5CF6,
+                #EC4899, #F59E0B, #10B981
+            );
+            -webkit-mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            animation: rotateBorder 3s linear infinite;
         }
 
         .shindan-button:active { transform: scale(0.96); }
@@ -387,25 +427,33 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* ===== スマホ縦向き ===== */
-        @media screen and (max-width: 768px) {
-            .page { grid-template-rows: 56px auto 1fr 36px; }
+        @keyframes rotateBorder {
+            to { --border-angle: 360deg; }
+        }
+
+        /* ===== タブレット・スマホ縦向き ===== */
+        @media screen and (max-width: 1024px) {
+            .page { grid-template-rows: 50px 1fr 40px; }
             .header { padding: 0 12px; }
-            .header-logo { height: 36px; }
+            .header-logo { height: 32px; }
             .lang-btn { padding: 4px 8px; font-size: 11px; }
 
             .main-content {
                 display: flex;
                 flex-direction: column;
-                padding: 0 10px;
+                padding: 0 8px;
                 min-height: 0;
+                overflow: hidden;
             }
 
             .neta-sidebar {
                 border-radius: 12px 12px 0 0;
                 flex-direction: row;
-                min-height: 56px;
-                max-height: 56px;
+                min-height: 44px;
+                max-height: 44px;
+                flex-shrink: 0;
+                margin-right: 0;
+                z-index: auto;
             }
 
             .neta-sidebar-header { display: none; }
@@ -414,55 +462,71 @@
                 display: flex;
                 overflow-x: auto;
                 overflow-y: hidden;
-                padding: 4px 6px;
-                gap: 2px;
+                padding: 4px 4px;
+                gap: 0;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
             }
+            .neta-list::-webkit-scrollbar { display: none; }
 
             .neta-item {
                 flex-direction: column;
-                gap: 2px;
-                padding: 4px 6px;
-                min-width: 48px;
+                gap: 1px;
+                padding: 3px 5px;
+                min-width: 40px;
                 min-height: unset;
                 border-left: none;
                 text-align: center;
             }
 
             .neta-item.active {
-                border-radius: 8px;
+                border-radius: 6px;
                 margin-left: 0;
                 border-left: none;
             }
 
             .neta-item-number { display: none; }
-            .neta-item-thumb { width: 26px; height: 26px; }
-            .neta-item-name { font-size: 9px; }
+            .neta-item-thumb { width: 28px; height: 28px; }
+            .neta-item-name { display: none; }
 
             .content-card {
                 flex: 1;
                 min-height: 0;
                 margin-left: 0;
-                padding: 10px 10px 8px;
+                padding: 8px 10px 0;
                 border-radius: 0 0 12px 12px;
+                overflow: hidden;
             }
 
-            .content-header { padding: 0 36px 6px; gap: 10px; }
-            .daruma-name { font-size: 18px; }
-            .daruma-number { font-size: 11px; padding: 3px 12px; }
+            .content-header { padding: 0 0 4px; gap: 8px; }
+            .daruma-name { font-size: 16px; }
+            .daruma-number { font-size: 10px; padding: 2px 10px; }
 
-            .image-row { gap: 4px; }
+            .image-row { gap: 4px; flex: 1 1 0; min-height: 0; }
+            .daruma-gif { max-height: 100%; width: auto; }
             .nav-arrow { width: 32px; height: 32px; }
             .nav-arrow::before { width: 8px; height: 8px; }
-            .image-container { border-radius: 12px; padding: 8px; }
+            .image-container { border-radius: 0; padding: 0; }
 
-            .description-area { padding: 10px 14px 8px; margin: 8px 36px 0; }
-            .daruma-description { font-size: 13px; }
+            .description-area {
+                padding: 8px 20px;
+                margin: 4px -10px 0;
+                min-height: auto;
+                flex-shrink: 0;
+            }
+            .daruma-description { font-size: 13px; line-height: 1.7; min-height: auto; }
 
-            .progress-container { margin: 4px 36px 0; }
+            .progress-container { margin: 0 -10px; }
 
-            .footer { padding: 0 10px; }
-            .footer-info { font-size: 9px; }
-            .shindan-button { padding: 5px 12px; font-size: 11px; }
+            .footer {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 10px;
+            }
+            .footer-info { font-size: 9px; text-align: left; }
+            .shindan-button { padding: 6px 14px; font-size: 11px; }
         }
 
         /* ===== トランジション ===== */
@@ -519,7 +583,7 @@
         </div>
 
         <footer class="footer">
-            <p class="footer-info" id="footer-info">Created by 城島ジョージ | すしだるま公式 | https://sushi-daruma.com/</p>
+            <p class="footer-info" id="footer-info">城島ジョージ | すしだるま公式 | https://sushi-daruma.com/</p>
             <a href="https://sushi-daruma.com/shindan/" target="_blank" class="shindan-button">すしだるま診断</a>
         </footer>
     </div>
@@ -530,8 +594,8 @@
         let autoSlideInterval;
 
         const uiTexts = {
-            ja: { footer: "Created by 城島ジョージ | すしだるま公式 | https://sushi-daruma.com/" },
-            en: { footer: "Created by George Jojima | Sushi Daruma Official | https://sushi-daruma.com/" }
+            ja: { footer: "城島ジョージ | すしだるま公式 | https://sushi-daruma.com/" },
+            en: { footer: "George Jojima | Sushi Daruma Official | https://sushi-daruma.com/" }
         };
 
         const sushiDarumaData = [
