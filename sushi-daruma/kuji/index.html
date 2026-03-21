@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>すしだるま 缶バッジくじ</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  font-family: 'Zen Kaku Gothic New', 'Meiryo', sans-serif;
+  background: #FFED4D;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* 背景ドットアニメ (本家HPと同じ方式) */
+.movingdot {
+  z-index: 0;
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.54) 20%, transparent 20%);
+  background-size: 10px 10px;
+  animation: moveDots 50s linear infinite;
+}
+@keyframes moveDots {
+  0% { background-position: 0 0; }
+  100% { background-position: 100% 100%; }
+}
+
+/* 画面コンテナ */
+.screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+.screen.active { display: flex; }
+
+/* ===== トップ画面 ===== */
+#top-screen {
+  flex-direction: column; align-items: center; justify-content: center;
+  padding: 20px 20px; overflow-y: auto;
+}
+.floating-badges-area {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px 16px;
+  padding: 8px 20px 0;
+  max-width: 500px;
+  width: 100%;
+  pointer-events: none;
+}
+.badge-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  position: relative;
+}
+.badge-sold-out {
+  position: absolute; top: 2px; left: 2px;
+  background: #D42B2B; color: #FFF;
+  font-size: 9px; font-weight: 900; line-height: 1;
+  padding: 3px 5px; border-radius: 3px;
+  z-index: 3;
+}
+.floating-badge {
+  width: 100%; aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.12));
+}
+.badge-name {
+  font-size: 11px; font-weight: 700; color: #7A4A00;
+  text-align: center; line-height: 1.2;
+}
+.info-area {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 20px;
+  z-index: 2; position: relative;
+}
+.top-logo {
+  width: 320px; height: auto;
+  filter: drop-shadow(2px 3px 0 rgba(255,255,255,0.6));
+}
+.top-title {
+  width: 100vw; padding: 10px 0;
+  background: #D42B2B;
+  font-size: 28px; font-weight: 900; color: #FFF;
+  text-align: center; letter-spacing: 0.1em;
+  margin-top: -4px;
+}
+.top-subtitle {
+  font-size: 18px; font-weight: 700; color: #A06800;
+  text-align: center;
+}
+
+/* ===== QRセクション ===== */
+.qr-section { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.qr-code-area { background: #fff; padding: 16px; border-radius: 12px; }
+.qr-message { font-size: 20px; font-weight: 700; color: #555; }
+.qr-fallback { font-size: 15px; color: #999; cursor: pointer; text-decoration: underline; }
+.qr-fallback:hover { color: #666; }
+.draw-buttons { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; }
+
+/* ===== ガチャポンマシン CSS (フラットデザイン) ===== */
+.gacha-machine {
+  width: 240px; height: 380px; position: relative;
+}
+
+/* --- ドーム --- */
+.gacha-dome {
+  width: 200px; height: 100px;
+  background: rgba(255,255,255,0.25);
+  border: 4px solid #D4A017;
+  border-radius: 100px 100px 0 0;
+  position: absolute; top: 70px; left: 20px;
+  overflow: hidden;
+}
+.gacha-dome::before { display: none; }
+.gacha-dome::after {
+  content: '';
+  position: absolute; bottom: -2px; left: -4px; right: -4px;
+  height: 6px; background: #D4A017;
+}
+
+/* --- カプセル --- */
+.capsule { display: none; }
+.capsule::before, .capsule::after { display: none; }
+
+/* --- ボディ --- */
+.gacha-body {
+  width: 216px; height: 130px;
+  background: #E05500;
+  border-radius: 4px 4px 20px 20px;
+  position: absolute; top: 162px; left: 12px;
+}
+.gacha-body { display: flex; align-items: center; justify-content: center; }
+.gacha-logo { width: 140px; height: auto; opacity: 0.9; }
+.gacha-body::before, .gacha-body::after { display: none; }
+
+/* --- コイン投入口 --- */
+.coin-slot { display: none; }
+.coin-slot::before { display: none; }
+
+/* --- レバー --- */
+.gacha-lever {
+  width: 14px; height: 48px;
+  background: #AAA;
+  border-radius: 7px;
+  position: absolute; top: 208px; right: 28px;
+  transform-origin: bottom center;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.gacha-lever::after {
+  content: ''; position: absolute; top: -10px; left: -5px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #CCC;
+}
+.gacha-lever.turned { transform: rotate(90deg); }
+
+/* --- 排出口 --- */
+.gacha-exit {
+  width: 70px; height: 45px;
+  background: #222;
+  border-radius: 6px 6px 35px 35px;
+  position: absolute; bottom: 30px; left: 50%; margin-left: -35px;
+}
+.gacha-exit::after { display: none; }
+
+/* --- ベース --- */
+.gacha-base {
+  width: 240px; height: 28px;
+  background: #8B2E00;
+  border-radius: 0 0 12px 12px;
+  position: absolute; bottom: 0; left: 0;
+}
+.gacha-base::before { display: none; }
+
+/* --- LED非表示 --- */
+.gacha-leds { display: none; }
+
+/* マシン揺れアニメ */
+@keyframes machineShake {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-3px) rotate(-0.5deg); }
+  30% { transform: translateX(3px) rotate(0.5deg); }
+  50% { transform: translateX(-2px) rotate(-0.3deg); }
+  70% { transform: translateX(2px) rotate(0.3deg); }
+  90% { transform: translateX(-1px); }
+}
+.gacha-machine.shaking { animation: machineShake 0.15s linear infinite; }
+
+/* ボタン */
+.btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 300px; padding: 16px 24px;
+  border: none; border-radius: 16px;
+  font-family: inherit; font-size: 28px; font-weight: 900;
+  color: #FFF; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  text-align: center; text-decoration: none;
+  position: relative; overflow: hidden;
+}
+.btn:active { transform: scale(0.95); }
+.btn-single {
+  background: #FC7500;
+  box-shadow: 0 4px 15px rgba(252, 117, 0, 0.4);
+}
+.btn-triple {
+  background: #E05500;
+  box-shadow: 0 4px 15px rgba(224, 85, 0, 0.4);
+}
+.btn-sub {
+  background: #7A6B00;
+  box-shadow: 0 4px 10px rgba(122, 107, 0, 0.3);
+  font-size: 18px; padding: 14px 20px; width: 220px;
+}
+.btn-back {
+  background: #FFF;
+  border: 2px solid #D4A017;
+  box-shadow: none;
+  font-size: 16px; padding: 10px 24px; width: auto;
+  color: #7A4A00;
+}
+.btn:disabled {
+  opacity: 0.4; cursor: not-allowed; transform: none;
+}
+.btn-price {
+  font-size: 18px; font-weight: 400; margin-left: 8px;
+}
+.btn-badge {
+  position: absolute; top: -6px; right: -6px;
+  background: #FF2D55; color: #FFF;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 8px; border-radius: 10px;
+}
+
+/* 管理ボタン */
+.admin-gear {
+  position: fixed; top: 12px; right: 12px; z-index: 100;
+  width: 36px; height: 36px;
+  background: rgba(0,0,0,0.08); border: none; border-radius: 50%;
+  font-size: 18px; cursor: pointer; color: #A06800;
+  display: flex; align-items: center; justify-content: center;
+}
+.sync-btn {
+  position: fixed; top: 12px; right: 56px; z-index: 100;
+  background: rgba(0,0,0,0.08); border: none; border-radius: 16px;
+  padding: 6px 12px; font-size: 14px; cursor: pointer; color: #E05500;
+  display: flex; align-items: center; gap: 4px; font-weight: 700;
+}
+.sync-btn #syncBadge {
+  background: #FF2D55; color: #FFF; border-radius: 50%;
+  width: 20px; height: 20px; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* SOLD OUT */
+.sold-out-overlay {
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); z-index: 50;
+  align-items: center; justify-content: center;
+}
+.sold-out-overlay.active { display: flex; }
+.sold-out-text {
+  font-size: 80px; font-weight: 900; color: #FF2D55;
+  text-shadow: 3px 3px 0 #FFF, -3px -3px 0 #FFF, 3px -3px 0 #FFF, -3px 3px 0 #FFF;
+  transform: rotate(-15deg);
+  letter-spacing: 8px;
+}
+
+/* ===== ガチャ演出画面 ===== */
+#gacha-screen {
+  flex-direction: column; align-items: center; justify-content: center;
+}
+.gacha-stage {
+  position: relative; width: 100%; height: 500px;
+  display: flex; align-items: center; justify-content: center;
+}
+.gacha-stage .gacha-machine { transform: scale(1.1); transform-origin: center center; }
+
+/* 落下カプセル */
+.falling-capsule {
+  width: 60px; height: 60px; border-radius: 50%;
+  position: absolute; bottom: -80px; left: 50%; margin-left: -30px;
+  opacity: 0;
+  box-shadow: inset -5px -5px 10px rgba(0,0,0,0.2), 2px 2px 8px rgba(0,0,0,0.15);
+}
+.falling-capsule::after {
+  content: ''; position: absolute; top: 28px; left: 0; right: 0; height: 4px;
+  background: rgba(0,0,0,0.1);
+}
+@keyframes capsuleFall {
+  0% { bottom: 200px; opacity: 0; }
+  20% { opacity: 1; }
+  70% { bottom: 30px; }
+  80% { bottom: 50px; }
+  90% { bottom: 30px; }
+  100% { bottom: 35px; opacity: 1; }
+}
+@keyframes capsuleOpen {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.1); }
+  60% { transform: scale(1.2); opacity: 0.6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* ===== 結果画面 ===== */
+#result-screen {
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 20px;
+}
+.result-chara {
+  width: 220px; height: 220px; object-fit: contain;
+  animation: resultPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
+}
+@keyframes resultPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.result-name {
+  font-size: 48px; font-weight: 900; color: #FC7500;
+  text-shadow: 2px 2px 0 #FFF;
+}
+.result-label {
+  font-size: 20px; font-weight: 700; color: #7A4A00;
+}
+.result-buttons { display: flex; gap: 16px; margin-top: 10px; }
+
+/* 紙吹雪 */
+.confetti-container {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 10; overflow: hidden;
+}
+.confetti {
+  position: absolute; top: -20px;
+  width: 10px; height: 14px;
+  opacity: 0.9;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* ===== 3回まとめ画面 ===== */
+#summary-screen {
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 20px;
+}
+.summary-title {
+  font-size: 36px; font-weight: 900; color: #7A4A00;
+  text-shadow: 2px 2px 0 rgba(255,255,255,0.5);
+}
+.summary-chars {
+  display: flex; gap: 30px; align-items: flex-end;
+}
+.summary-item {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  animation: summaryIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+.summary-item:nth-child(2) { animation-delay: 0.15s; }
+.summary-item:nth-child(3) { animation-delay: 0.3s; }
+@keyframes summaryIn {
+  0% { transform: translateY(40px) scale(0.8); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.summary-img {
+  width: 180px; height: 180px; object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
+}
+.summary-name {
+  font-size: 22px; font-weight: 900; color: #FC7500;
+  text-shadow: 1px 1px 0 #FFF;
+}
+.summary-buttons { display: flex; gap: 16px; margin-top: 10px; }
+
+/* ===== SNSシェア + フォロー ===== */
+.share-section {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin-top: 8px;
+}
+.follow-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 32px; border: 3px solid #000; border-radius: 28px;
+  background: #FFF; color: #000;
+  font-family: inherit; font-size: 18px; font-weight: 900;
+  text-decoration: none; cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+  min-width: 280px;
+}
+.follow-btn:active { transform: scale(0.93); background: #F0F0F0; }
+.follow-caption {
+  font-size: 13px; color: #7A4A00; font-weight: 700;
+  margin-top: 2px;
+}
+
+/* ===== スマホ縦向き対応 ===== */
+@media (orientation: portrait) {
+  #top-screen {
+    flex-direction: column; gap: 20px; padding: 20px;
+  }
+  .top-logo { width: 220px; }
+  .floating-badges-area { max-width: 360px; gap: 6px; padding: 0 10px; }
+  .top-title { font-size: 30px; }
+  .top-subtitle { font-size: 16px; }
+  .btn { width: 280px; font-size: 24px; padding: 14px 20px; }
+  .result-chara { width: 160px; height: 160px; }
+  .result-name { font-size: 36px; }
+  .summary-img { width: 120px; height: 120px; }
+  .summary-name { font-size: 18px; }
+  .summary-chars { gap: 16px; }
+  .gacha-stage .gacha-machine { transform: scale(0.9); }
+}
+
+@media (max-width: 480px) {
+  .top-logo { width: 180px; }
+  .top-title { font-size: 22px; }
+  .btn { width: 260px; font-size: 22px; }
+  .follow-btn { font-size: 15px; padding: 12px 24px; min-width: 240px; }
+  .floating-badges-area { max-width: 320px; gap: 4px; }
+}
+
+/* 残りカウンター */
+.draw-counter {
+  position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+  font-size: 20px; font-weight: 700; color: #7A4A00;
+  background: rgba(255,255,255,0.7); padding: 6px 20px;
+  border-radius: 20px; z-index: 20;
+}
+</style>
+</head>
+<body>
+<div class="movingdot"></div>
+
+<!-- 管理ボタン -->
+<button class="admin-gear" id="adminGear">⚙</button>
+<!-- 同期ボタン -->
+<button class="sync-btn" id="syncBtn" style="display:none;" onclick="syncOfflineQueue()">🔄 <span id="syncBadge">0</span></button>
+
+<!-- SOLD OUT -->
+<div class="sold-out-overlay" id="soldOut">
+  <div class="sold-out-text">SOLD OUT</div>
+</div>
+
+<!-- ===== トップ画面 ===== -->
+<div class="screen active" id="top-screen">
+  <div class="info-area">
+    <img class="top-logo" src="../image/logo.png" alt="すしだるま">
+    <div class="top-title">缶バッジくじ</div>
+    <div class="top-subtitle">何がでるかお楽しみ！全15種</div>
+    <div id="qrSection" class="qr-section">
+      <div id="qrCode" class="qr-code-area"></div>
+      <div class="qr-message">QRコードを読み取って遊んでね！</div>
+      <div class="qr-fallback" onclick="showDrawButtons()">ローカルプレイ</div>
+    </div>
+    <div id="drawButtons" class="draw-buttons" style="display:none;">
+      <button class="btn btn-single" id="btnSingle" onclick="startDraw('single')">
+        1回引く<span class="btn-price">¥200</span>
+      </button>
+      <button class="btn btn-triple" id="btnTriple" onclick="startDraw('triple')">
+        3回引く<span class="btn-price">¥500</span>
+      </button>
+    </div>
+    <button class="btn btn-back" onclick="location.href='../zukan/'">すしだるま図鑑</button>
+    <div class="floating-badges-area" id="floatingBadges"></div>
+  </div>
+</div>
+
+<!-- ===== ガチャ演出画面 ===== -->
+<div class="screen" id="gacha-screen">
+  <div class="draw-counter" id="drawCounter"></div>
+  <div class="gacha-stage">
+    <div class="gacha-machine" id="gachaMachine">
+      <div class="gacha-leds"><span class="gacha-led"></span><span class="gacha-led"></span><span class="gacha-led"></span><span class="gacha-led"></span><span class="gacha-led"></span><span class="gacha-led"></span><span class="gacha-led"></span><span class="gacha-led"></span><span class="gacha-led"></span></div>
+      <div class="gacha-dome" id="gachaDome"></div>
+      <div class="gacha-body"><img src="../image/logo.png" class="gacha-logo" alt="すしだるま"></div>
+      <div class="coin-slot"></div>
+      <div class="gacha-lever" id="gachaLever"></div>
+      <div class="gacha-exit"></div>
+      <div class="gacha-base"></div>
+    </div>
+    <div class="falling-capsule" id="fallingCapsule"></div>
+  </div>
+</div>
+
+<!-- ===== 結果画面 ===== -->
+<div class="screen" id="result-screen">
+  <div class="confetti-container" id="confettiContainer"></div>
+  <div class="result-label">あたり！</div>
+  <img class="result-chara" id="resultImg" src="" alt="">
+  <div class="result-name" id="resultName"></div>
+  <div class="share-section" id="resultShare">
+    <a href="https://twitter.com/intent/follow?screen_name=jojima_george" target="_blank" class="follow-btn">𝕏 @jojima_george をフォロー</a>
+    <div class="follow-caption">フォローしてくれると、とっても喜びます！</div>
+  </div>
+  <div class="result-buttons" id="resultButtons"></div>
+</div>
+
+<!-- ===== 3回まとめ画面 ===== -->
+<div class="screen" id="summary-screen">
+  <div class="confetti-container" id="summaryConfetti"></div>
+  <div class="summary-title">今回の結果！</div>
+  <div class="summary-chars" id="summaryChars"></div>
+  <div class="share-section">
+    <a href="https://twitter.com/intent/follow?screen_name=jojima_george" target="_blank" class="follow-btn">𝕏 @jojima_george をフォロー</a>
+    <div class="follow-caption">フォローしてくれると、とっても喜びます！</div>
+  </div>
+  <div class="summary-buttons">
+    <button class="btn btn-back" onclick="goTop()">トップにもどる</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+// ===== Supabase初期化 =====
+const SUPABASE_URL = 'https://pkgvqzitzoynvexjlxqq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_wNpA6g8gxVLCStyqf5_osQ_C_Hro_fu';
+let sb = null;
+let isOnline = true;
+
+try {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (e) {
+  console.warn('Supabase初期化失敗、オフラインモードで動作');
+  isOnline = false;
+}
+
+// ===== キャラクターデータ =====
+const CHARACTERS = [
+  { id: 'salmon',     name: 'サーモン',     image: '../image/badge/salmon.webp',     color: '#FF8C69' },
+  { id: 'kinmedai',   name: 'きんめだい',   image: '../image/badge/kinmedai.webp',   color: '#FF4444' },
+  { id: 'uni',        name: 'うに',         image: '../image/badge/uni.webp',        color: '#FFB347' },
+  { id: 'bincho',     name: 'びんちょう',   image: '../image/badge/bincho.webp',     color: '#FFD1DC' },
+  { id: 'sayori',     name: 'さより',       image: '../image/badge/sayori.webp',     color: '#87CEEB' },
+  { id: 'maguro',     name: 'まぐろ',       image: '../image/badge/maguro.webp',     color: '#CD5C5C' },
+  { id: 'hotaruika',  name: 'ほたるいか',   image: '../image/badge/hotaruika.webp',  color: '#DDA0DD' },
+  { id: 'ikura',      name: 'いくら',       image: '../image/badge/ikura.webp',      color: '#FF6347' },
+  { id: 'hamachi',    name: 'はまち',       image: '../image/badge/hamachi.webp',    color: '#98D8C8' },
+  { id: 'kurodai',    name: 'くろだい',     image: '../image/badge/kurodai.webp',    color: '#778899' },
+  { id: 'tamago',     name: 'たまご',       image: '../image/badge/tamago.webp',     color: '#FFD700' },
+  { id: 'shake',      name: 'しゃけ',       image: '../image/badge/shake.webp',      color: '#FA8072' },
+  { id: 'amaebi',     name: 'あまえび',     image: '../image/badge/amaebi.webp',     color: '#FF69B4' },
+  { id: 'anago',      name: 'あなご',       image: '../image/badge/anago.webp',      color: '#DEB887' },
+  { id: 'madako',     name: 'まだこ',       image: '../image/badge/madako.webp',     color: '#DB7093' },
+];
+
+// ===== 状態管理 =====
+let currentMode = null; // 'single' | 'triple'
+let drawQueue = [];
+let drawIndex = 0;
+let adminPressTimer = null;
+
+// ===== データ層（Supabase + localStorageフォールバック） =====
+
+// --- localStorage操作 ---
+function getLocalInventory() {
+  const data = localStorage.getItem('kuji_inventory');
+  if (!data) return null;
+  return JSON.parse(data);
+}
+function setLocalInventory(inv) {
+  localStorage.setItem('kuji_inventory', JSON.stringify(inv));
+}
+function getLocalHistory() {
+  return JSON.parse(localStorage.getItem('kuji_history') || '[]');
+}
+function addLocalHistory(charId, mode) {
+  const history = getLocalHistory();
+  history.push({ time: new Date().toISOString(), character: charId, mode: mode });
+  localStorage.setItem('kuji_history', JSON.stringify(history));
+}
+
+// --- オフライン同期キュー ---
+function getOfflineQueue() {
+  return JSON.parse(localStorage.getItem('kuji_offline_queue') || '[]');
+}
+function addToOfflineQueue(charId, charName, mode) {
+  const queue = getOfflineQueue();
+  queue.push({
+    character_id: charId,
+    character_name: charName,
+    mode: mode,
+    created_at: new Date().toISOString(),
+    device_type: 'ipad'
+  });
+  localStorage.setItem('kuji_offline_queue', JSON.stringify(queue));
+  updateSyncBadge();
+}
+function clearOfflineQueue() {
+  localStorage.removeItem('kuji_offline_queue');
+  updateSyncBadge();
+}
+function updateSyncBadge() {
+  const badge = document.getElementById('syncBadge');
+  const btn = document.getElementById('syncBtn');
+  if (!badge || !btn) return;
+  const count = getOfflineQueue().length;
+  badge.textContent = count;
+  btn.style.display = count > 0 ? 'flex' : 'none';
+}
+async function syncOfflineQueue() {
+  const queue = getOfflineQueue();
+  if (queue.length === 0) return;
+  if (!sb) { alert('Supabase未接続です'); return; }
+  const btn = document.getElementById('syncBtn');
+  btn.textContent = '同期中…';
+  btn.disabled = true;
+  let success = 0;
+  let failed = 0;
+  for (const item of queue) {
+    try {
+      const { error } = await sb.rpc('draw_character', {
+        p_character_id: item.character_id,
+        p_mode: item.mode,
+        p_session_id: 'offline-sync',
+        p_device: item.device_type
+      });
+      if (error) { failed++; } else { success++; }
+    } catch (e) { failed++; }
+  }
+  if (failed === 0) {
+    clearOfflineQueue();
+    alert('同期完了！ ' + success + '件をSupabaseに送信しました');
+  } else {
+    // 成功分だけキューから削除
+    const remaining = queue.slice(success);
+    localStorage.setItem('kuji_offline_queue', JSON.stringify(remaining));
+    updateSyncBadge();
+    alert(success + '件成功、' + failed + '件失敗（再試行してください）');
+  }
+  btn.innerHTML = '🔄 <span id="syncBadge">0</span>';
+  btn.disabled = false;
+  updateSyncBadge();
+  await ensureInventory();
+  updateTopState();
+}
+
+// --- 統合インベントリ取得 ---
+async function getInventory() {
+  if (sb && isOnline) {
+    try {
+      const { data, error } = await sb.from('kuji_inventory').select('*');
+      if (!error && data) {
+        const inv = {};
+        data.forEach(row => { inv[row.id] = row.stock; });
+        setLocalInventory(inv); // ローカルにも同期
+        return inv;
+      }
+    } catch (e) {
+      console.warn('Supabase取得失敗、ローカルにフォールバック');
+      isOnline = false;
+      showOfflineIndicator();
+    }
+  }
+  return getLocalInventory();
+}
+
+// --- 同期的にローカル在庫を返す（UIの即時更新用） ---
+function getInventorySync() {
+  return getLocalInventory();
+}
+
+// --- 初期化 ---
+async function ensureInventory() {
+  // Supabaseから最新を取得（最優先）
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('kuji_inventory').select('*');
+      if (!error && data && data.length > 0) {
+        const inv = {};
+        data.forEach(row => { inv[row.id] = row.stock; });
+        setLocalInventory(inv);
+        isOnline = true;
+        hideOfflineIndicator();
+        return;
+      }
+    } catch (e) {
+      isOnline = false;
+      showOfflineIndicator();
+    }
+  }
+  // Supabase失敗時、ローカルがなければデフォルトセット
+  if (!getLocalInventory()) {
+    const inv = {};
+    CHARACTERS.forEach(c => { inv[c.id] = 3; });
+    setLocalInventory(inv);
+  }
+}
+
+// --- オフライン表示 ---
+function showOfflineIndicator() {
+  if (!document.getElementById('offlineBar')) {
+    const bar = document.createElement('div');
+    bar.id = 'offlineBar';
+    bar.textContent = 'オフラインモード';
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:4px;background:#FF6B6B;color:#FFF;text-align:center;font-size:12px;font-weight:700;z-index:200;';
+    document.body.appendChild(bar);
+  }
+}
+function hideOfflineIndicator() {
+  const bar = document.getElementById('offlineBar');
+  if (bar) bar.remove();
+}
+
+// ===== 画面切り替え =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goTop() {
+  showScreen('top-screen');
+  createFloatingBadges();
+  updateTopState();
+}
+
+// ===== トップ画面の状態更新 =====
+function updateTopState() {
+  const inv = getInventorySync();
+  if (!inv) return;
+  const totalRemaining = Object.values(inv).reduce((a, b) => a + b, 0);
+  const soldOut = document.getElementById('soldOut');
+  const btnSingle = document.getElementById('btnSingle');
+  const btnTriple = document.getElementById('btnTriple');
+
+  if (totalRemaining === 0) {
+    soldOut.classList.add('active');
+    btnSingle.disabled = true;
+    btnTriple.disabled = true;
+  } else {
+    soldOut.classList.remove('active');
+    btnSingle.disabled = false;
+    // 3回引くは在庫3以上必要
+    btnTriple.disabled = totalRemaining < 3;
+  }
+
+}
+
+// ===== カプセル描画（ガチャ演出用） =====
+function populateCapsules(domeId) {
+  const dome = document.getElementById(domeId);
+  if (!dome) return;
+  dome.innerHTML = '';
+  const inv = getInventorySync();
+  if (!inv) return;
+  const available = CHARACTERS.filter(c => inv[c.id] > 0);
+  const count = Math.min(available.length * 2, 20);
+  // ドーム: 200x170, アーチ型 → カプセルを下に溜まるように配置
+  const domeW = 200, domeH = 170, capSize = 28, cx = domeW / 2, rx = domeW / 2 - 4;
+  for (let i = 0; i < count; i++) {
+    const c = available[i % available.length];
+    const cap = document.createElement('div');
+    cap.className = 'capsule';
+    cap.style.background = `radial-gradient(circle at 35% 35%, ${c.color}, ${darken(c.color, 30)})`;
+    // 下に重力で溜まるように: y は下半分に集中
+    const y = domeH - capSize - Math.random() * (domeH * 0.65);
+    // アーチ内に収まるx範囲を計算（上ほど狭く）
+    const archY = Math.min(y, domeH / 2);
+    const ratio = archY / (domeH / 2);
+    const xRange = rx * Math.sqrt(1 - ratio * ratio);
+    const x = cx - xRange + Math.random() * xRange * 2;
+    cap.style.left = Math.max(4, Math.min(x, domeW - capSize - 4)) + 'px';
+    cap.style.top = Math.max(8, y) + 'px';
+    dome.appendChild(cap);
+  }
+}
+
+// ===== フローティングバッジ =====
+function createFloatingBadges() {
+  const container = document.getElementById('floatingBadges');
+  container.innerHTML = '';
+
+  // 色順: 青→紫→赤→黄→緑
+  const colorOrder = [
+    'maguro', 'sayori', 'amaebi', 'madako', 'kurodai',
+    'ikura', 'bincho', 'shake', 'salmon', 'hamachi',
+    'tamago', 'hotaruika', 'anago', 'kinmedai', 'uni'
+  ];
+  const charMap = {};
+  CHARACTERS.forEach(c => { charMap[c.id] = c; });
+
+  const inv = getLocalInventory() || {};
+  colorOrder.forEach((id) => {
+    const c = charMap[id];
+    if (!c) return;
+    const item = document.createElement('div');
+    item.className = 'badge-item';
+    const img = document.createElement('img');
+    img.className = 'floating-badge';
+    img.src = c.image;
+    img.alt = c.name;
+    if (inv[c.id] !== undefined && inv[c.id] <= 0) {
+      const sold = document.createElement('div');
+      sold.className = 'badge-sold-out';
+      sold.textContent = '売切';
+      item.appendChild(sold);
+      img.style.opacity = '0.4';
+    }
+    const name = document.createElement('div');
+    name.className = 'badge-name';
+    name.textContent = c.name;
+    item.appendChild(img);
+    item.appendChild(name);
+    container.appendChild(item);
+  });
+}
+
+function darken(hex, amount) {
+  const num = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, (num >> 16) - amount);
+  const g = Math.max(0, ((num >> 8) & 0xFF) - amount);
+  const b = Math.max(0, (num & 0xFF) - amount);
+  return `rgb(${r},${g},${b})`;
+}
+
+// ===== 抽選ロジック =====
+// ローカルのみで抽選（即座に結果を返す）
+function drawOneLocal() {
+  const inv = getLocalInventory();
+  const available = CHARACTERS.filter(c => inv[c.id] > 0);
+  if (available.length === 0) return null;
+  const idx = Math.floor(Math.random() * available.length);
+  const char = available[idx];
+  inv[char.id]--;
+  setLocalInventory(inv);
+  addLocalHistory(char.id, currentMode);
+  return char;
+}
+
+// Supabaseに抽選を記録（バックグラウンド）
+async function drawOneSupabase(char, sessionId) {
+  if (!sb || !isOnline) {
+    // オフライン → キューに追加
+    addToOfflineQueue(char.id, char.name, currentMode);
+    return;
+  }
+  try {
+    const deviceType = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'phone' : 'ipad';
+    const { data, error } = await sb.rpc('draw_character', {
+      p_character_id: char.id,
+      p_mode: currentMode,
+      p_session_id: sessionId,
+      p_device: deviceType
+    });
+    if (error) {
+      console.warn('Supabase RPC失敗:', error);
+      if (error.message?.includes('out_of_stock')) {
+        const inv = await getInventory();
+        updateTopState();
+      } else {
+        // RPC失敗 → キューに追加
+        addToOfflineQueue(char.id, char.name, currentMode);
+      }
+    }
+  } catch (e) {
+    console.warn('Supabase通信失敗:', e);
+    isOnline = false;
+    showOfflineIndicator();
+    addToOfflineQueue(char.id, char.name, currentMode);
+  }
+}
+
+// ===== クールダウン =====
+let lastDrawTime = 0;
+const COOLDOWN_MS = 10000;
+let cooldownTimer = null;
+
+function canDraw() {
+  return Date.now() - lastDrawTime >= COOLDOWN_MS;
+}
+
+function startCooldown() {
+  lastDrawTime = Date.now();
+  const btnSingle = document.getElementById('btnSingle');
+  const btnTriple = document.getElementById('btnTriple');
+  btnSingle.disabled = true;
+  btnTriple.disabled = true;
+
+  // カウントダウン表示
+  let remaining = 10;
+  btnSingle.dataset.origText = btnSingle.innerHTML;
+  btnTriple.dataset.origText = btnTriple.innerHTML;
+
+  cooldownTimer = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(cooldownTimer);
+      btnSingle.innerHTML = btnSingle.dataset.origText;
+      btnTriple.innerHTML = btnTriple.dataset.origText;
+      updateTopState(); // ボタン状態を在庫に基づいて復帰
+    } else {
+      btnSingle.innerHTML = `${remaining}秒後に引けます`;
+      btnTriple.innerHTML = `${remaining}秒後に引けます`;
+    }
+  }, 1000);
+}
+
+// ===== くじ開始 =====
+function startDraw(mode) {
+  if (!canDraw()) return;
+  currentMode = mode;
+  drawQueue = [];
+  drawIndex = 0;
+
+  const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const count = mode === 'triple' ? 3 : 1;
+
+  for (let i = 0; i < count; i++) {
+    const result = drawOneLocal();
+    if (!result) break;
+    drawQueue.push(result);
+  }
+
+  if (drawQueue.length === 0) {
+    updateTopState();
+    return;
+  }
+
+  // Supabaseにバックグラウンドで記録
+  drawQueue.forEach(char => drawOneSupabase(char, sessionId));
+
+  startCooldown();
+  runGachaAnimation(drawQueue[0]);
+}
+
+// ===== ガチャアニメーション =====
+function runGachaAnimation(char) {
+  showScreen('gacha-screen');
+  populateCapsules('gachaDome');
+
+  // カウンター表示
+  const counter = document.getElementById('drawCounter');
+  if (currentMode === 'triple') {
+    counter.textContent = `${drawIndex + 1} / ${drawQueue.length} 回目`;
+    counter.style.display = 'block';
+  } else {
+    counter.style.display = 'none';
+  }
+
+  const machine = document.getElementById('gachaMachine');
+  const lever = document.getElementById('gachaLever');
+  const capsule = document.getElementById('fallingCapsule');
+
+  // リセット
+  machine.classList.remove('shaking');
+  lever.classList.remove('turned');
+  capsule.style.animation = 'none';
+  capsule.style.opacity = '0';
+
+  // Step1: ちょっと待ってからレバー回転
+  setTimeout(() => {
+
+    lever.classList.add('turned');
+
+    // Step2: マシン揺れ
+    setTimeout(() => {
+      machine.classList.add('shaking');
+
+
+      // Step3: 揺れ停止 + カプセル落下
+      setTimeout(() => {
+        machine.classList.remove('shaking');
+        capsule.style.background = `radial-gradient(circle at 35% 35%, ${char.color}, ${darken(char.color, 30)})`;
+        capsule.style.animation = 'capsuleFall 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards';
+
+
+        // Step4: カプセルオープン → 結果画面
+        setTimeout(() => {
+          capsule.style.animation = 'capsuleOpen 0.5s ease-out forwards';
+
+
+          setTimeout(() => {
+            showResult(char);
+          }, 500);
+        }, 900);
+      }, 2000);
+    }, 500);
+  }, 400);
+}
+
+// ===== 結果表示 =====
+function showResult(char) {
+  showScreen('result-screen');
+  document.getElementById('resultImg').src = char.image;
+  document.getElementById('resultImg').alt = char.name;
+  document.getElementById('resultName').textContent = char.name;
+
+  // 紙吹雪
+  spawnConfetti('confettiContainer');
+
+  // ボタン
+  const btns = document.getElementById('resultButtons');
+  btns.innerHTML = '';
+
+  // 3回途中はシェア・フォロー非表示
+  const shareSection = document.getElementById('resultShare');
+  if (currentMode === 'triple' && drawIndex < drawQueue.length - 1) {
+    shareSection.style.display = 'none';
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-single';
+    nextBtn.textContent = `次を引く（残り${drawQueue.length - drawIndex - 1}回）`;
+    nextBtn.onclick = () => {
+      drawIndex++;
+      runGachaAnimation(drawQueue[drawIndex]);
+    };
+    btns.appendChild(nextBtn);
+  } else if (currentMode === 'triple') {
+    shareSection.style.display = 'none';
+    const summaryBtn = document.createElement('button');
+    summaryBtn.className = 'btn btn-single';
+    summaryBtn.textContent = '結果をみる！';
+    summaryBtn.onclick = showSummary;
+    btns.appendChild(summaryBtn);
+  } else {
+    shareSection.style.display = 'flex';
+    const backBtn = document.createElement('button');
+    backBtn.className = 'btn btn-back';
+    backBtn.textContent = 'トップにもどる';
+    backBtn.onclick = goTop;
+    btns.appendChild(backBtn);
+  }
+}
+
+// ===== 3回まとめ画面 =====
+function showSummary() {
+  showScreen('summary-screen');
+  const container = document.getElementById('summaryChars');
+  container.innerHTML = '';
+
+  drawQueue.forEach(char => {
+    const item = document.createElement('div');
+    item.className = 'summary-item';
+    item.innerHTML = `
+      <img class="summary-img" src="${char.image}" alt="${char.name}">
+      <div class="summary-name">${char.name}</div>
+    `;
+    container.appendChild(item);
+  });
+
+  spawnConfetti('summaryConfetti');
+}
+
+// ===== 紙吹雪 =====
+function spawnConfetti(containerId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  const colors = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#FF69B4', '#FFB347', '#DDA0DD'];
+
+  for (let i = 0; i < 50; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.width = (6 + Math.random() * 8) + 'px';
+    piece.style.height = (8 + Math.random() * 12) + 'px';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    piece.style.animation = `confettiFall ${1.5 + Math.random() * 2}s ease-out ${Math.random() * 0.8}s forwards`;
+    container.appendChild(piece);
+  }
+}
+
+// ===== 管理画面 (3秒長押し) =====
+const adminBtn = document.getElementById('adminGear');
+adminBtn.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  adminPressTimer = setTimeout(() => { location.href = 'admin.html'; }, 3000);
+});
+adminBtn.addEventListener('touchend', () => clearTimeout(adminPressTimer));
+adminBtn.addEventListener('touchcancel', () => clearTimeout(adminPressTimer));
+// マウスでも対応
+adminBtn.addEventListener('mousedown', () => {
+  adminPressTimer = setTimeout(() => { location.href = 'admin.html'; }, 3000);
+});
+adminBtn.addEventListener('mouseup', () => clearTimeout(adminPressTimer));
+adminBtn.addEventListener('mouseleave', () => clearTimeout(adminPressTimer));
+
+// ===== SNSシェア =====
+function getShareText(type) {
+  if (type === 'summary') {
+    const names = drawQueue.map(c => c.name).join('・');
+    return `すしだるま缶バッジくじで「${names}」が当たった！ #すしだるま`;
+  }
+  const name = document.getElementById('resultName').textContent;
+  return `すしだるま缶バッジくじで「${name}」が当たった！ #すしだるま`;
+}
+
+function shareToX(type) {
+  const text = encodeURIComponent(getShareText(type));
+  const url = encodeURIComponent('https://sushi-daruma.com/kuji/');
+  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+}
+
+function shareToLINE(type) {
+  const text = encodeURIComponent(getShareText(type) + '\nhttps://sushi-daruma.com/kuji/');
+  window.open(`https://social-plugins.line.me/lineit/share?url=${text}`, '_blank');
+}
+
+function shareNative(type) {
+  if (navigator.share) {
+    navigator.share({
+      title: 'すしだるま缶バッジくじ',
+      text: getShareText(type),
+      url: 'https://sushi-daruma.com/kuji/'
+    }).catch(() => {});
+  }
+}
+
+// Web Share API対応チェック
+if (navigator.share) {
+  const nb = document.getElementById('nativeShareBtn');
+  const nsb = document.getElementById('nativeShareSummaryBtn');
+  if (nb) nb.style.display = 'inline-flex';
+  if (nsb) nsb.style.display = 'inline-flex';
+}
+
+// ===== QR / ボタン切り替え =====
+function showDrawButtons() {
+  const qr = document.getElementById('qrSection');
+  const btns = document.getElementById('drawButtons');
+  if (qr) qr.style.display = 'none';
+  if (btns) btns.style.display = 'flex';
+}
+
+function generateQR() {
+  const container = document.getElementById('qrCode');
+  if (!container) return;
+  const url = location.origin + location.pathname + '?source=qr';
+  const qr = qrcode(0, 'M');
+  qr.addData(url);
+  qr.make();
+  container.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 0 });
+}
+
+// ===== 初期化 =====
+(async () => {
+  await ensureInventory();
+  createFloatingBadges();
+  updateTopState();
+  updateSyncBadge();
+
+  const params = new URLSearchParams(location.search);
+  const isFromQR = params.get('source') === 'qr';
+
+  if (isFromQR) {
+    // スマホQR経由 → ボタン直接表示、QR非表示、管理ボタン非表示
+    document.getElementById('qrSection').style.display = 'none';
+    document.getElementById('drawButtons').style.display = 'flex';
+    const gear = document.getElementById('adminGear');
+    if (gear) gear.style.display = 'none';
+  } else {
+    // iPad → QR表示、ボタン非表示
+    generateQR();
+  }
+})();
+
+// 右クリック・ドラッグ無効
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('dragstart', e => e.preventDefault());
+</script>
+</body>
+</html>

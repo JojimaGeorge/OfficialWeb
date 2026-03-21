@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
-    <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c:400;500;700;800" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Zen+Kaku+Gothic+New:wght@400;700;900" rel="stylesheet">
     <style>
         @charset "utf-8";
 
@@ -18,7 +18,7 @@
         html { overflow: hidden; }
 
         body {
-            font-family: "M PLUS Rounded 1c", "メイリオ", sans-serif;
+            font-family: "Zen Kaku Gothic New", "メイリオ", sans-serif;
             background-color: #FFED4D;
             overflow: hidden;
             height: 100vh;
@@ -232,7 +232,7 @@
 
         .daruma-name {
             font-size: 26px;
-            font-weight: 800;
+            font-weight: 900;
             color: #333;
             line-height: 1.2;
         }
@@ -357,9 +357,10 @@
         /* ===== フッター ===== */
         .footer {
             display: grid;
-            grid-template-columns: 1fr auto;
+            grid-template-columns: 1fr auto auto;
             align-items: center;
             padding: 0 28px;
+            gap: 8px;
         }
 
         .footer-info {
@@ -420,6 +421,17 @@
         }
 
         .shindan-button:active { transform: scale(0.96); }
+
+        .kuji-button {
+            background: #E05500;
+            box-shadow: 0 2px 10px rgba(224, 85, 0, 0.4);
+        }
+        .kuji-button::before {
+            background: conic-gradient(
+                from var(--border-angle),
+                #FFD700, #FFA500, #FF6B00, #FFD700
+            );
+        }
 
         @keyframes gradientShift {
             0% { background-position: 0% 50%; }
@@ -529,8 +541,12 @@
                 padding: 4px 10px;
                 gap: 2px;
             }
-            .footer-info { font-size: 8px; text-align: center; }
-            .shindan-button { padding: 8px 28px; font-size: 13px; }
+            .footer-info { font-size: 8px; text-align: center; display: none; }
+            .footer {
+                flex-direction: row;
+                gap: 8px;
+            }
+            .shindan-button { padding: 8px 20px; font-size: 12px; }
         }
 
         /* ===== トランジション ===== */
@@ -588,6 +604,7 @@
 
         <footer class="footer">
             <p class="footer-info" id="footer-info">城島ジョージ | すしだるま公式 | https://sushi-daruma.com/</p>
+            <a href="../kuji/" class="shindan-button kuji-button">缶バッジくじ</a>
             <a href="https://sushi-daruma.com/shindan/" target="_blank" class="shindan-button">すしだるま診断</a>
         </footer>
     </div>

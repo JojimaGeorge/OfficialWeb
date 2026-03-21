@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>缶バッジくじ 管理パネル</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%; overflow-x: hidden;
+  font-family: 'Zen Kaku Gothic New', 'Meiryo', sans-serif;
+  background: #FFF8E8; color: #333;
+}
+
+/* PIN画面 */
+#pin-screen {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100vh; background: #FFED4D;
+  gap: 20px;
+}
+#pin-screen.hidden { display: none; }
+.pin-title { font-size: 24px; font-weight: 900; color: #7A4A00; }
+.pin-input {
+  font-size: 36px; font-weight: 700; text-align: center;
+  width: 200px; padding: 10px;
+  border: 3px solid #D4A017; border-radius: 12px;
+  background: #FFF; color: #333;
+  font-family: inherit; letter-spacing: 12px;
+  -webkit-text-security: disc;
+}
+.pin-error { color: #FF2D55; font-weight: 700; font-size: 14px; min-height: 20px; }
+.pin-btn {
+  padding: 12px 40px; border: none; border-radius: 12px;
+  background: #FC7500; color: #FFF;
+  font-size: 18px; font-weight: 700; font-family: inherit;
+  cursor: pointer;
+}
+.pin-btn:active { transform: scale(0.95); }
+
+/* メイン画面 */
+#main-panel { display: none; }
+#main-panel.visible { display: block; }
+
+/* ヘッダー */
+.panel-header {
+  background: linear-gradient(135deg, #E05500, #FC7500);
+  color: #FFF; padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 10;
+  flex-wrap: wrap; gap: 8px;
+}
+.panel-title { font-size: 20px; font-weight: 900; white-space: nowrap; }
+.header-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.header-btn {
+  padding: 8px 16px; border: 2px solid rgba(255,255,255,0.5);
+  border-radius: 8px; background: rgba(255,255,255,0.15);
+  color: #FFF; font-size: 13px; font-weight: 700;
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+}
+.header-btn:active { background: rgba(255,255,255,0.3); }
+.header-btn.danger { border-color: #FF6B6B; background: rgba(255,0,0,0.15); }
+
+/* ハンバーガー */
+.hamburger {
+  display: none; background: none; border: none; cursor: pointer;
+  padding: 8px; flex-direction: column; gap: 5px;
+}
+.hamburger span {
+  display: block; width: 24px; height: 3px;
+  background: #FFF; border-radius: 2px; transition: 0.3s;
+}
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .header-buttons {
+    display: none; position: absolute; top: 100%; left: 0; right: 0;
+    background: linear-gradient(135deg, #E05500, #FC7500);
+    flex-direction: column; padding: 12px 16px; gap: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 20;
+  }
+  .header-buttons.open { display: flex; }
+  .header-btn { width: 100%; text-align: center; padding: 12px; font-size: 15px; }
+}
+
+/* 売上カウンター */
+.sales-bar {
+  background: #FFF; padding: 16px 24px;
+  display: flex; align-items: center; gap: 24px;
+  border-bottom: 1px solid #EEE;
+  flex-wrap: wrap;
+}
+.sales-item {
+  display: flex; flex-direction: column; align-items: center;
+}
+.sales-label { font-size: 12px; color: #999; font-weight: 700; }
+.sales-value { font-size: 28px; font-weight: 900; color: #E05500; }
+.sales-value.total { color: #FC7500; font-size: 36px; }
+.sales-divider { width: 1px; height: 40px; background: #EEE; }
+
+/* タブ */
+.tabs {
+  display: flex; background: #FFF;
+  border-bottom: 2px solid #EEE;
+}
+.tab {
+  flex: 1; padding: 12px; text-align: center;
+  font-size: 15px; font-weight: 700; color: #999;
+  border: none; background: none; cursor: pointer;
+  font-family: inherit; border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+.tab.active { color: #FC7500; border-bottom-color: #FC7500; }
+
+/* タブ内容 */
+.tab-content { display: none; padding: 20px; }
+.tab-content.active { display: block; }
+
+/* 在庫設定 */
+.bulk-row {
+  display: flex; gap: 10px; align-items: center;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+.bulk-label { font-size: 14px; font-weight: 700; color: #666; }
+.bulk-input {
+  width: 70px; padding: 8px; border: 2px solid #DDD;
+  border-radius: 8px; font-size: 16px; font-family: inherit;
+  text-align: center;
+}
+.bulk-btn {
+  padding: 8px 16px; border: none; border-radius: 8px;
+  background: #4A90D9; color: #FFF;
+  font-size: 13px; font-weight: 700; font-family: inherit;
+  cursor: pointer;
+}
+
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.inv-card {
+  background: #FFF; border: 2px solid #EEE;
+  border-radius: 12px; padding: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.inv-img {
+  width: 48px; height: 48px; object-fit: contain;
+  border-radius: 8px; background: #FFF8E8;
+}
+.inv-info { flex: 1; }
+.inv-name { font-size: 14px; font-weight: 700; white-space: nowrap; }
+.inv-bar-bg {
+  width: 100%; height: 8px; background: #EEE;
+  border-radius: 4px; margin-top: 4px; overflow: hidden;
+}
+.inv-bar {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, #FC7500, #FFB347);
+  transition: width 0.3s;
+}
+.inv-bar.low { background: linear-gradient(90deg, #FF2D55, #FF6B6B); }
+.inv-bar.zero { width: 0 !important; }
+.inv-count { font-size: 12px; color: #999; margin-top: 2px; }
+.inv-input {
+  width: 60px; padding: 6px; border: 2px solid #DDD;
+  border-radius: 8px; font-size: 16px; font-family: inherit;
+  text-align: center;
+}
+.inv-set-btn {
+  padding: 6px 10px; border: none; border-radius: 6px;
+  background: #4A90D9; color: #FFF; font-size: 12px;
+  font-weight: 700; font-family: inherit; cursor: pointer;
+}
+
+/* 履歴 */
+.history-table {
+  width: 100%; border-collapse: collapse;
+}
+.history-table th {
+  background: #F5F5F5; padding: 10px 12px;
+  text-align: left; font-size: 13px; color: #666;
+  border-bottom: 2px solid #EEE;
+  position: sticky; top: 0;
+}
+.history-table td {
+  padding: 10px 12px; border-bottom: 1px solid #F0F0F0;
+  font-size: 14px;
+}
+.history-table tr:hover td { background: #FFF8E8; }
+.mode-badge {
+  display: inline-block; padding: 2px 8px;
+  border-radius: 10px; font-size: 11px; font-weight: 700;
+}
+.mode-badge.single { background: #E8F5E9; color: #2E7D32; }
+.mode-badge.triple { background: #FFF3E0; color: #E65100; }
+.no-data { text-align: center; padding: 40px; color: #999; font-size: 16px; }
+
+/* 接続ステータス */
+.connection-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700;
+}
+.status-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #999;
+}
+.status-dot.online { background: #4CAF50; box-shadow: 0 0 6px #4CAF50; }
+.status-dot.offline { background: #FF2D55; box-shadow: 0 0 6px #FF2D55; }
+.status-text { color: rgba(255,255,255,0.9); }
+
+/* デバイスバッジ */
+.device-badge {
+  display: inline-block; padding: 2px 6px;
+  border-radius: 8px; font-size: 10px; font-weight: 700;
+  background: #E3F2FD; color: #1565C0;
+}
+.device-badge.phone { background: #F3E5F5; color: #7B1FA2; }
+
+/* 新着ハイライト */
+@keyframes newRow {
+  0% { background: #FFF3E0; }
+  100% { background: transparent; }
+}
+.history-table tr.new-entry td {
+  animation: newRow 3s ease-out;
+}
+
+/* QRオーバーレイ */
+.qr-overlay {
+  display: none; position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%; z-index: 100;
+  background: #FFF; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px;
+}
+.qr-overlay.visible { display: flex; }
+.qr-title { font-size: 24px; font-weight: 900; color: #E05500; }
+.qr-subtitle { font-size: 14px; color: #999; }
+.qr-canvas { border: 4px solid #E05500; border-radius: 12px; }
+.qr-close-btn {
+  padding: 12px 40px; border: none; border-radius: 12px;
+  background: #FC7500; color: #FFF;
+  font-size: 18px; font-weight: 700; font-family: inherit;
+  cursor: pointer;
+}
+
+/* PIN変更 */
+.settings-section {
+  background: #FFF; border: 2px solid #EEE;
+  border-radius: 12px; padding: 20px; max-width: 400px;
+  margin-bottom: 16px;
+}
+.settings-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+.settings-row {
+  display: flex; gap: 10px; align-items: center;
+  margin-bottom: 10px;
+}
+.settings-label { font-size: 14px; font-weight: 700; color: #666; width: 80px; }
+.settings-input {
+  flex: 1; padding: 8px; border: 2px solid #DDD;
+  border-radius: 8px; font-size: 16px; font-family: inherit;
+}
+.settings-btn {
+  padding: 10px 20px; border: none; border-radius: 8px;
+  background: #4A90D9; color: #FFF;
+  font-size: 14px; font-weight: 700; font-family: inherit;
+  cursor: pointer; margin-top: 8px;
+}
+.settings-msg { font-size: 13px; margin-top: 8px; min-height: 18px; }
+.settings-msg.ok { color: #2E7D32; }
+.settings-msg.err { color: #FF2D55; }
+</style>
+</head>
+<body>
+
+<!-- PIN入力画面 -->
+<div id="pin-screen">
+  <div class="pin-title">🔒 管理パネル</div>
+  <input class="pin-input" id="pinInput" type="tel" maxlength="4" placeholder="----" inputmode="numeric">
+  <div class="pin-error" id="pinError"></div>
+  <button class="pin-btn" onclick="checkPin()">ログイン</button>
+</div>
+
+<!-- メインパネル -->
+<div id="main-panel">
+  <div class="panel-header">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="panel-title">🎰 缶バッジくじ 管理</div>
+      <div class="connection-status" id="connStatus">
+        <div class="status-dot" id="statusDot"></div>
+        <span class="status-text" id="statusText">接続中…</span>
+      </div>
+    </div>
+    <button class="hamburger" id="hamburgerBtn" onclick="toggleMenu()">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="header-buttons" id="headerMenu">
+      <button class="header-btn" onclick="showQR();closeMenu()">📱 QR表示</button>
+      <button class="header-btn" onclick="exportCSV();closeMenu()">📥 CSV出力</button>
+      <button class="header-btn danger" onclick="confirmReset();closeMenu()">🗑 データリセット</button>
+      <button class="header-btn" onclick="location.href='./'">← くじに戻る</button>
+    </div>
+  </div>
+
+  <!-- 売上 -->
+  <div class="sales-bar" id="salesBar"></div>
+
+  <!-- タブ -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('inventory')">📦 在庫管理</button>
+    <button class="tab" onclick="switchTab('history')">📋 抽選履歴</button>
+    <button class="tab" onclick="switchTab('settings')">⚙ 設定</button>
+  </div>
+
+  <!-- 在庫管理 -->
+  <div class="tab-content active" id="tab-inventory">
+    <div class="bulk-row">
+      <span class="bulk-label">一括設定:</span>
+      <input class="bulk-input" id="bulkCount" type="number" min="0" value="10">
+      <button class="bulk-btn" onclick="bulkSetInventory()">全キャラに適用</button>
+    </div>
+    <div class="inv-grid" id="invGrid"></div>
+  </div>
+
+  <!-- 抽選履歴 -->
+  <div class="tab-content" id="tab-history">
+    <div id="historyContent"></div>
+  </div>
+
+  <!-- 設定 -->
+  <div class="tab-content" id="tab-settings">
+    <div class="settings-section">
+      <div class="settings-title">🔑 PINコード変更</div>
+      <div class="settings-row">
+        <span class="settings-label">現在PIN</span>
+        <input class="settings-input" id="currentPin" type="tel" maxlength="4" inputmode="numeric">
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">新PIN</span>
+        <input class="settings-input" id="newPin" type="tel" maxlength="4" inputmode="numeric">
+      </div>
+      <button class="settings-btn" onclick="changePin()">変更する</button>
+      <div class="settings-msg" id="pinMsg"></div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title">🎪 イベント管理</div>
+      <button class="settings-btn" style="background:#FF2D55;" onclick="newEvent()">新イベント開始（全リセット）</button>
+    </div>
+  </div>
+</div>
+
+<!-- QRオーバーレイ -->
+<div class="qr-overlay" id="qrOverlay">
+  <div class="qr-title">📱 スマホでくじ引き</div>
+  <div class="qr-subtitle">QRコードを読み取ってください</div>
+  <canvas class="qr-canvas" id="qrCanvas"></canvas>
+  <div class="qr-subtitle" id="qrUrl"></div>
+  <button class="qr-close-btn" onclick="hideQR()">閉じる</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+// ===== Supabase設定 =====
+const SUPABASE_URL = 'https://pkgvqzitzoynvexjlxqq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_wNpA6g8gxVLCStyqf5_osQ_C_Hro_fu';
+let sb = null;
+let isOnline = false;
+
+// キャッシュデータ（リアルタイム更新用）
+let cachedInventory = {};
+let cachedHistory = [];
+
+try {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (e) {
+  console.warn('Supabase初期化失敗');
+}
+
+function setConnectionStatus(online) {
+  isOnline = online;
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  if (online) {
+    dot.className = 'status-dot online';
+    text.textContent = 'オンライン';
+  } else {
+    dot.className = 'status-dot offline';
+    text.textContent = 'オフライン（localStorage）';
+  }
+}
+
+// ===== キャラクターデータ =====
+const CHARACTERS = [
+  { id: 'salmon',     name: 'サーモン',     image: '../image/badge/salmon.webp' },
+  { id: 'kinmedai',   name: 'きんめだい',   image: '../image/badge/kinmedai.webp' },
+  { id: 'uni',        name: 'うに',         image: '../image/badge/uni.webp' },
+  { id: 'bincho',     name: 'びんちょう',   image: '../image/badge/bincho.webp' },
+  { id: 'sayori',     name: 'さより',       image: '../image/badge/sayori.webp' },
+  { id: 'maguro',     name: 'まぐろ',       image: '../image/badge/maguro.webp' },
+  { id: 'hotaruika',  name: 'ほたるいか',   image: '../image/badge/hotaruika.webp' },
+  { id: 'ikura',      name: 'いくら',       image: '../image/badge/ikura.webp' },
+  { id: 'hamachi',    name: 'はまち',       image: '../image/badge/hamachi.webp' },
+  { id: 'kurodai',    name: 'くろだい',     image: '../image/badge/kurodai.webp' },
+  { id: 'tamago',     name: 'たまご',       image: '../image/badge/tamago.webp' },
+  { id: 'shake',      name: 'しゃけ',       image: '../image/badge/shake.webp' },
+  { id: 'amaebi',     name: 'あまえび',     image: '../image/badge/amaebi.webp' },
+  { id: 'anago',      name: 'あなご',       image: '../image/badge/anago.webp' },
+  { id: 'madako',     name: 'まだこ',       image: '../image/badge/madako.webp' },
+];
+
+const charMap = {};
+CHARACTERS.forEach(c => { charMap[c.id] = c; });
+
+// ===== PIN =====
+function getPin() { return localStorage.getItem('kuji_pin') || '0000'; }
+
+function checkPin() {
+  const input = document.getElementById('pinInput').value;
+  if (input === getPin()) {
+    document.getElementById('pin-screen').classList.add('hidden');
+    document.getElementById('main-panel').classList.add('visible');
+    initData();
+  } else {
+    document.getElementById('pinError').textContent = 'PINが違います';
+    document.getElementById('pinInput').value = '';
+  }
+}
+
+document.getElementById('pinInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPin();
+});
+
+function changePin() {
+  const current = document.getElementById('currentPin').value;
+  const newP = document.getElementById('newPin').value;
+  const msg = document.getElementById('pinMsg');
+
+  if (current !== getPin()) {
+    msg.textContent = '現在のPINが違います';
+    msg.className = 'settings-msg err';
+    return;
+  }
+  if (newP.length !== 4 || !/^\d{4}$/.test(newP)) {
+    msg.textContent = '新PINは4桁の数字で入力してください';
+    msg.className = 'settings-msg err';
+    return;
+  }
+  localStorage.setItem('kuji_pin', newP);
+  msg.textContent = 'PINを変更しました';
+  msg.className = 'settings-msg ok';
+  document.getElementById('currentPin').value = '';
+  document.getElementById('newPin').value = '';
+}
+
+// ===== データ取得（Supabase優先、localStorage fallback） =====
+function getInventoryLocal() {
+  return JSON.parse(localStorage.getItem('kuji_inventory') || '{}');
+}
+function setInventoryLocal(inv) {
+  localStorage.setItem('kuji_inventory', JSON.stringify(inv));
+}
+function getHistoryLocal() {
+  return JSON.parse(localStorage.getItem('kuji_history') || '[]');
+}
+
+async function fetchInventory() {
+  if (!sb) return getInventoryLocal();
+  try {
+    const { data, error } = await sb.from('kuji_inventory').select('*');
+    if (error) throw error;
+    const inv = {};
+    data.forEach(row => { inv[row.id] = row.stock; });
+    // localStorageにもキャッシュ
+    setInventoryLocal(inv);
+    cachedInventory = inv;
+    setConnectionStatus(true);
+    return inv;
+  } catch (e) {
+    console.warn('在庫取得失敗、localStorageにフォールバック:', e);
+    setConnectionStatus(false);
+    return getInventoryLocal();
+  }
+}
+
+async function fetchHistory() {
+  if (!sb) return getHistoryLocal();
+  try {
+    const { data, error } = await sb.from('kuji_history')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) throw error;
+    cachedHistory = data;
+    setConnectionStatus(true);
+    return data;
+  } catch (e) {
+    console.warn('履歴取得失敗、localStorageにフォールバック:', e);
+    setConnectionStatus(false);
+    return getHistoryLocal();
+  }
+}
+
+// ===== 初期化 =====
+async function initData() {
+  await Promise.all([fetchInventory(), fetchHistory()]);
+  renderAll();
+  setupRealtime();
+}
+
+// ===== リアルタイムサブスクリプション =====
+function setupRealtime() {
+  if (!sb) return;
+
+  // 在庫変更を監視
+  sb.channel('admin-inventory')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'kuji_inventory'
+    }, (payload) => {
+      if (payload.new) {
+        cachedInventory[payload.new.id] = payload.new.stock;
+        setInventoryLocal(cachedInventory);
+        renderInventory();
+        renderSales();
+      }
+    })
+    .subscribe((status) => {
+      setConnectionStatus(status === 'SUBSCRIBED');
+    });
+
+  // 履歴追加を監視
+  sb.channel('admin-history')
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'kuji_history'
+    }, (payload) => {
+      if (payload.new) {
+        cachedHistory.unshift(payload.new);
+        renderHistory(payload.new.id);
+        renderSales();
+      }
+    })
+    .subscribe();
+}
+
+// ===== 全レンダリング =====
+function renderAll() {
+  renderSales();
+  renderInventory();
+  renderHistory();
+}
+
+// ===== 売上カウンター =====
+function renderSales() {
+  const history = cachedHistory;
+  let singleCount = 0, tripleCount = 0;
+
+  if (isOnline && history.length > 0 && history[0].mode) {
+    // Supabaseデータ：session_idでグループ化
+    const sessions = {};
+    history.forEach(entry => {
+      if (entry.mode === 'triple') {
+        const sid = entry.session_id || entry.id;
+        if (!sessions[sid]) sessions[sid] = 0;
+        sessions[sid]++;
+      } else {
+        singleCount++;
+      }
+    });
+    tripleCount = Object.keys(sessions).length;
+  } else {
+    // localStorageデータ（旧形式）
+    const localHistory = getHistoryLocal();
+    let i = 0;
+    while (i < localHistory.length) {
+      if (localHistory[i].mode === 'triple') {
+        tripleCount++;
+        let skip = 1;
+        while (i + skip < localHistory.length && localHistory[i + skip].mode === 'triple' && skip < 3) skip++;
+        i += skip;
+      } else {
+        singleCount++;
+        i++;
+      }
+    }
+  }
+
+  const total = (singleCount * 200) + (tripleCount * 500);
+  const totalDraws = isOnline ? history.length : getHistoryLocal().length;
+
+  document.getElementById('salesBar').innerHTML = `
+    <div class="sales-item">
+      <div class="sales-label">1回 (¥200)</div>
+      <div class="sales-value">${singleCount}回</div>
+    </div>
+    <div class="sales-divider"></div>
+    <div class="sales-item">
+      <div class="sales-label">3回 (¥500)</div>
+      <div class="sales-value">${tripleCount}セット</div>
+    </div>
+    <div class="sales-divider"></div>
+    <div class="sales-item">
+      <div class="sales-label">総抽選数</div>
+      <div class="sales-value">${totalDraws}回</div>
+    </div>
+    <div class="sales-divider"></div>
+    <div class="sales-item">
+      <div class="sales-label">売上合計</div>
+      <div class="sales-value total">¥${total.toLocaleString()}</div>
+    </div>
+  `;
+}
+
+// ===== 在庫管理 =====
+function renderInventory() {
+  const inv = isOnline ? cachedInventory : getInventoryLocal();
+  const grid = document.getElementById('invGrid');
+  grid.innerHTML = '';
+
+  const maxStock = Math.max(10, ...Object.values(inv).map(v => v || 0));
+
+  CHARACTERS.forEach(c => {
+    const count = inv[c.id] || 0;
+    const pct = maxStock > 0 ? (count / maxStock) * 100 : 0;
+    const barClass = count === 0 ? 'zero' : count <= 2 ? 'low' : '';
+
+    const card = document.createElement('div');
+    card.className = 'inv-card';
+    card.innerHTML = `
+      <img class="inv-img" src="${c.image}" alt="${c.name}">
+      <div class="inv-info">
+        <div class="inv-name">${c.name}</div>
+        <div class="inv-bar-bg"><div class="inv-bar ${barClass}" style="width:${pct}%"></div></div>
+        <div class="inv-count">残り ${count} 個</div>
+      </div>
+      <input class="inv-input" type="number" min="0" value="${count}" data-id="${c.id}">
+      <button class="inv-set-btn" onclick="setCharInventory('${c.id}', this)">設定</button>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+async function setCharInventory(charId, btn) {
+  const input = btn.previousElementSibling;
+  const val = Math.max(0, parseInt(input.value) || 0);
+
+  if (sb && isOnline) {
+    try {
+      const { error } = await sb.from('kuji_inventory')
+        .update({ stock: val, updated_at: new Date().toISOString() })
+        .eq('id', charId);
+      if (error) throw error;
+      cachedInventory[charId] = val;
+    } catch (e) {
+      console.warn('在庫更新失敗:', e);
+      // localStorageフォールバック
+      const inv = getInventoryLocal();
+      inv[charId] = val;
+      setInventoryLocal(inv);
+    }
+  } else {
+    const inv = getInventoryLocal();
+    inv[charId] = val;
+    setInventoryLocal(inv);
+  }
+  renderInventory();
+}
+
+async function bulkSetInventory() {
+  const val = Math.max(0, parseInt(document.getElementById('bulkCount').value) || 0);
+
+  if (sb && isOnline) {
+    try {
+      // 全キャラの在庫を一括更新
+      const promises = CHARACTERS.map(c =>
+        sb.from('kuji_inventory')
+          .update({ stock: val, updated_at: new Date().toISOString() })
+          .eq('id', c.id)
+      );
+      await Promise.all(promises);
+      CHARACTERS.forEach(c => { cachedInventory[c.id] = val; });
+    } catch (e) {
+      console.warn('一括更新失敗:', e);
+      const inv = getInventoryLocal();
+      CHARACTERS.forEach(c => { inv[c.id] = val; });
+      setInventoryLocal(inv);
+    }
+  } else {
+    const inv = getInventoryLocal();
+    CHARACTERS.forEach(c => { inv[c.id] = val; });
+    setInventoryLocal(inv);
+  }
+  renderInventory();
+}
+
+// ===== 抽選履歴 =====
+function renderHistory(highlightId) {
+  const container = document.getElementById('historyContent');
+
+  if (isOnline) {
+    // Supabaseデータ
+    if (cachedHistory.length === 0) {
+      container.innerHTML = '<div class="no-data">まだ抽選履歴がありません</div>';
+      return;
+    }
+
+    let html = `<table class="history-table">
+      <thead><tr><th>#</th><th>時刻</th><th>キャラクター</th><th>モード</th><th>デバイス</th></tr></thead>
+      <tbody>`;
+
+    cachedHistory.forEach((entry, i) => {
+      const name = entry.character_name || (charMap[entry.character_id] ? charMap[entry.character_id].name : entry.character_id);
+      const time = new Date(entry.created_at);
+      const timeStr = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}:${time.getSeconds().toString().padStart(2, '0')}`;
+      const modeLabel = entry.mode === 'triple' ? '3回' : '1回';
+      const modeClass = entry.mode === 'triple' ? 'triple' : 'single';
+      const isPhone = entry.device_type && entry.device_type !== 'unknown' && /mobile|phone|android|iphone/i.test(entry.device_type);
+      const deviceLabel = isPhone ? 'スマホ' : 'iPad';
+      const deviceClass = isPhone ? 'phone' : '';
+      const isNew = highlightId && entry.id === highlightId;
+
+      html += `<tr class="${isNew ? 'new-entry' : ''}">
+        <td>${cachedHistory.length - i}</td>
+        <td>${timeStr}</td>
+        <td>${name}</td>
+        <td><span class="mode-badge ${modeClass}">${modeLabel}</span></td>
+        <td><span class="device-badge ${deviceClass}">${deviceLabel}</span></td>
+      </tr>`;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } else {
+    // localStorageフォールバック
+    const history = getHistoryLocal();
+    if (history.length === 0) {
+      container.innerHTML = '<div class="no-data">まだ抽選履歴がありません</div>';
+      return;
+    }
+    const reversed = [...history].reverse();
+    let html = `<table class="history-table">
+      <thead><tr><th>#</th><th>時刻</th><th>キャラクター</th><th>モード</th></tr></thead>
+      <tbody>`;
+    reversed.forEach((entry, i) => {
+      const char = charMap[entry.character];
+      const name = char ? char.name : entry.character;
+      const time = new Date(entry.time);
+      const timeStr = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}:${time.getSeconds().toString().padStart(2, '0')}`;
+      const modeLabel = entry.mode === 'triple' ? '3回' : '1回';
+      const modeClass = entry.mode === 'triple' ? 'triple' : 'single';
+      html += `<tr>
+        <td>${history.length - i}</td>
+        <td>${timeStr}</td>
+        <td>${name}</td>
+        <td><span class="mode-badge ${modeClass}">${modeLabel}</span></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+}
+
+// ===== タブ切替 =====
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tabName).classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  const names = ['inventory', 'history', 'settings'];
+  tabs[names.indexOf(tabName)].classList.add('active');
+
+  if (tabName === 'history') renderHistory();
+  if (tabName === 'inventory') renderInventory();
+}
+
+// ===== CSV出力 =====
+async function exportCSV() {
+  let csvData = [];
+  let invData = {};
+
+  if (sb && isOnline) {
+    // Supabaseから全データ取得
+    try {
+      const { data: histData, error: histErr } = await sb.from('kuji_history')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (histErr) throw histErr;
+      csvData = histData;
+
+      const { data: invRows, error: invErr } = await sb.from('kuji_inventory').select('*');
+      if (invErr) throw invErr;
+      invRows.forEach(r => { invData[r.id] = r.stock; });
+    } catch (e) {
+      console.warn('CSV用データ取得失敗、localStorageから:', e);
+      csvData = null; // フォールバック
+    }
+  }
+
+  if (!csvData) {
+    // localStorageフォールバック
+    const localHist = getHistoryLocal();
+    if (localHist.length === 0) { alert('履歴データがありません'); return; }
+    let csv = '\uFEFF#,時刻,キャラクターID,キャラクター名,モード\n';
+    localHist.forEach((entry, i) => {
+      const char = charMap[entry.character];
+      const name = char ? char.name : entry.character;
+      const time = new Date(entry.time);
+      const timeStr = `${time.getFullYear()}-${(time.getMonth()+1).toString().padStart(2,'0')}-${time.getDate().toString().padStart(2,'0')} ${time.getHours().toString().padStart(2,'0')}:${time.getMinutes().toString().padStart(2,'0')}:${time.getSeconds().toString().padStart(2,'0')}`;
+      csv += `${i+1},${timeStr},${entry.character},${name},${entry.mode === 'triple' ? '3回' : '1回'}\n`;
+    });
+    csv += '\n--- 在庫残数 ---\nキャラクターID,キャラクター名,残数\n';
+    const inv = getInventoryLocal();
+    CHARACTERS.forEach(c => { csv += `${c.id},${c.name},${inv[c.id] || 0}\n`; });
+    downloadCSV(csv);
+    return;
+  }
+
+  if (csvData.length === 0) { alert('履歴データがありません'); return; }
+
+  let csv = '\uFEFF#,時刻,キャラクターID,キャラクター名,モード,デバイス,セッションID\n';
+  csvData.forEach((entry, i) => {
+    const time = new Date(entry.created_at);
+    const timeStr = `${time.getFullYear()}-${(time.getMonth()+1).toString().padStart(2,'0')}-${time.getDate().toString().padStart(2,'0')} ${time.getHours().toString().padStart(2,'0')}:${time.getMinutes().toString().padStart(2,'0')}:${time.getSeconds().toString().padStart(2,'0')}`;
+    csv += `${i+1},${timeStr},${entry.character_id},${entry.character_name},${entry.mode === 'triple' ? '3回' : '1回'},${entry.device_type || ''},${entry.session_id || ''}\n`;
+  });
+
+  csv += '\n--- 在庫残数 ---\nキャラクターID,キャラクター名,残数\n';
+  CHARACTERS.forEach(c => { csv += `${c.id},${c.name},${invData[c.id] || 0}\n`; });
+  downloadCSV(csv);
+}
+
+function downloadCSV(csv) {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}`;
+  a.href = url;
+  a.download = `kuji_data_${dateStr}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===== データリセット =====
+async function confirmReset() {
+  if (!confirm('本当に全データをリセットしますか？\n在庫・履歴が全て消えます。')) return;
+  if (!confirm('最終確認：本当にリセットしてよろしいですか？')) return;
+
+  if (sb && isOnline) {
+    try {
+      // 履歴全削除
+      await sb.from('kuji_history').delete().neq('id', 0);
+      // 在庫リセット（全て10に）
+      const promises = CHARACTERS.map(c =>
+        sb.from('kuji_inventory')
+          .update({ stock: 10, updated_at: new Date().toISOString() })
+          .eq('id', c.id)
+      );
+      await Promise.all(promises);
+      cachedHistory = [];
+      CHARACTERS.forEach(c => { cachedInventory[c.id] = 10; });
+    } catch (e) {
+      console.warn('リセット失敗:', e);
+    }
+  }
+
+  // localStorageもリセット
+  localStorage.removeItem('kuji_inventory');
+  localStorage.removeItem('kuji_history');
+  const inv = {};
+  CHARACTERS.forEach(c => { inv[c.id] = 10; });
+  setInventoryLocal(inv);
+  renderAll();
+  alert('リセットしました');
+}
+
+// ===== 新イベント =====
+async function newEvent() {
+  if (!confirm('新しいイベントを開始しますか？\n在庫・履歴が全てリセットされます。')) return;
+  await confirmReset();
+}
+
+// ===== ハンバーガーメニュー =====
+function toggleMenu() {
+  document.getElementById('headerMenu').classList.toggle('open');
+}
+function closeMenu() {
+  document.getElementById('headerMenu').classList.remove('open');
+}
+
+// ===== QRコード =====
+function showQR() {
+  const overlay = document.getElementById('qrOverlay');
+  overlay.classList.add('visible');
+
+  const kujiUrl = window.location.href.replace('admin.html', '') + '?source=qr';
+  document.getElementById('qrUrl').textContent = kujiUrl;
+
+  // QRコード生成
+  const qr = qrcode(0, 'M');
+  qr.addData(kujiUrl);
+  qr.make();
+
+  const canvas = document.getElementById('qrCanvas');
+  const ctx = canvas.getContext('2d');
+  const cellSize = 8;
+  const moduleCount = qr.getModuleCount();
+  const size = moduleCount * cellSize + cellSize * 2; // padding
+  canvas.width = size;
+  canvas.height = size;
+
+  ctx.fillStyle = '#FFF';
+  ctx.fillRect(0, 0, size, size);
+
+  for (let row = 0; row < moduleCount; row++) {
+    for (let col = 0; col < moduleCount; col++) {
+      if (qr.isDark(row, col)) {
+        ctx.fillStyle = '#E05500';
+        ctx.fillRect(col * cellSize + cellSize, row * cellSize + cellSize, cellSize, cellSize);
+      }
+    }
+  }
+}
+
+function hideQR() {
+  document.getElementById('qrOverlay').classList.remove('visible');
+}
+</script>
+</body>
+</html>
