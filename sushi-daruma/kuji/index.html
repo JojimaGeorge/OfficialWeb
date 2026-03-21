@@ -484,11 +484,11 @@ html, body {
 <!-- ===== 結果画面 ===== -->
 <div class="screen" id="result-screen">
   <div class="confetti-container" id="confettiContainer"></div>
-  <div class="result-label">あたり！</div>
+  <div class="result-label" style="display:none;">あたり！</div>
   <img class="result-chara" id="resultImg" src="" alt="">
   <div class="result-name" id="resultName"></div>
   <div class="share-section" id="resultShare">
-    <a href="https://twitter.com/intent/follow?screen_name=jojima_george" target="_blank" class="follow-btn">𝕏 @jojima_george をフォロー</a>
+    <a href="#" onclick="openXFollow();return false;" class="follow-btn">𝕏 @jojima_george をフォロー</a>
     <div class="follow-caption">フォローしてくれると、とっても喜びます！</div>
   </div>
   <div class="result-buttons" id="resultButtons"></div>
@@ -500,7 +500,7 @@ html, body {
   <div class="summary-title">今回の結果！</div>
   <div class="summary-chars" id="summaryChars"></div>
   <div class="share-section">
-    <a href="https://twitter.com/intent/follow?screen_name=jojima_george" target="_blank" class="follow-btn">𝕏 @jojima_george をフォロー</a>
+    <a href="#" onclick="openXFollow();return false;" class="follow-btn">𝕏 @jojima_george をフォロー</a>
     <div class="follow-caption">フォローしてくれると、とっても喜びます！</div>
   </div>
   <div class="summary-buttons">
@@ -632,6 +632,23 @@ async function syncOfflineQueue() {
   updateSyncBadge();
   await ensureInventory();
   updateTopState();
+}
+
+// --- Xアプリ直接起動 ---
+function openXFollow() {
+  const webUrl = 'https://twitter.com/intent/follow?screen_name=jojima_george';
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  if (isIOS) {
+    // iOS: twitter://スキームでアプリ起動を試行
+    location.href = 'twitter://user?screen_name=jojima_george';
+    setTimeout(() => { window.open(webUrl, '_blank'); }, 1500);
+  } else if (isAndroid) {
+    // Android: intent://でアプリ起動、未インストールならWeb
+    location.href = 'intent://user?screen_name=jojima_george#Intent;scheme=twitter;package=com.twitter.android;S.browser_fallback_url=' + encodeURIComponent(webUrl) + ';end';
+  } else {
+    window.open(webUrl, '_blank');
+  }
 }
 
 // --- 統合インベントリ取得 ---
