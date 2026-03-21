@@ -1,9 +1,33 @@
-const CACHE_NAME = 'sushidaruma-zukan-v1';
+const CACHE_NAME = 'sushidaruma-zukan-v3';
 const URLS_TO_CACHE = [
   // 図鑑ページ
   './',
   './index.html',
   './manifest.json',
+  // くじページ
+  '../kuji/',
+  '../kuji/index.html',
+  '../kuji/admin.html',
+  // くじ用バッジ画像
+  '../image/badge/maguro.webp',
+  '../image/badge/salmon.webp',
+  '../image/badge/ikura.webp',
+  '../image/badge/tamago.webp',
+  '../image/badge/uni.webp',
+  '../image/badge/anago.webp',
+  '../image/badge/amaebi.webp',
+  '../image/badge/hamachi.webp',
+  '../image/badge/hotaruika.webp',
+  '../image/badge/sayori.webp',
+  '../image/badge/bincho.webp',
+  '../image/badge/madako.webp',
+  '../image/badge/kurodai.webp',
+  '../image/badge/shake.webp',
+  '../image/badge/kinmedai.webp',
+  // くじ用その他画像
+  '../image/logo.png',
+  '../image/kinmedai.webp',
+  '../image/shake.webp',
   // 診断ページ
   '../shindan/',
   '../shindan/index.html',
