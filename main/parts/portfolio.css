@@ -2,9 +2,15 @@
 
 
 body {
-    background-image: linear-gradient(to bottom, rgba(0,76,255,0.62), rgba(255,0,128,0.45));
+    margin: 0;
+    background-color: #ffffff;
 	font-family: "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", "メイリオ", "Meiryo, Osaka", "ＭＳ Ｐゴシック", "MS P Gothic", "sans-serif";
   }
+
+.wrapper {
+    padding: 0 20px;
+    box-sizing: border-box;
+}
 
 
 /*========= LoadingのためのCSS ===============*/
@@ -82,12 +88,12 @@ transition: top 0.3s ease-in-out;
 }
 
 #wrappernavi nav ul li:hover {
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 
 #wrappernavi nav ul li a {
-  color: #FFFFFF;
+  color: #333333;
   font-weight: bold;
   text-decoration: none;
 }
@@ -133,7 +139,7 @@ transition: top 0.3s ease-in-out;
   
 #wrappernavi nav ul li a {
     text-decoration: none;
-    color: #FFFFFF;
+    color: #333333;
 	padding-right: 40px;
 }
 .menu {
@@ -219,51 +225,23 @@ transition: top 0.3s ease-in-out;
 	text-align: center;
 }
 .cp_textlink07 {
-    margin: 10px;
-	position: relative;
 	display: inline-block;
-    padding: 0.3em 0.9em;
-	text-decoration: none;
-	font-weight: bold;
+	margin: 10px 0 0 0;
+	padding: 0.3em 0.9em;
+	border: 2px solid #cccccc;
+	border-radius: 50px;
+	background: rgba(255, 255, 255, 0.6);
+	color: #333333;
 	font-size: 14px;
-	color: #000357;
-	z-index: 1;
-}
-.cp_textlink07::after,
-.cp_textlink07::before {
-	position: absolute;
-	content: '';
-	border-radius: 10px;
-}
-.cp_textlink07::after {
-	z-index: -1;
-	bottom: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	background: rgba(255,255,255,0.59);
+	font-weight: 700;
+	letter-spacing: 1px;
+	text-decoration: none;
 	transition: all 0.3s ease;
 }
-.cp_textlink07::before {
-	top: -4px;
-	bottom: -5px;
-	left: -4px;
-	right: -5px;
-	width: calc(100% + 6px);
-	height: calc(100% + 6px);
-	border: 1px solid #FFFFFF;
-	opacity: 0;
-	transition: all 0.3s;
-}
-.cp_textlink07:hover:after {
-	background: linear-gradient(to bottom, rgba(73,0,255,0.57), rgba(255,51,196,0.64));
-}
-.cp_textlink07:hover:before {
-	top: 3px;
-	left: 2.5px;
-	width: calc(100% - 6px);
-	height: calc(100% - 6px);
-	opacity: 1;
+.cp_textlink07:hover {
+	border-color: #004CFF;
+	color: #004CFF;
+	background: rgba(255, 255, 255, 0.85);
 }
 
 
@@ -378,8 +356,9 @@ list-style:none;
 .item {
   display: block;
   position: absolute;
-  width: 30%;/*横並びで3つ表示*/
-  padding:0 10px 10px 10px;/*画像に余白をつける*/
+  width: calc(100% / 3 - 1px);/*横並びで3つ表示（1px buffer per item for subpixel rounding）*/
+  padding:0 10px 30px 10px;/*画像に余白をつける*/
+  box-sizing: border-box;
   z-index: 1;
 list-style:none;
 }
@@ -401,8 +380,22 @@ list-style:none;
 /*横幅が768px以下になった際の指定*/
 @media only screen and (max-width: 768px) {
 .item {
-  width: 45%;/*横並びで2つ表示*/
-  padding: 0 5px 10px 5px;
+  width: 100%;/*1カラム表示*/
+  padding: 0 0 40px 0;
+}
+}
+
+/*ワイドモニター：4カラム*/
+@media only screen and (min-width: 1800px) {
+.item {
+  width: calc(100% / 4 - 1px);
+}
+}
+
+/*超ワイド/4K：5カラム*/
+@media only screen and (min-width: 2600px) {
+.item {
+  width: calc(100% / 5 - 1px);
 }
 }
 

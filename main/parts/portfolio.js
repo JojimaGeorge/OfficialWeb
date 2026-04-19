@@ -144,7 +144,16 @@ hideEasing: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
   hiddenStyles: {
     opacity: '0',
     transform: 'scale(0.5)'
-  } 
+  }
+});
+
+//ウィンドウリサイズ時にレイアウトを再計算
+var resizeTimer;
+$(window).on('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    grid.refreshItems().layout();
+  }, 150);
 });
 
 //＝＝＝並び替えボタン設定
