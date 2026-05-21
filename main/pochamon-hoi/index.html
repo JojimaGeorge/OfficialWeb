@@ -2140,8 +2140,12 @@
     const nextEl   = nextSlot === 'A' ? dom.pochamonImgA : dom.pochamonImgB;
     const prevEl   = pochamonState.activeSlot === 'A' ? dom.pochamonImgA : dom.pochamonImgB;
 
-    // GIF頭出し: 同じsrcだとブラウザが新規ロードしないので querystring で別URL扱い
-    nextEl.src = def.src + '?t=' + Date.now();
+    // 1回再生GIF (B/C) は毎回頭出ししたいので querystring を毎回変える。
+    // ループGIF (idle) はキャッシュからdecode即決させたいので同URL（位相は無視可）。
+    const newSrc = def.loop ? def.src : def.src + '?t=' + Date.now();
+    if (nextEl.src.indexOf(newSrc) === -1) {
+      nextEl.src = newSrc;
+    }
     try { await nextEl.decode(); } catch (e) { /* ignore */ }
     if (myToken !== pochamonState.swapToken) return; // 上書きされた
 
@@ -2327,10 +2331,12 @@
       // awaitで decode完了を待ってから duration計測（表示開始タイミング基準）
       await setPochamonGif(action);
       // B/C 完走後 → idle 復帰 → 結果テロップ
+      // -60ms マージン: idle復帰のdecode/paint待ち時間中にB/C GIFが2周目に入るのを防ぐ
+      const ACTION_END_MARGIN = 60;
       setTimeout(async () => {
         await setPochamonGif('idle');
         judgeRound(isWin);
-      }, POCHAMON_GIFS[action].duration);
+      }, POCHAMON_GIFS[action].duration - ACTION_END_MARGIN);
     }, idleWait);
   }
 
