@@ -92,7 +92,7 @@
       background-image: url('assets/bg.png');
       background-repeat: no-repeat;
       background-position: center center;
-      background-size: auto 100%;
+      background-size: cover;
       touch-action: manipulation;
       user-select: none;
       -webkit-user-select: none;
@@ -2639,12 +2639,14 @@
   }, { passive: false });
 
   function onChoiceTap(choice) {
-    // 多重タップガード: acceptingInput + animationLock
+    // 多重タップガード: 「あっちむいて」フェーズ以外 (acceptingInput=false / animationLock=true / 選択済み) は即return
     if (!game.acceptingInput || game.animationLock) return;
     if (game.currentChoice !== null) return; // 既に選択済み
 
-    game.currentChoice = choice;
+    // 即時ロック（連打で並行 triggerHoi が起動するのを防ぐ）
+    game.animationLock = true;
     game.acceptingInput = false;
+    game.currentChoice = choice;
     setButtonsEnabled(false); // 押した瞬間ボタンを視覚的にも無効化
 
     // タップフィードバック（loveeez流 bounceBtn）
