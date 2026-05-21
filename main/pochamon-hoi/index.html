@@ -1,0 +1,2899 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ぽちゃもん あっちむいてホイ！</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@500;800;900&family=Cherry+Bomb+One&family=Coiny&family=Bagel+Fat+One&family=DotGothic16&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       CSS 変数
+    ============================================================ */
+    :root {
+      /* ---- きょむうさ流用パレット（ネオンポップ）---- */
+      --btn-pink:        #FF4DF6;
+      --shock-pink:      #FF3EA5;
+      --neon-purple:     #B14BFF;
+      --turq:            #3EE8FF;
+      --sun:             #FFE600;
+      --deep:            #2A0B4A;
+      --cream:           #FFF5FC;
+
+      /* ---- ぽちゃもん用カラー（柔らかパステル軸）---- */
+      --color-bg:        #FFF0FB;
+      --color-bg-2:      #F0DCFF;
+      --color-primary:   #FF4DF6;
+      --color-primary-d: #B14BFF;
+      --color-accent:    #FFE600;
+      --color-accent-d:  #FFC247;
+      --color-pyon:      #3EE8FF;
+      --color-pyon-d:    #2BB3CC;
+      --color-biron:     #C39BFF;
+      --color-biron-d:   #8C6CD8;
+      --color-win:       #FF3EA5;
+      --color-lose:      #8a7a98;
+      --color-text:      #2A0B4A;
+      --color-text-sub:  #6a5d80;
+      --color-white:     #ffffff;
+      --color-score-win: #FF3EA5;
+      --color-score-lose:#5a5066;
+      --color-score-empty:#ddd0e0;
+
+      /* ---- フォント（きょむうさ + loveeez ミックス）---- */
+      --font-main:       'Zen Maru Gothic', 'M PLUS Rounded 1c', sans-serif;
+      --font-display:    'Cherry Bomb One', 'Bagel Fat One', sans-serif;
+      --font-pop:        'Coiny', 'Cherry Bomb One', sans-serif;
+      --font-mono:       'DotGothic16', 'Courier New', monospace;
+      --font-pixel:      'Rubik Mono One', sans-serif;
+
+      /* ---- loveeez 補助カラー ---- */
+      --ice:             #85bcf7;
+      --soft-pink:       #fd8798;
+      --pink-bg:         #ffe3f6;
+
+      --radius-btn:      999px;
+      --radius-card:     20px;
+      --shadow-btn:      0 6px 0 rgba(0,0,0,0.18);
+      --shadow-card:     0 4px 24px rgba(200,100,150,0.13);
+      --app-height:      100vh;
+      /* sticker colors for CSS placeholder */
+      --sticker-1: #FFB3D9;
+      --sticker-2: #FFE600;
+      --sticker-3: #3EE8FF;
+      --sticker-4: #C39BFF;
+      --sticker-5: #FF3EA5;
+      --sticker-6: #B5F0C8;
+    }
+
+    /* ============================================================
+       リセット & ベース
+    ============================================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: var(--app-height);
+      overflow: hidden;
+      font-family: var(--font-main);
+      font-weight: 800;
+      color: var(--color-text);
+      background-color: #FFE3F6;
+      background-image: url('assets/bg.png');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: auto 100%;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ============================================================
+       loveeez流アニメ
+    ============================================================ */
+    @keyframes bounceBtn {
+      0%   { scale: 1; }
+      40%  { scale: 1.05; }
+      80%  { scale: 0.95; }
+      100% { scale: 1; }
+    }
+    @keyframes shake {
+      0%, 100% { translate: 0 0; }
+      20% { translate: -2px 2px; }
+      40% { translate: -2px -2px; }
+      60% { translate: 2px 2px; }
+      80% { translate: 2px -2px; }
+    }
+    @keyframes wobble {
+      0%, 100% { rotate: -2deg; }
+      50%      { rotate: 2deg; }
+    }
+
+    /* 背景の星空ドット（cosmic-drift）はBG画像と被るため撤去（2026-05-21） */
+    .screen { z-index: 1; }
+
+    /* ============================================================
+       アプリ全体コンテナ
+    ============================================================ */
+    .app {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      height: var(--app-height);
+      overflow: hidden;
+      background: transparent;
+    }
+
+    /* ============================================================
+       画面切り替え
+    ============================================================ */
+    .screen {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+      will-change: opacity;
+    }
+
+    .screen--active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ============================================================
+       横向き対策オーバーレイ
+    ============================================================ */
+    .landscape-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #3a3040;
+      color: #fff;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      font-size: 22px;
+      font-weight: 700;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .landscape-overlay__icon {
+      font-size: 64px;
+    }
+
+    @media (orientation: landscape) {
+      .landscape-overlay { display: flex; }
+    }
+
+    /* ============================================================
+       ぽちゃもん プレースホルダー
+       ※ 実アセット差し替え: <img class="pochamon__img" src="assets/pochamon_XXXX.gif">
+    ============================================================ */
+
+    /* ラッパー */
+    .pochamon {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* プレースホルダー本体（実画像 or CSSキャラ） */
+    .pochamon__placeholder {
+      display: block;
+      position: relative;
+    }
+
+    /* 実画像版 */
+    .pochamon__img {
+      display: block;
+      width: 100%;
+      height: auto;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+    .title-screen__pochamon-wrap .pochamon__img { width: 100%; max-width: 320px; max-height: 100%; height: auto; object-fit: contain; }
+
+    /* ゲーム画面のぽちゃもん：ダブルバッファ用 2img を同位置に重ねる
+       画像はキャラ周囲に余白が大きいため width 95vw 指定で実キャラが画面に収まる */
+    .char-area__pochamon .pochamon__placeholder {
+      position: relative;
+      width: 95vw;
+      max-width: 95vw;
+      aspect-ratio: 1125 / 1500;
+      z-index: 0;
+    }
+    .char-area__pochamon .pochamon__img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .char-area__pochamon .pochamon__img--hidden {
+      visibility: hidden;
+    }
+
+    /* 楕円ボディ */
+    .pochamon__body {
+      width: 180px;
+      height: 200px;
+      background: radial-gradient(ellipse at 40% 35%, #ffe0eb, #ffb6c1 60%, #ff8fab);
+      border-radius: 50% 50% 45% 45%;
+      position: relative;
+      box-shadow: 0 8px 30px rgba(255,100,150,0.25), inset 0 -8px 20px rgba(200,50,100,0.1);
+    }
+
+    /* 目（左） */
+    .pochamon__eye--left,
+    .pochamon__eye--right {
+      position: absolute;
+      width: 26px;
+      height: 28px;
+      background: #1a1020;
+      border-radius: 50%;
+      top: 55px;
+    }
+    .pochamon__eye--left  { left: 40px; }
+    .pochamon__eye--right { right: 40px; }
+
+    /* 目のハイライト */
+    .pochamon__eye--left::after,
+    .pochamon__eye--right::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #fff;
+      border-radius: 50%;
+      top: 4px;
+      left: 4px;
+    }
+
+    /* ほっぺチーク（左） */
+    .pochamon__cheek--left,
+    .pochamon__cheek--right {
+      position: absolute;
+      width: 32px;
+      height: 18px;
+      background: rgba(255, 130, 160, 0.5);
+      border-radius: 50%;
+      top: 90px;
+    }
+    .pochamon__cheek--left  { left: 24px; }
+    .pochamon__cheek--right { right: 24px; }
+
+    /* 口 */
+    .pochamon__mouth {
+      position: absolute;
+      width: 30px;
+      height: 14px;
+      border-bottom: 4px solid #c04070;
+      border-radius: 0 0 50% 50%;
+      top: 112px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* 耳(楕円ちょこん) */
+    .pochamon__ear--left,
+    .pochamon__ear--right {
+      position: absolute;
+      width: 40px;
+      height: 50px;
+      background: radial-gradient(ellipse at 40% 40%, #ffd0e0, #ff8fab);
+      border-radius: 50% 50% 40% 40%;
+      top: -30px;
+    }
+    .pochamon__ear--left  { left: 25px; transform: rotate(-15deg); }
+    .pochamon__ear--right { right: 25px; transform: rotate(15deg); }
+
+    /* 耳内側 */
+    .pochamon__ear--left::after,
+    .pochamon__ear--right::after {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 30px;
+      background: rgba(255,180,200,0.6);
+      border-radius: 50%;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* しっぽ */
+    .pochamon__tail {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      background: radial-gradient(circle, #ffd0e0, #ffb6c1);
+      border-radius: 50%;
+      bottom: -10px;
+      right: -8px;
+    }
+
+    /* ぽちゃもんのアニメーションはGIF側で完結するため、CSS @keyframes は撤去（2026-05-21） */
+
+    /* ============================================================
+       背景パーティクル（タイトル用）
+    ============================================================ */
+    .bg-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .bg-particles__dot {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0;
+    }
+
+    @keyframes particle-float {
+      0%   { transform: translateY(0) scale(0); opacity: 0; }
+      20%  { opacity: 0.7; transform: translateY(-20px) scale(1); }
+      80%  { opacity: 0.5; }
+      100% { transform: translateY(-120px) scale(0.5); opacity: 0; }
+    }
+
+    /* ============================================================
+       タイトル画面
+    ============================================================ */
+    .title-screen {
+      background: transparent;
+      justify-content: space-between;
+      align-items: stretch;
+      padding: 20px 0 24px;
+      position: relative;
+    }
+
+    .title-screen__top,
+    .title-screen__bottom {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+      padding: 0 24px;
+    }
+
+    .title-screen__bottom {
+      gap: 14px;
+    }
+
+    /* 背景全面 動画ステージ */
+    .title-screen__mv {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 0;
+      background: #1a0a1f;
+    }
+
+    .title-screen__mv-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 0;
+      transition: opacity 1s ease;
+      pointer-events: none;
+    }
+
+    .title-screen__mv-video--active {
+      opacity: 1;
+    }
+
+    .title-screen__logo {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      margin-bottom: 0;
+      filter: drop-shadow(0 6px 0 rgba(42,11,74,0.3));
+    }
+
+    .title-screen__logo-sub {
+      font-family: var(--font-pixel);
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--deep);
+      letter-spacing: 6px;
+      margin-bottom: 8px;
+      opacity: 0.85;
+      text-shadow: 0 2px 0 rgba(255,255,255,0.6);
+    }
+
+    .title-screen__logo-main {
+      font-family: var(--font-display);
+      font-size: clamp(44px, 11vw, 64px);
+      font-weight: 400;
+      color: var(--shock-pink);
+      line-height: 1.2;
+      letter-spacing: 2px;
+      -webkit-text-stroke: 6px #fff;
+      text-stroke: 6px #fff;
+      paint-order: stroke fill;
+      text-shadow:
+        3px 3px 0 var(--deep),
+        6px 6px 0 var(--ice),
+        9px 9px 0 var(--deep);
+      animation: wobble 3s ease-in-out infinite;
+      transform-origin: center;
+    }
+
+    .title-screen__logo-main span {
+      color: var(--sun);
+    }
+    .title-screen__logo-main span.pop {
+      color: var(--turq);
+    }
+
+    .title-screen__pochamon-wrap {
+      position: relative;
+      z-index: 1;
+      margin: 16px 0 12px;
+      width: 320px;
+      max-width: 80vw;
+      height: auto;
+      max-height: 38vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* タイトル画面にいる待機ぽちゃもんのサイズ調整（CSSプレースホルダー用、現状は実画像のため dead） */
+    .title-screen__pochamon-wrap .pochamon__body {
+      width: 160px;
+      height: 176px;
+    }
+
+    .title-screen__pochamon-wrap .pochamon__eye--left  { top: 48px; left: 35px; width: 23px; height: 25px; }
+    .title-screen__pochamon-wrap .pochamon__eye--right { top: 48px; right: 35px; width: 23px; height: 25px; }
+    .title-screen__pochamon-wrap .pochamon__cheek--left  { top: 80px; left: 20px; }
+    .title-screen__pochamon-wrap .pochamon__cheek--right { top: 80px; right: 20px; }
+    .title-screen__pochamon-wrap .pochamon__mouth { top: 98px; }
+    .title-screen__pochamon-wrap .pochamon__ear--left  { top: -26px; left: 22px; width: 36px; height: 44px; }
+    .title-screen__pochamon-wrap .pochamon__ear--right { top: -26px; right: 22px; width: 36px; height: 44px; }
+    .title-screen__pochamon-wrap .pochamon__tail { bottom: -8px; right: -6px; width: 24px; height: 24px; }
+
+    .title-screen__rules {
+      position: relative;
+      z-index: 1;
+      background: rgba(255,255,255,0.92);
+      border: 3px solid var(--deep);
+      border-radius: var(--radius-card);
+      padding: 16px 22px 18px;
+      margin: 0 24px 20px;
+      width: calc(100% - 48px);
+      max-width: 400px;
+      box-shadow:
+        0 0 0 3px var(--sun),
+        0 6px 0 var(--deep),
+        0 10px 20px rgba(42,11,74,0.25);
+    }
+
+    .title-screen__rules-title {
+      font-family: var(--font-pixel);
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--shock-pink);
+      letter-spacing: 4px;
+      margin-bottom: 12px;
+      text-align: center;
+      text-shadow: 0 1px 0 var(--deep);
+    }
+
+    .title-screen__rule-item {
+      font-family: var(--font-main);
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--deep);
+      line-height: 1.7;
+      display: flex;
+      gap: 10px;
+    }
+
+    .title-screen__rule-item + .title-screen__rule-item {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 2px dashed rgba(42,11,74,0.18);
+    }
+
+    .title-screen__rule-icon {
+      color: var(--shock-pink);
+      flex-shrink: 0;
+      font-family: var(--font-display);
+      font-size: 18px;
+    }
+
+    .title-screen__cta {
+      position: relative;
+      z-index: 1;
+      margin: 0 24px;
+      width: calc(100% - 48px);
+      max-width: 400px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      border: 4px solid var(--deep);
+      border-radius: var(--radius-btn);
+      font-family: var(--font-display);
+      font-weight: 900;
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      letter-spacing: 2px;
+    }
+
+    .btn:active {
+      transform: translateY(4px) scale(0.98);
+    }
+
+    /* GAME START: 黄→白グラデ + 多重ネオン縁取り（きょむうさ流用） */
+    .btn--primary {
+      background: linear-gradient(180deg, #fff 0%, var(--sun) 100%);
+      color: var(--deep);
+      font-size: 26px;
+      padding: 18px 36px;
+      letter-spacing: 3px;
+      box-shadow:
+        0 0 0 3px var(--shock-pink),
+        0 0 0 6px #fff,
+        0 0 0 9px var(--turq),
+        0 8px 0 var(--deep),
+        0 16px 32px rgba(42,11,74,0.35);
+    }
+    .btn--primary:active {
+      box-shadow:
+        0 0 0 3px var(--shock-pink),
+        0 0 0 6px #fff,
+        0 0 0 9px var(--turq),
+        0 4px 0 var(--deep),
+        0 8px 16px rgba(42,11,74,0.35);
+    }
+
+    /* もう一回チャレンジ！: ピンク主役 */
+    .btn--secondary {
+      background: linear-gradient(180deg, #FF6FF9 0%, var(--shock-pink) 100%);
+      color: #fff;
+      font-size: 18px;
+      padding: 16px 28px;
+      text-shadow: 0 2px 0 rgba(42,11,74,0.4);
+      box-shadow:
+        0 0 0 3px #fff,
+        0 0 0 6px var(--turq),
+        0 6px 0 var(--deep),
+        0 10px 20px rgba(42,11,74,0.3);
+    }
+    .btn--secondary:active {
+      box-shadow:
+        0 0 0 3px #fff,
+        0 0 0 6px var(--turq),
+        0 2px 0 var(--deep),
+        0 4px 8px rgba(42,11,74,0.3);
+    }
+
+    /* タイトル画面へ: 薄紫サブ */
+    .btn--tertiary {
+      background: linear-gradient(180deg, #fff 0%, #E8DCFF 100%);
+      color: var(--deep);
+      font-size: 15px;
+      padding: 12px 24px;
+      letter-spacing: 1.5px;
+      box-shadow:
+        0 4px 0 var(--deep),
+        0 8px 16px rgba(42,11,74,0.25);
+    }
+    .btn--tertiary:active {
+      box-shadow:
+        0 2px 0 var(--deep),
+        0 4px 8px rgba(42,11,74,0.25);
+    }
+
+    .btn--nakamura {
+      background: linear-gradient(135deg, var(--color-accent), #ff9020);
+      color: #fff;
+      font-size: 18px;
+      padding: 18px 32px;
+      box-shadow: 0 6px 0 rgba(200, 100, 0, 0.3);
+      letter-spacing: 2px;
+    }
+
+    @keyframes btn-pulse {
+      0%, 100% {
+        transform: scale(1);
+        filter: brightness(1);
+      }
+      50%       {
+        transform: scale(1.03);
+        filter: brightness(1.08);
+      }
+    }
+
+    .btn--pulse {
+      animation: btn-pulse 1.4s ease-in-out infinite;
+    }
+
+    /* ============================================================
+       プレイ画面
+    ============================================================ */
+    .playing-screen {
+      background: transparent;
+      justify-content: flex-start;
+      padding-top: 0;
+    }
+
+    /* 上部ヘッダー */
+    .playing-screen__header {
+      width: 100%;
+      padding: 20px 24px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .round-indicator {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--color-text-sub);
+      letter-spacing: 2px;
+    }
+
+    /* スコアバー */
+    .score-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .score-bar__slot {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 900;
+      background: var(--color-score-empty);
+      transition: background 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      border: 3px solid rgba(255,255,255,0.8);
+      box-shadow: 0 2px 8px rgba(200,100,150,0.1);
+    }
+
+    .score-bar__slot--win {
+      background: var(--color-score-win);
+      color: #fff;
+      transform: scale(1.12);
+    }
+
+    .score-bar__slot--lose {
+      background: var(--color-score-lose);
+      color: #fff;
+    }
+
+    /* テロップエリア */
+    .telop-area {
+      width: 100%;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 0 24px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .telop {
+      font-family: var(--font-display);
+      font-size: clamp(30px, 9vw, 48px);
+      font-weight: 400;
+      text-align: center;
+      opacity: 0;
+      transform: scale(0.85) translateY(8px);
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      letter-spacing: 3px;
+      line-height: 1.2;
+      text-shadow:
+        2px 2px 0 var(--deep),
+        4px 4px 0 rgba(42,11,74,0.4);
+    }
+
+    .telop--visible {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+
+    .telop--acchi {
+      color: var(--cream);
+      text-shadow:
+        2px 2px 0 var(--deep),
+        4px 4px 0 var(--shock-pink);
+      animation: shake 1.2s linear infinite both;
+    }
+    .telop--acchi.telop--visible {
+      animation: shake 1.2s linear infinite both;
+    }
+
+    .telop--hoi {
+      color: var(--sun);
+      font-size: clamp(40px, 12vw, 64px);
+      text-shadow:
+        3px 3px 0 var(--deep),
+        6px 6px 0 var(--shock-pink),
+        9px 9px 0 var(--deep);
+    }
+
+    .telop--win {
+      color: var(--shock-pink);
+      text-shadow:
+        2px 2px 0 var(--deep),
+        4px 4px 0 var(--sun);
+    }
+
+    .telop--lose {
+      color: var(--color-text-sub);
+      text-shadow: 2px 2px 0 rgba(42,11,74,0.3);
+    }
+
+    .telop--combo {
+      background: linear-gradient(90deg, var(--shock-pink), var(--sun), var(--turq), var(--neon-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: none;
+      filter: drop-shadow(2px 2px 0 var(--deep));
+    }
+
+    .telop--lastchance {
+      color: var(--sun);
+      font-size: clamp(24px, 7vw, 36px);
+      text-shadow:
+        2px 2px 0 var(--deep),
+        4px 4px 0 var(--shock-pink);
+    }
+
+    .telop--retry {
+      color: var(--color-text-sub);
+      font-size: clamp(22px, 6vw, 30px);
+    }
+
+    .telop--gambare {
+      color: var(--neon-purple);
+      text-shadow:
+        2px 2px 0 var(--deep),
+        4px 4px 0 var(--turq);
+    }
+
+    /* キャラエリア */
+    .char-area {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      min-height: 0;
+    }
+
+    .char-area__pochamon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ゲーム中のぽちゃもんは少し大きめ */
+    .char-area__pochamon .pochamon__body {
+      width: 200px;
+      height: 220px;
+    }
+
+    .char-area__pochamon .pochamon__eye--left  { top: 62px; left: 44px; width: 28px; height: 30px; }
+    .char-area__pochamon .pochamon__eye--right { top: 62px; right: 44px; width: 28px; height: 30px; }
+    .char-area__pochamon .pochamon__cheek--left  { top: 98px; left: 28px; width: 36px; height: 20px; }
+    .char-area__pochamon .pochamon__cheek--right { top: 98px; right: 28px; width: 36px; height: 20px; }
+    .char-area__pochamon .pochamon__mouth { top: 125px; width: 34px; height: 16px; }
+    .char-area__pochamon .pochamon__ear--left  { top: -34px; left: 28px; width: 44px; height: 56px; }
+    .char-area__pochamon .pochamon__ear--right { top: -34px; right: 28px; width: 44px; height: 56px; }
+    .char-area__pochamon .pochamon__tail { bottom: -12px; right: -10px; width: 32px; height: 32px; }
+
+    /* ボタンエリア */
+    .playing-screen__buttons {
+      width: 100%;
+      padding: 16px 24px 32px;
+      display: flex;
+      gap: 16px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .choice-btn {
+      flex: 1;
+      min-height: 108px;
+      border: 4px solid var(--deep);
+      border-radius: 26px;
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: 24px;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.2s ease;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .choice-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.18);
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .choice-btn:active::before {
+      opacity: 1;
+    }
+
+    .choice-btn:active {
+      transform: translateY(5px) scale(0.97);
+    }
+
+    .choice-btn--pyon {
+      background: linear-gradient(180deg, #9bbcff 0%, #5688f5 100%);
+      color: #f3eff6;
+      border-color: #2a3a78;
+      text-shadow:
+        0 2px 0 rgba(20,30,70,0.85),
+        0 4px 8px rgba(20,30,70,0.55);
+      box-shadow:
+        0 0 0 6px #fff,
+        0 7px 0 #2a3a78,
+        0 12px 22px rgba(20,30,70,0.4);
+    }
+
+    .choice-btn--pyon:active {
+      box-shadow:
+        0 0 0 6px #fff,
+        0 2px 0 #2a3a78,
+        0 4px 10px rgba(20,30,70,0.3);
+    }
+
+    .choice-btn--biron {
+      background: linear-gradient(180deg, #efb3f8 0%, #d98aea 100%);
+      color: #f3eff6;
+      border-color: #5a1c68;
+      text-shadow:
+        0 2px 0 rgba(55,15,65,0.85),
+        0 4px 8px rgba(55,15,65,0.55);
+      box-shadow:
+        0 0 0 6px #fff,
+        0 7px 0 #5a1c68,
+        0 12px 22px rgba(55,15,65,0.4);
+    }
+
+    .choice-btn--biron:active {
+      box-shadow:
+        0 0 0 6px #fff,
+        0 2px 0 #5a1c68,
+        0 4px 10px rgba(55,15,65,0.3);
+    }
+
+    .choice-btn__label {
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 400;
+      letter-spacing: 4px;
+      line-height: 1;
+    }
+
+    .choice-btn--disabled {
+      filter: grayscale(25%) brightness(0.92);
+      pointer-events: none;
+    }
+
+    /* ============================================================
+       パーフェクト虹背景
+    ============================================================ */
+    @keyframes rainbow-bg {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .playing-screen--perfect {
+      background: linear-gradient(135deg, #ff6b9d, #ffb347, #ffe066, #6ecbf0, #b497f5, #ff6b9d);
+      background-size: 400% 400%;
+      animation: rainbow-bg 3s ease infinite;
+    }
+
+    /* ============================================================
+       結果画面
+    ============================================================ */
+    .result-screen {
+      background: linear-gradient(160deg, rgba(255,214,245,0.6) 0%, rgba(224,181,255,0.6) 50%, rgba(192,173,255,0.6) 100%);
+      justify-content: flex-start;
+      padding: 40px 24px 32px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .result-screen--perfect {
+      background: linear-gradient(135deg, #ffecf4, #fff4ec, #fffae8, #eaf8ff, #f4eeff, #ffecf4);
+      background-size: 400% 400%;
+      animation: rainbow-bg 4s ease infinite;
+    }
+
+    .result-screen__perfect-banner {
+      font-size: 42px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      background: linear-gradient(90deg, #ff6b9d, #ffb347, #6ecbf0, #b497f5, #ff6b9d);
+      background-size: 300% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: rainbow-bg 2s linear infinite;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .result-screen__title {
+      font-size: clamp(24px, 7vw, 36px);
+      font-weight: 900;
+      color: var(--color-primary);
+      text-align: center;
+      margin-bottom: 4px;
+      letter-spacing: 2px;
+    }
+
+    .result-screen__sub {
+      display: none;
+    }
+
+    /* スコアバー（結果画面用） */
+    .result-screen__score {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .result-screen__score .score-bar__slot {
+      width: 48px;
+      height: 48px;
+    }
+
+    /* シール配布エリア */
+    .sticker-award {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto 24px;
+    }
+
+    .sticker-award__title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--color-text-sub);
+      text-align: center;
+      margin-bottom: 16px;
+      letter-spacing: 1px;
+    }
+
+    .sticker-award__row {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* シール1枚ラッパー */
+    .sticker-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: scale(0.5) translateY(20px);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .sticker-slot--visible {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+
+    .sticker-slot--choice {
+      /* 四角い点線囲みは廃止（円内に「選択中」テキストを直接配置） */
+    }
+
+    /* 円内の「選択中」表示（buildStickerAward3 のプレースホルダ用） */
+    .sticker__choice-label {
+      font-size: 24px;
+      font-weight: 900;
+      color: rgba(100, 60, 100, 0.55);
+      letter-spacing: 1px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sticker-slot__label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--color-primary);
+      letter-spacing: 1px;
+    }
+
+    /* シールのCSSプレースホルダー */
+    /* 差し替え時は .sticker__img に <img src="assets/sticker_0N.png"> を追加 */
+    .sticker {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12), inset 0 2px 8px rgba(255,255,255,0.5);
+    }
+
+    .sticker::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5), transparent 65%);
+    }
+
+    .sticker--1 { background: radial-gradient(circle at 40% 35%, #ffd6dc, var(--sticker-1)); }
+    .sticker--2 { background: radial-gradient(circle at 40% 35%, #fff0d0, var(--sticker-2)); }
+    .sticker--3 { background: radial-gradient(circle at 40% 35%, #fffff0, var(--sticker-3)); }
+    .sticker--4 { background: radial-gradient(circle at 40% 35%, #d0ffd8, var(--sticker-4)); }
+    .sticker--5 { background: radial-gradient(circle at 40% 35%, #d0eeff, var(--sticker-5)); }
+    .sticker--6 { background: radial-gradient(circle at 40% 35%, #f0d0ff, var(--sticker-6)); }
+
+    /* 実画像版（メタリックステッカーPNG）はCSS背景・グロスを無効化 */
+    .sticker.sticker--img {
+      background: none !important;
+      box-shadow: none;
+    }
+    .sticker.sticker--img::after { display: none; }
+    .sticker__pic {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .sticker__number {
+      font-size: 22px;
+      font-weight: 900;
+      color: rgba(100, 60, 100, 0.4);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ============================================================
+       シール選択UI（3勝以上の1枠）
+    ============================================================ */
+    .sticker-selector {
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto 24px;
+    }
+
+    .sticker-selector__title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--color-primary);
+      text-align: center;
+      margin-bottom: 14px;
+      letter-spacing: 1px;
+    }
+
+    .sticker-selector__grid {
+      display: grid;
+      grid-template-columns: repeat(3, auto);
+      justify-content: center;
+      justify-items: center;
+      gap: 10px;
+      padding: 0 4px;
+    }
+
+    .sticker-selector__item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .sticker-selector__sticker {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      position: relative;
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    .sticker-selector__sticker::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5), transparent 65%);
+    }
+
+    .sticker-selector__sticker--1 { background: radial-gradient(circle at 40% 35%, #ffd6dc, var(--sticker-1)); }
+    .sticker-selector__sticker--2 { background: radial-gradient(circle at 40% 35%, #fff0d0, var(--sticker-2)); }
+    .sticker-selector__sticker--3 { background: radial-gradient(circle at 40% 35%, #fffff0, var(--sticker-3)); }
+    .sticker-selector__sticker--4 { background: radial-gradient(circle at 40% 35%, #d0ffd8, var(--sticker-4)); }
+    .sticker-selector__sticker--5 { background: radial-gradient(circle at 40% 35%, #d0eeff, var(--sticker-5)); }
+    .sticker-selector__sticker--6 { background: radial-gradient(circle at 40% 35%, #f0d0ff, var(--sticker-6)); }
+
+    /* セレクター実画像版 */
+    .sticker-selector__sticker.sticker--img {
+      background: none !important;
+      box-shadow: none;
+    }
+    .sticker-selector__sticker.sticker--img::after { display: none; }
+
+    .sticker-selector__item--selected .sticker-selector__sticker {
+      transform: scale(1.2);
+      box-shadow: 0 0 0 4px var(--color-primary), 0 6px 16px rgba(255, 107, 157, 0.4);
+    }
+
+    .sticker-selector__item--selected .sticker-selector__check {
+      opacity: 1;
+    }
+
+    .sticker-selector__check {
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--color-primary);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    /* ============================================================
+       結果画面ボタン
+    ============================================================ */
+    .result-screen__actions {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ============================================================
+       ラストチャンス エフェクト
+    ============================================================ */
+    @keyframes lastchance-pulse {
+      0%, 100% { text-shadow: 0 0 0 transparent; }
+      50% { text-shadow: 0 0 30px rgba(255, 107, 157, 0.8), 0 0 60px rgba(255, 107, 157, 0.4); }
+    }
+
+    .telop--lastchance {
+      animation: lastchance-pulse 1.0s ease-in-out infinite;
+    }
+
+    /* ============================================================
+       星・キラキラ エフェクト（パーフェクト用）
+    ============================================================ */
+    .sparkle-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    .sparkle {
+      position: absolute;
+      font-size: 24px;
+      opacity: 0;
+      animation: sparkle-fly 1.5s ease-out forwards;
+    }
+
+    @keyframes sparkle-fly {
+      0%   { opacity: 0; transform: scale(0) rotate(0deg); }
+      20%  { opacity: 1; transform: scale(1.2) rotate(30deg); }
+      80%  { opacity: 0.7; }
+      100% { opacity: 0; transform: scale(0.3) translateY(-120px) rotate(180deg); }
+    }
+
+    /* ============================================================
+       ホイッ エフェクト（テキスト）
+    ============================================================ */
+    @keyframes hoi-appear {
+      0%   { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+      40%  { transform: scale(1.3) rotate(3deg); opacity: 1; }
+      70%  { transform: scale(0.95) rotate(-1deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .telop--hoi.telop--visible {
+      animation: hoi-appear 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* ============================================================
+       タイトルテキストアニメ
+    ============================================================ */
+    @keyframes title-float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-6px); }
+    }
+
+    .title-screen__logo-main {
+      animation: title-float 3s ease-in-out infinite;
+    }
+
+    /* ============================================================
+       フェードイン ユーティリティ
+    ============================================================ */
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in-up {
+      animation: fade-in-up 0.5s ease forwards;
+    }
+
+    /* ============================================================
+       ローテーション アニメ補助
+    ============================================================ */
+    @keyframes rotate-slow {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    /* ============================================================
+       ラウンド開始 フラッシュ
+    ============================================================ */
+    .round-flash {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 200, 220, 0.0);
+      pointer-events: none;
+      z-index: 50;
+      transition: background 0.15s ease;
+    }
+
+    .round-flash--on {
+      background: rgba(255, 200, 220, 0.35);
+    }
+
+    /* ============================================================
+       ぷよぷよ ローディング（待機中の溜めドット）
+    ============================================================ */
+    .loading-dots {
+      display: inline-flex;
+      gap: 14px;
+      align-items: center;
+      margin-left: 16px;
+    }
+
+    .loading-dots__dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 3px 0 rgba(42,11,74,0.25);
+      animation: loading-dot 1.2s ease-in-out infinite;
+    }
+
+    .loading-dots__dot:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots__dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes loading-dot {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40%           { transform: scale(1); opacity: 1; }
+    }
+
+    /* ============================================================
+       管理画面（隠しURL: #admin）
+    ============================================================ */
+    .admin-screen {
+      background: linear-gradient(180deg, #fff 0%, #ffeef9 100%);
+      justify-content: flex-start;
+      align-items: stretch;
+      padding: 24px 20px;
+      overflow-y: auto;
+      z-index: 100;
+    }
+    .admin-screen__inner {
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .admin-screen__title {
+      font-family: var(--font-main);
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--deep);
+      text-align: center;
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+    }
+    .admin-screen__subtitle {
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      margin-bottom: 18px;
+    }
+    .admin-sticker-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #fff;
+      border: 2px solid var(--deep);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .admin-sticker-row__preview {
+      width: 56px;
+      height: 56px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .admin-sticker-row__preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .admin-sticker-row__name {
+      font-weight: 800;
+      font-size: 13px;
+      color: var(--deep);
+      width: 70px;
+      flex-shrink: 0;
+    }
+    .admin-sticker-row__weight {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .admin-sticker-row__weight-label {
+      font-size: 10px;
+      color: #888;
+      letter-spacing: 0.5px;
+    }
+    .admin-sticker-row__weight-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .admin-sticker-row__weight-input input[type="range"] {
+      flex: 1;
+      min-width: 0;
+    }
+    .admin-sticker-row__weight-input input[type="number"] {
+      width: 56px;
+      padding: 4px 6px;
+      border: 1px solid var(--deep);
+      border-radius: 6px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--deep);
+      background: #fff;
+    }
+    .admin-sticker-row__stock {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .admin-sticker-row__stock-label {
+      font-size: 10px;
+      color: #888;
+    }
+    .admin-sticker-row--sold .admin-sticker-row__preview {
+      filter: grayscale(1);
+      opacity: 0.45;
+    }
+    .admin-sticker-row--sold .admin-sticker-row__name::after {
+      content: ' (売切)';
+      font-size: 10px;
+      color: #c66;
+    }
+
+    .admin-toggle {
+      position: relative;
+      width: 52px;
+      height: 28px;
+      background: #ccc;
+      border-radius: 28px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .admin-toggle--on {
+      background: var(--turq);
+    }
+    .admin-toggle__knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .admin-toggle--on .admin-toggle__knob {
+      transform: translateX(24px);
+    }
+
+    .admin-screen__actions {
+      display: flex;
+      gap: 10px;
+      margin: 22px 0 12px;
+      flex-wrap: wrap;
+    }
+    .admin-btn {
+      flex: 1;
+      min-width: 100px;
+      font-family: var(--font-main);
+      font-weight: 800;
+      border: 2px solid var(--deep);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: transform 0.1s ease;
+    }
+    .admin-btn:active { transform: translateY(2px); }
+    .admin-btn--save  { background: var(--sun); color: var(--deep); }
+    .admin-btn--reset { background: #fff; color: var(--deep); }
+    .admin-btn--close { background: var(--deep); color: #fff; }
+
+    .admin-screen__feedback {
+      text-align: center;
+      font-size: 13px;
+      color: var(--shock-pink);
+      font-weight: 800;
+      margin-top: 6px;
+      min-height: 20px;
+    }
+    .admin-screen__note {
+      font-size: 11px;
+      color: #888;
+      text-align: center;
+      line-height: 1.6;
+      margin-top: 14px;
+    }
+
+    /* ============================================================
+       タブレット（iPad縦）スケーリング
+       ※ 元のスマホ縦設計を上書きして大画面で間延びしないよう拡大
+    ============================================================ */
+    @media (min-width: 700px) and (orientation: portrait) {
+      /* タイトル画面：iPad縦は上下padding増やして動画エリアもしっかり確保 */
+      .title-screen {
+        padding: 32px 0 40px;
+      }
+      .title-screen__bottom {
+        gap: 22px;
+      }
+
+      .title-screen__logo-main {
+        font-size: clamp(72px, 12vw, 108px);
+        letter-spacing: 3px;
+        -webkit-text-stroke: 8px #fff;
+        text-stroke: 8px #fff;
+      }
+
+      .title-screen__rules {
+        max-width: 560px;
+        padding: 22px 30px 24px;
+        margin-bottom: 28px;
+      }
+      .title-screen__rules-title {
+        font-size: 16px;
+        letter-spacing: 6px;
+        margin-bottom: 16px;
+      }
+      .title-screen__rule-item {
+        font-size: 23px;
+        gap: 14px;
+      }
+      .title-screen__rule-item + .title-screen__rule-item {
+        margin-top: 10px;
+        padding-top: 10px;
+      }
+      .title-screen__rule-icon {
+        font-size: 25px;
+      }
+
+      .title-screen__cta {
+        max-width: 560px;
+      }
+      .btn--primary {
+        font-size: 34px;
+        padding: 24px 48px;
+        letter-spacing: 4px;
+      }
+
+      /* プレイ画面：要素を一回り大きく */
+      .playing-screen__header {
+        padding: 40px 40px 24px;
+        gap: 22px;
+      }
+      .round-indicator {
+        font-size: 36px;
+        letter-spacing: 6px;
+      }
+      .score-bar__slot {
+        width: 72px;
+        height: 72px;
+        font-size: 36px;
+      }
+      .telop-area {
+        min-height: 150px;
+      }
+      .telop {
+        font-size: clamp(72px, 10vw, 120px);
+      }
+      .telop--hoi {
+        font-size: clamp(96px, 14vw, 150px);
+      }
+      .telop--lastchance {
+        font-size: clamp(56px, 8vw, 80px);
+      }
+      .telop--retry {
+        font-size: clamp(48px, 7vw, 70px);
+      }
+
+      .char-area__pochamon .pochamon__placeholder {
+        width: 95vw;
+        max-width: 95vw;
+      }
+
+      .playing-screen__buttons {
+        padding: 36px 40px 64px;
+        gap: 36px;
+      }
+      .choice-btn {
+        min-height: 210px;
+        font-size: 44px;
+        border-radius: 40px;
+      }
+      .choice-btn__label {
+        font-size: 76px;
+        letter-spacing: 8px;
+      }
+
+      /* 管理画面：iPad向け拡大 */
+      .admin-screen { padding: 40px 32px; }
+      .admin-screen__inner { max-width: 880px; }
+      .admin-screen__title { font-size: 32px; margin-bottom: 10px; letter-spacing: 2px; }
+      .admin-screen__subtitle { font-size: 16px; margin-bottom: 28px; }
+      .admin-sticker-row {
+        gap: 20px;
+        padding: 18px 22px;
+        margin-bottom: 14px;
+        border-radius: 18px;
+      }
+      .admin-sticker-row__preview { width: 84px; height: 84px; }
+      .admin-sticker-row__name { font-size: 18px; width: 100px; }
+      .admin-sticker-row__weight-label { font-size: 13px; }
+      .admin-sticker-row__weight-input { gap: 14px; }
+      .admin-sticker-row__weight-input input[type="range"] { height: 8px; }
+      .admin-sticker-row__weight-input input[type="number"] {
+        width: 80px;
+        padding: 8px 10px;
+        font-size: 20px;
+      }
+      .admin-sticker-row__stock-label { font-size: 13px; }
+      .admin-sticker-row--sold .admin-sticker-row__name::after { font-size: 13px; }
+
+      .admin-toggle { width: 72px; height: 38px; border-radius: 38px; }
+      .admin-toggle__knob { width: 30px; height: 30px; top: 4px; left: 4px; }
+      .admin-toggle--on .admin-toggle__knob { transform: translateX(34px); }
+
+      .admin-screen__actions { gap: 16px; margin: 32px 0 18px; }
+      .admin-btn { font-size: 18px; padding: 18px 24px; border-radius: 14px; min-width: 160px; }
+
+      .admin-screen__feedback { font-size: 16px; min-height: 26px; }
+      .admin-screen__note { font-size: 14px; margin-top: 22px; line-height: 1.8; }
+
+      /* 結果画面：シール枠を大きく */
+      .result-screen { padding: 56px 40px 48px; }
+      .result-screen__title { font-size: clamp(56px, 10vw, 84px); margin-bottom: 16px; }
+
+      .sticker-award { max-width: 800px; margin-bottom: 40px; }
+      .sticker-award__title { font-size: 36px; margin-bottom: 28px; letter-spacing: 3px; }
+      .sticker-award__row { gap: 32px; }
+      .sticker { width: 180px; height: 180px; }
+      .sticker__choice-label { font-size: 38px; letter-spacing: 2px; }
+
+      .sticker-selector { max-width: 800px; margin-bottom: 36px; }
+      .sticker-selector__title { font-size: 36px; margin-bottom: 28px; letter-spacing: 3px; }
+      .sticker-selector__grid { gap: 20px; }
+      .sticker-selector__sticker { width: 116px; height: 116px; }
+      .sticker-selector__check { font-size: 24px; }
+
+      .result-screen__actions { max-width: 800px; gap: 20px; }
+      .result-screen__actions .btn--secondary { font-size: 40px; padding: 30px 48px; letter-spacing: 4px; }
+      /* タイトル画面へボタンも「もう一回チャレンジ」と同サイズに揃える */
+      .result-screen__actions .btn--tertiary { font-size: 40px; padding: 30px 48px; letter-spacing: 4px; }
+      .result-screen__score { gap: 16px; margin-bottom: 32px; }
+      .result-screen__score .score-bar__slot { width: 80px; height: 80px; font-size: 40px; }
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- 横向き対策オーバーレイ -->
+<div class="landscape-overlay" aria-hidden="true">
+  <div class="landscape-overlay__icon">📱</div>
+  <div>タテ持ちで<br>プレイしてな！</div>
+</div>
+
+<!-- スパークルコンテナ（パーフェクト演出） -->
+<div class="sparkle-container" id="sparkle-container"></div>
+
+<!-- ラウンドフラッシュ -->
+<div class="round-flash" id="round-flash"></div>
+
+<div class="app" id="app">
+
+  <!-- ============================================================
+       タイトル画面
+  ============================================================ -->
+  <div class="screen title-screen screen--active" id="screen-title">
+
+    <!-- 背景パーティクル -->
+    <div class="bg-particles" id="bg-particles" aria-hidden="true"></div>
+
+    <!-- 上部：ロゴ -->
+    <div class="title-screen__top">
+      <div class="title-screen__logo">
+        <div class="title-screen__logo-main">
+          ぽちゃもん<br>
+          あっちむいて<span>ホイ！</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中央：MVクロスフェード再生エリア -->
+    <div class="title-screen__mv" id="title-mv-stage" aria-hidden="true">
+      <video class="title-screen__mv-video" id="title-mv-a" muted playsinline autoplay preload="auto"></video>
+      <video class="title-screen__mv-video" id="title-mv-b" muted playsinline autoplay preload="auto"></video>
+    </div>
+
+    <!-- 下部：ルール + CTA -->
+    <div class="title-screen__bottom">
+      <div class="title-screen__rules">
+        <div class="title-screen__rule-item">
+          <span class="title-screen__rule-icon">①</span>
+          <span>ぽちゃもんとポーズが合えば勝ち</span>
+        </div>
+        <div class="title-screen__rule-item">
+          <span class="title-screen__rule-icon">②</span>
+          <span>5回戦中3回以上勝てばシール3枚</span>
+        </div>
+        <div class="title-screen__rule-item">
+          <span class="title-screen__rule-icon">③</span>
+          <span>シールは必ず2枚もらえるよ</span>
+        </div>
+      </div>
+
+      <div class="title-screen__cta">
+        <button class="btn btn--primary btn--pulse" id="btn-start" aria-label="ゲームスタート">
+          タップでスタート！
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /title-screen -->
+
+
+  <!-- ============================================================
+       プレイ画面
+  ============================================================ -->
+  <div class="screen playing-screen" id="screen-playing">
+
+    <!-- ヘッダー -->
+    <div class="playing-screen__header">
+      <div class="round-indicator" id="round-indicator">ROUND 1 / 5</div>
+      <!-- スコアバー: B1. 5マス常時表示 -->
+      <div class="score-bar" id="score-bar" role="group" aria-label="スコア">
+        <div class="score-bar__slot" id="slot-0" aria-label="1戦目 未消化">－</div>
+        <div class="score-bar__slot" id="slot-1" aria-label="2戦目 未消化">－</div>
+        <div class="score-bar__slot" id="slot-2" aria-label="3戦目 未消化">－</div>
+        <div class="score-bar__slot" id="slot-3" aria-label="4戦目 未消化">－</div>
+        <div class="score-bar__slot" id="slot-4" aria-label="5戦目 未消化">－</div>
+      </div>
+    </div>
+
+    <!-- テロップエリア -->
+    <div class="telop-area">
+      <div class="telop" id="telop">
+        あっち むいて
+        <span class="loading-dots" id="loading-dots">
+          <span class="loading-dots__dot"></span>
+          <span class="loading-dots__dot"></span>
+          <span class="loading-dots__dot"></span>
+        </span>
+      </div>
+    </div>
+
+    <!-- ぽちゃもん キャラ（GIF実装・ダブルバッファ方式：
+         A=待機ループ / B=びろーん1回再生 / C=ぴょーん1回再生
+         2枚imgを同位置に重ねて「裏準備→可視化→2rAF後に旧非可視化」で切れ目ゼロ） -->
+    <div class="char-area">
+      <div class="char-area__pochamon pochamon" id="game-pochamon">
+        <div class="pochamon__placeholder" id="pochamon-placeholder">
+          <img class="pochamon__img" src="assets/pochamon_idle.gif" alt="ぽちゃもん" id="game-pochamon-img-a">
+          <img class="pochamon__img pochamon__img--hidden" src="assets/pochamon_idle.gif" alt="" id="game-pochamon-img-b" aria-hidden="true">
+        </div>
+      </div>
+    </div>
+
+    <!-- 選択ボタン -->
+    <div class="playing-screen__buttons">
+      <button class="choice-btn choice-btn--pyon" id="btn-pyon" aria-label="ぴょーん（上ジャンプ）">
+        <span class="choice-btn__label">ぴょーん</span>
+      </button>
+      <button class="choice-btn choice-btn--biron" id="btn-biron" aria-label="びろーん（横伸び）">
+        <span class="choice-btn__label">びろーん</span>
+      </button>
+    </div>
+
+  </div><!-- /playing-screen -->
+
+
+  <!-- ============================================================
+       結果画面
+  ============================================================ -->
+  <div class="screen result-screen" id="screen-result">
+
+    <!-- タイトル -->
+    <div class="result-screen__title" id="result-title">〇勝！</div>
+    <div class="result-screen__sub" id="result-sub">シール2枚ゲット！</div>
+
+    <!-- スコア表示 -->
+    <div class="result-screen__score" id="result-score-bar">
+      <div class="score-bar__slot" id="r-slot-0">－</div>
+      <div class="score-bar__slot" id="r-slot-1">－</div>
+      <div class="score-bar__slot" id="r-slot-2">－</div>
+      <div class="score-bar__slot" id="r-slot-3">－</div>
+      <div class="score-bar__slot" id="r-slot-4">－</div>
+    </div>
+
+    <!-- 獲得シール表示エリア -->
+    <div class="sticker-award" id="sticker-award">
+      <div class="sticker-award__title" id="sticker-award-title">獲得シール</div>
+      <div class="sticker-award__row" id="sticker-award-row">
+        <!-- JSで動的生成 -->
+      </div>
+    </div>
+
+    <!-- シール選択UI（3勝以上のみ表示） -->
+    <div class="sticker-selector" id="sticker-selector" style="display:none;">
+      <div class="sticker-selector__title">好きなシールを1枚選んでね！</div>
+      <div class="sticker-selector__grid" id="sticker-selector-grid">
+        <!-- JSで動的生成 -->
+      </div>
+    </div>
+
+    <!-- ボタン -->
+    <div class="result-screen__actions">
+      <button class="btn btn--secondary btn--pulse" id="btn-retry-result">
+        もう一回チャレンジ！
+      </button>
+      <button class="btn btn--tertiary" id="btn-back-to-title">
+        タイトル画面へ
+      </button>
+    </div>
+
+  </div><!-- /result-screen -->
+
+
+  <!-- ============================================================
+       管理画面（隠しURL #admin）
+  ============================================================ -->
+  <div class="screen admin-screen" id="screen-admin">
+    <div class="admin-screen__inner">
+      <h1 class="admin-screen__title">シール設定 管理画面</h1>
+      <div class="admin-screen__subtitle">出現率の重みと在庫を編集 → 保存</div>
+
+      <div id="admin-sticker-list"></div>
+
+      <div class="admin-screen__actions">
+        <button class="admin-btn admin-btn--save"  id="btn-admin-save">保存</button>
+        <button class="admin-btn admin-btn--reset" id="btn-admin-reset">初期値に戻す</button>
+        <button class="admin-btn admin-btn--close" id="btn-admin-close">閉じる</button>
+      </div>
+
+      <div class="admin-screen__feedback" id="admin-feedback"></div>
+
+      <p class="admin-screen__note">
+        ・在庫OFF のシールはランダム配布・選択画面の両方から除外されます。<br>
+        ・重みは1〜10の10段階で、比率で出現確率が決まります（例: 全て5なら均等、特定だけ10にすれば2倍出やすい）。<br>
+        ・初期値は全シール 重み5／在庫あり。設定は端末のlocalStorageに保存されます（同一iPadで継続）。
+      </p>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+
+<script>
+  // ============================================================
+  // CSS 変数 --app-height を実際の innerHeight に設定（iOS対策）
+  // ============================================================
+  function setAppHeight() {
+    document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+  }
+  setAppHeight();
+  window.addEventListener('resize', setAppHeight);
+  window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
+
+  // ============================================================
+  // 管理画面 設定（localStorage 永続化）
+  //   stickers: { id => { weight: 0-100, enabled: bool } }
+  //   - weight: 抽選の重み（0 or enabled=false で抽選対象から除外）
+  //   - enabled: 売り切れ=false でランダム抽選＆選択UIから完全除外
+  // ============================================================
+  const ADMIN_STORAGE_KEY = 'pochamonhoi_admin_config_v1';
+  const STICKER_IDS = [1, 2, 3, 4, 5, 6];
+
+  function getDefaultAdminConfig() {
+    const stickers = {};
+    STICKER_IDS.forEach(id => { stickers[id] = { weight: 5, enabled: true }; });
+    return { stickers };
+  }
+
+  function loadAdminConfig() {
+    const cfg = getDefaultAdminConfig();
+    try {
+      const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
+      if (!raw) return cfg;
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.stickers) {
+        STICKER_IDS.forEach(id => {
+          const s = parsed.stickers[id] || parsed.stickers[String(id)];
+          if (s) {
+            if (typeof s.weight === 'number' && isFinite(s.weight)) {
+              cfg.stickers[id].weight = Math.max(1, Math.min(10, Math.round(s.weight)));
+            }
+            if (typeof s.enabled === 'boolean') cfg.stickers[id].enabled = s.enabled;
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('[admin] load failed, using default', e);
+    }
+    return cfg;
+  }
+
+  function saveAdminConfig(cfg) {
+    try {
+      localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(cfg));
+      return true;
+    } catch (e) {
+      console.warn('[admin] save failed', e);
+      return false;
+    }
+  }
+
+  // 抽選対象のシールID一覧（enabled=true かつ weight>0）
+  function getAvailableStickerIds() {
+    const cfg = loadAdminConfig();
+    return STICKER_IDS.filter(id => cfg.stickers[id].enabled && cfg.stickers[id].weight > 0);
+  }
+
+  // 重み付き重複なし抽選で count 枚返す（在庫切れ＆weight=0は除外）
+  function drawWeightedStickers(count) {
+    const cfg = loadAdminConfig();
+    const pool = STICKER_IDS
+      .filter(id => cfg.stickers[id].enabled && cfg.stickers[id].weight > 0)
+      .map(id => ({ id, weight: cfg.stickers[id].weight }));
+
+    const result = [];
+    for (let i = 0; i < count && pool.length > 0; i++) {
+      const total = pool.reduce((s, x) => s + x.weight, 0);
+      let r = Math.random() * total;
+      let picked = pool.length - 1;
+      for (let j = 0; j < pool.length; j++) {
+        r -= pool[j].weight;
+        if (r <= 0) { picked = j; break; }
+      }
+      result.push(pool[picked].id);
+      pool.splice(picked, 1);
+    }
+    return result;
+  }
+
+  // ============================================================
+  // ゲーム状態
+  // ============================================================
+  const STATE = {
+    TITLE:   'title',
+    PLAYING: 'playing',
+    RESULT:  'result',
+  };
+
+  const game = {
+    state:          STATE.TITLE,
+    round:          0,           // 0-indexed (0〜4)
+    scores:         [],          // 'win' | 'lose'
+    currentChoice:  null,        // 'pyon' | 'biron' | null
+    pochamonAction: null,        // 'pyon' | 'biron'
+    acceptingInput: false,
+    animationLock:  false,       // 演出中フラグ（ゴーストクリック防止）
+    longRoundIndex: -1,          // 長め溜めを入れるラウンドindex
+    consecutiveWins: 0,
+    consecutiveLoses: 0,
+    hoiTimerId:     null,        // holdTime setTimeout ID（二重triggerHoi防止）
+    // シール関連
+    randomStickerIds: [],
+    selectedStickerId: null,
+  };
+
+  // ============================================================
+  // DOM 参照
+  // ============================================================
+  const screens = {
+    title:   document.getElementById('screen-title'),
+    playing: document.getElementById('screen-playing'),
+    result:  document.getElementById('screen-result'),
+  };
+
+  const dom = {
+    roundIndicator:   document.getElementById('round-indicator'),
+    telop:            document.getElementById('telop'),
+    loadingDots:      document.getElementById('loading-dots'),
+    gamePochamon:     document.getElementById('game-pochamon'),
+    pochamonPH:       document.getElementById('pochamon-placeholder'),
+    pochamonImgA:     document.getElementById('game-pochamon-img-a'),
+    pochamonImgB:     document.getElementById('game-pochamon-img-b'),
+    btnPyon:          document.getElementById('btn-pyon'),
+    btnBiron:         document.getElementById('btn-biron'),
+    scoreSlots:       Array.from({length:5}, (_,i) => document.getElementById('slot-'+i)),
+    roundFlash:       document.getElementById('round-flash'),
+    sparkleContainer: document.getElementById('sparkle-container'),
+    // result
+    resultTitle:      document.getElementById('result-title'),
+    resultSub:        document.getElementById('result-sub'),
+    resultScoreSlots: Array.from({length:5}, (_,i) => document.getElementById('r-slot-'+i)),
+    stickerAward:     document.getElementById('sticker-award'),
+    stickerAwardTitle:document.getElementById('sticker-award-title'),
+    stickerAwardRow:  document.getElementById('sticker-award-row'),
+    stickerSelector:  document.getElementById('sticker-selector'),
+    stickerSelectorGrid: document.getElementById('sticker-selector-grid'),
+    btnRetryResult:   document.getElementById('btn-retry-result'),
+    btnBackToTitle:   document.getElementById('btn-back-to-title'),
+    playingScreen:    document.getElementById('screen-playing'),
+    resultScreen:     document.getElementById('screen-result'),
+    bgParticles:      document.getElementById('bg-particles'),
+  };
+
+  // ============================================================
+  // 画面遷移
+  // ============================================================
+  function showScreen(name) {
+    Object.entries(screens).forEach(([key, el]) => {
+      if (key === name) {
+        el.classList.add('screen--active');
+      } else {
+        el.classList.remove('screen--active');
+      }
+    });
+    game.state = name;
+  }
+
+  // ============================================================
+  // スコアバー更新
+  // ============================================================
+  function updateScoreBar() {
+    dom.scoreSlots.forEach((slot, i) => {
+      slot.className = 'score-bar__slot';
+      if (i < game.scores.length) {
+        const r = game.scores[i];
+        if (r === 'win') {
+          slot.textContent = '◯';
+          slot.classList.add('score-bar__slot--win');
+          slot.setAttribute('aria-label', (i+1)+'戦目 勝ち');
+        } else {
+          slot.textContent = '✕';
+          slot.classList.add('score-bar__slot--lose');
+          slot.setAttribute('aria-label', (i+1)+'戦目 負け');
+        }
+      } else {
+        slot.textContent = '－';
+        slot.setAttribute('aria-label', (i+1)+'戦目 未消化');
+      }
+    });
+  }
+
+  // ============================================================
+  // テロップ表示制御
+  // ============================================================
+  function showTelop(text, classes, showDots) {
+    const t = dom.telop;
+    t.className = 'telop ' + classes;
+    // テキストノードのみ差し替え（ドットspanは保持）
+    // まずdotsを取り出す
+    const dots = dom.loadingDots;
+    t.textContent = text;
+    if (showDots) {
+      dots.style.display = 'inline-flex';
+      t.appendChild(dots);
+    } else {
+      dots.style.display = 'none';
+    }
+    // 一度消してから表示（アニメリセット）
+    t.classList.remove('telop--visible');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        t.classList.add('telop--visible');
+      });
+    });
+  }
+
+  function hideTelop() {
+    dom.telop.classList.remove('telop--visible');
+  }
+
+  // ============================================================
+  // ぽちゃもん GIF制御（ダブルバッファ方式）
+  //   - A=idle 0.92s ループ / B=biron 1.32s 1回 / C=pyon 1.68s 1回
+  //   - 2枚 img を同位置に重ね「裏準備→可視化→2rAF後に旧非可視化」で切れ目ゼロ
+  //   - idle はループ開始時刻を記録し、タップ時はループ境界まで待ってから切替
+  // ============================================================
+  const POCHAMON_GIFS = {
+    idle:  { src: 'assets/pochamon_idle.gif',  loop: true,  duration: 920 },
+    biron: { src: 'assets/pochamon_biron.gif', loop: false, duration: 1320 },
+    pyon:  { src: 'assets/pochamon_pyon.gif',  loop: false, duration: 1680 },
+  };
+
+  const pochamonState = {
+    activeSlot:        'A',  // 'A' | 'B' (どちらが現在可視)
+    currentKey:        null, // 現在表示中のGIFキー
+    idleCycleStartTs:  0,    // performance.now() 基準の idle 開始時刻
+    swapToken:         0,    // 並行呼び出しのrace対策
+  };
+
+  async function setPochamonGif(key) {
+    const def = POCHAMON_GIFS[key];
+    if (!def) return;
+    if (pochamonState.currentKey === key && key === 'idle') {
+      // idle再要求でも cycle start を上書きせず継続（ループ境界保持）
+      return;
+    }
+    const myToken = ++pochamonState.swapToken;
+
+    const nextSlot = pochamonState.activeSlot === 'A' ? 'B' : 'A';
+    const nextEl   = nextSlot === 'A' ? dom.pochamonImgA : dom.pochamonImgB;
+    const prevEl   = pochamonState.activeSlot === 'A' ? dom.pochamonImgA : dom.pochamonImgB;
+
+    // GIF頭出し: 同じsrcだとブラウザが新規ロードしないので querystring で別URL扱い
+    nextEl.src = def.src + '?t=' + Date.now();
+    try { await nextEl.decode(); } catch (e) { /* ignore */ }
+    if (myToken !== pochamonState.swapToken) return; // 上書きされた
+
+    nextEl.classList.remove('pochamon__img--hidden');
+    pochamonState.activeSlot = nextSlot;
+    pochamonState.currentKey = key;
+    if (key === 'idle') {
+      pochamonState.idleCycleStartTs = performance.now();
+    }
+
+    // 2rAF後に旧スロット非可視化（1rAFだとpaint前でチラつき）
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (myToken !== pochamonState.swapToken) return;
+      if (pochamonState.activeSlot !== nextSlot) return;
+      prevEl.classList.add('pochamon__img--hidden');
+    }));
+  }
+
+  function idleRemainingToNextLoop() {
+    const dur = POCHAMON_GIFS.idle.duration;
+    const elapsed = (performance.now() - pochamonState.idleCycleStartTs) % dur;
+    return dur - elapsed;
+  }
+
+  // ============================================================
+  // ボタン有効/無効
+  // ============================================================
+  function setButtonsEnabled(enabled) {
+    [dom.btnPyon, dom.btnBiron].forEach(btn => {
+      if (enabled) {
+        btn.classList.remove('choice-btn--disabled');
+        btn.disabled = false;
+      } else {
+        btn.classList.add('choice-btn--disabled');
+        btn.disabled = true;
+      }
+    });
+  }
+
+  // ============================================================
+  // 溜め時間計算
+  // A3: 0.7〜1.6秒ランダム、5戦中1回は必ず長め（1.3〜1.6秒）
+  // ============================================================
+  function calcHoldTime(roundIndex) {
+    if (roundIndex === game.longRoundIndex) {
+      return 1300 + Math.random() * 300; // 1300-1600ms
+    }
+    // 短め: 700-1250ms
+    return 700 + Math.random() * 550;
+  }
+
+  // ============================================================
+  // スパークル演出（パーフェクト用）
+  // ============================================================
+  function launchSparkles() {
+    const emojis = ['⭐', '✨', '🌟', '💫', '🎉', '🎊', '🌈', '💖'];
+    const count = 18;
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        const s = document.createElement('div');
+        s.className = 'sparkle';
+        s.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        s.style.left = Math.random() * 100 + 'vw';
+        s.style.top  = (20 + Math.random() * 70) + 'vh';
+        s.style.animationDelay = '0ms';
+        s.style.animationDuration = (1.0 + Math.random() * 0.8) + 's';
+        dom.sparkleContainer.appendChild(s);
+        setTimeout(() => s.remove(), 2200);
+      }, i * 80);
+    }
+  }
+
+  // ============================================================
+  // ラウンドフラッシュ
+  // ============================================================
+  function triggerFlash() {
+    dom.roundFlash.classList.add('round-flash--on');
+    setTimeout(() => dom.roundFlash.classList.remove('round-flash--on'), 150);
+  }
+
+  // ============================================================
+  // ゲーム初期化
+  // ============================================================
+  function initGame() {
+    game.round = 0;
+    game.scores = [];
+    game.currentChoice = null;
+    game.pochamonAction = null;
+    game.acceptingInput = false;
+    game.animationLock = false;
+    game.consecutiveWins = 0;
+    game.consecutiveLoses = 0;
+    game.selectedStickerId = null;
+    game.randomStickerIds = [];
+
+    // 長め溜めを入れるラウンドをランダムで決定
+    // 仕様: 5戦中1回は必ず1.3-1.6秒の長め
+    game.longRoundIndex = Math.floor(Math.random() * 5);
+
+    // 残存タイマーをクリア
+    if (game.hoiTimerId !== null) {
+      clearTimeout(game.hoiTimerId);
+      game.hoiTimerId = null;
+    }
+
+    updateScoreBar();
+    dom.playingScreen.classList.remove('playing-screen--perfect');
+    setPochamonGif('idle');
+    setButtonsEnabled(false);
+  }
+
+  // ============================================================
+  // ラウンド開始
+  // ============================================================
+  function startRound() {
+    if (game.round >= 5) {
+      endGame();
+      return;
+    }
+
+    game.currentChoice = null;
+    game.animationLock = false;
+    // idleはtriggerHoi完了時に既に呼ばれてるが、新規ゲーム時の保険として呼ぶ（currentKey==='idle'ならno-op）
+    setPochamonGif('idle');
+
+    // ラウンド表示更新
+    dom.roundIndicator.textContent = 'ROUND ' + (game.round + 1) + ' / 5';
+
+    // 5戦目のラストチャンス演出
+    if (game.round === 4) {
+      showTelop('ラストチャンス！', 'telop--lastchance', false);
+      setTimeout(() => {
+        startAcchiPhase();
+      }, 900);
+    } else {
+      // 通常は少し間を置いてから開始
+      setTimeout(() => {
+        startAcchiPhase();
+      }, 300);
+    }
+  }
+
+  // ============================================================
+  // 「あっちむいて」フェーズ
+  // 仕様変更（2026-05-17）: 自動「ホイッ」を廃止。プレイヤーがボタンを
+  // 押すまでずっと「あっち むいて…」のままボタン受付を継続する。
+  // タップ→onChoiceTap→triggerHoi(choice) の流れで進行。
+  // ============================================================
+  function startAcchiPhase() {
+    game.acceptingInput = false;
+    setButtonsEnabled(false);
+
+    showTelop('あっち むいて', 'telop--acchi', true);
+
+    // ボタン受付開始（テロップ表示後すぐ、誤タップ防止に300ms猶予）
+    setTimeout(() => {
+      game.acceptingInput = true;
+      setButtonsEnabled(true);
+    }, 300);
+  }
+
+  // ============================================================
+  // 「ホイッ！」フェーズ
+  // 仕様変更（2026-05-17）: プレイヤーがボタンをタップしたら呼ばれる。
+  // choice引数で必ず選択が渡るため未選択リトライロジックは不要。
+  // ============================================================
+  function triggerHoi(choice) {
+    // 受付終了（onChoiceTapで既に切ってるが二重ガード）
+    game.acceptingInput = false;
+    setButtonsEnabled(false);
+    game.animationLock = true;
+
+    const action = Math.random() < 0.5 ? 'pyon' : 'biron'; // ぽちゃもんの動き
+    game.pochamonAction = action;
+    const isWin = (choice === action);
+
+    showTelop('ホイッ！', 'telop--hoi', false);
+    triggerFlash();
+
+    // idle GIFのループ境界まで待ってから B/C アニメへ切替（前後の途切れ防止）
+    const idleWait = idleRemainingToNextLoop();
+    setTimeout(async () => {
+      // awaitで decode完了を待ってから duration計測（表示開始タイミング基準）
+      await setPochamonGif(action);
+      // B/C 完走後 → idle 復帰 → 結果テロップ
+      setTimeout(async () => {
+        await setPochamonGif('idle');
+        judgeRound(isWin);
+      }, POCHAMON_GIFS[action].duration);
+    }, idleWait);
+  }
+
+  // ============================================================
+  // 判定処理
+  // ============================================================
+  function judgeRound(isWin) {
+    game.animationLock = true;
+
+    if (isWin) {
+      game.scores.push('win');
+      game.consecutiveWins++;
+      game.consecutiveLoses = 0;
+    } else {
+      game.scores.push('lose');
+      game.consecutiveLoses++;
+      game.consecutiveWins = 0;
+    }
+
+    updateScoreBar();
+
+    // テロップ決定
+    let telopText, telopClass;
+
+    if (isWin) {
+      if (game.consecutiveWins >= 2) {
+        telopText  = game.consecutiveWins + 'れんしょう！';
+        telopClass = 'telop--combo';
+      } else {
+        telopText  = 'やった！';
+        telopClass = 'telop--win';
+      }
+    } else {
+      if (game.consecutiveLoses >= 2) {
+        telopText  = 'がんばれ〜！';
+        telopClass = 'telop--gambare';
+      } else {
+        telopText  = 'ちーん';
+        telopClass = 'telop--lose';
+      }
+    }
+
+    showTelop(telopText, telopClass, false);
+
+    // 0.8秒後に次ラウンド
+    setTimeout(() => {
+      game.round++;
+      game.animationLock = false;
+      hideTelop();
+
+      if (game.round >= 5) {
+        endGame();
+      } else {
+        startRound();
+      }
+    }, 800);
+  }
+
+  // ============================================================
+  // ゲーム終了 → 結果画面
+  // ============================================================
+  function endGame() {
+    const wins  = game.scores.filter(s => s === 'win').length;
+    const loses = 5 - wins;
+    const isPerfect = wins === 5;
+
+    // パーフェクト演出
+    if (isPerfect) {
+      dom.playingScreen.classList.add('playing-screen--perfect');
+      launchSparkles();
+    }
+
+    // 少し間を置いてから結果画面へ
+    setTimeout(() => {
+      buildResultScreen(wins, loses, isPerfect);
+      showScreen(STATE.RESULT);
+    }, 600);
+  }
+
+  // ============================================================
+  // 結果画面 組み立て
+  // ============================================================
+  function buildResultScreen(wins, loses, isPerfect) {
+    // 仕様変更（2026-05-17）: 「PERFECT」バナー削除（特別シール誤解防止）。
+    // 5勝でも追加報酬はなく、3枚配布のみ。虹色背景演出のみ残す。
+    dom.resultScreen.classList.toggle('result-screen--perfect', isPerfect);
+
+    // タイトル・サブテキスト
+    const stickerCount = wins >= 3 ? 3 : 2;
+    dom.resultTitle.textContent = wins + '勝' + loses + '敗！';
+    dom.resultSub.textContent   = 'シール' + stickerCount + '枚ゲット！';
+
+    // 結果スコアバー
+    dom.resultScoreSlots.forEach((slot, i) => {
+      slot.className = 'score-bar__slot';
+      if (i < game.scores.length) {
+        if (game.scores[i] === 'win') {
+          slot.textContent = '◯';
+          slot.classList.add('score-bar__slot--win');
+        } else {
+          slot.textContent = '✕';
+          slot.classList.add('score-bar__slot--lose');
+        }
+      } else {
+        slot.textContent = '－';
+      }
+    });
+
+    // シール配布ロジック（管理画面の重み・在庫設定を反映）
+    const drawn = drawWeightedStickers(2);
+    game.randomStickerIds = drawn;
+
+    if (wins >= 3) {
+      // 3枚: ランダム2枚 + 選択1枚（在庫ありシールから選択）
+      buildStickerAward3(game.randomStickerIds);
+      buildStickerSelector();
+    } else {
+      // 2枚: ランダム2枚
+      buildStickerAward2(game.randomStickerIds);
+      dom.stickerSelector.style.display = 'none';
+    }
+
+    // 励ましテキスト（2勝以下）
+    if (wins < 3) {
+      dom.resultSub.textContent = 'シール2枚ゲット！また挑戦してな！';
+    }
+  }
+
+  // ランダム2枚シール表示（2勝以下）
+  function buildStickerAward2(ids) {
+    dom.stickerAwardTitle.textContent = '獲得シール';
+    dom.stickerAwardRow.innerHTML = '';
+
+    ids.forEach((id, i) => {
+      const slot = createStickerSlot(id, false, '');
+      dom.stickerAwardRow.appendChild(slot);
+      setTimeout(() => slot.classList.add('sticker-slot--visible'), 200 + i * 200);
+    });
+  }
+
+  // ランダム2枚シール表示（3勝以上の確定分）
+  function buildStickerAward3(ids) {
+    dom.stickerAwardTitle.textContent = 'もらえるシール（確定分）';
+    dom.stickerAwardRow.innerHTML = '';
+
+    // 選択シール用の空スロット（円内に「選択中」テキスト・四角囲みなし）
+    const choiceSlot = document.createElement('div');
+    choiceSlot.className = 'sticker-slot sticker-slot--choice';
+    choiceSlot.id = 'choice-sticker-preview';
+    const placeholderCircle = document.createElement('div');
+    placeholderCircle.className = 'sticker';
+    placeholderCircle.style.background = '#f0e0f8';
+    placeholderCircle.id = 'choice-sticker-display';
+    const choiceLabel = document.createElement('div');
+    choiceLabel.className = 'sticker__choice-label';
+    choiceLabel.textContent = '選択中';
+    placeholderCircle.appendChild(choiceLabel);
+    choiceSlot.appendChild(placeholderCircle);
+
+    ids.forEach((id, i) => {
+      const slot = createStickerSlot(id, false, '');
+      dom.stickerAwardRow.appendChild(slot);
+      setTimeout(() => slot.classList.add('sticker-slot--visible'), 200 + i * 200);
+    });
+
+    // 選択枠を最後に追加
+    dom.stickerAwardRow.appendChild(choiceSlot);
+    setTimeout(() => choiceSlot.classList.add('sticker-slot--visible'), 600);
+  }
+
+  // シールスロット生成
+  function createStickerSlot(id, isChoice, labelText) {
+    const slot = document.createElement('div');
+    slot.className = 'sticker-slot' + (isChoice ? ' sticker-slot--choice' : '');
+
+    // ラベル（labelTextが空ならスキップ）
+    if (labelText) {
+      const label = document.createElement('div');
+      label.className = 'sticker-slot__label';
+      label.textContent = labelText;
+      slot.appendChild(label);
+    }
+
+    // シール本体（実画像）
+    const sticker = document.createElement('div');
+    sticker.className = 'sticker sticker--img sticker--' + id;
+    const img = document.createElement('img');
+    img.src = 'assets/sticker_' + String(id).padStart(2, '0') + '.png';
+    img.alt = 'シール' + id;
+    img.className = 'sticker__pic';
+    sticker.appendChild(img);
+
+    slot.appendChild(sticker);
+    return slot;
+  }
+
+  // シール選択グリッド構築（在庫ありシールのみ表示）
+  function buildStickerSelector() {
+    dom.stickerSelector.style.display = 'block';
+    dom.stickerSelectorGrid.innerHTML = '';
+
+    const availableIds = getAvailableStickerIds();
+    availableIds.forEach(id => {
+      const item = document.createElement('div');
+      item.className = 'sticker-selector__item';
+      item.dataset.id = id;
+
+      const circle = document.createElement('div');
+      circle.className = 'sticker-selector__sticker sticker--img sticker-selector__sticker--' + id;
+      const img = document.createElement('img');
+      img.src = 'assets/sticker_' + String(id).padStart(2, '0') + '.png';
+      img.alt = 'シール' + id;
+      img.className = 'sticker__pic';
+      circle.appendChild(img);
+
+      const check = document.createElement('div');
+      check.className = 'sticker-selector__check';
+      check.textContent = '選択';
+
+      item.appendChild(circle);
+      item.appendChild(check);
+      dom.stickerSelectorGrid.appendChild(item);
+
+      item.addEventListener('click', () => selectSticker(id));
+      item.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        selectSticker(id);
+      }, { passive: false });
+    });
+  }
+
+  function selectSticker(id) {
+    game.selectedStickerId = id;
+    // グリッドの選択状態更新
+    document.querySelectorAll('.sticker-selector__item').forEach(item => {
+      item.classList.toggle('sticker-selector__item--selected', parseInt(item.dataset.id) === id);
+    });
+    // 選択シール確定枠を更新（？マーク→画像）
+    const preview = document.getElementById('choice-sticker-display');
+    if (preview) {
+      preview.className = 'sticker sticker--img sticker--' + id;
+      preview.style.background = '';
+      preview.style.border = '';
+      preview.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = 'assets/sticker_' + String(id).padStart(2, '0') + '.png';
+      img.alt = 'シール' + id;
+      img.className = 'sticker__pic';
+      preview.appendChild(img);
+    }
+  }
+
+  // ============================================================
+  // イベントリスナー
+  // ============================================================
+
+  // スタートボタン
+  document.getElementById('btn-start').addEventListener('click', startGameFromTitle);
+  document.getElementById('btn-start').addEventListener('touchend', (e) => {
+    e.preventDefault();
+    startGameFromTitle();
+  }, { passive: false });
+
+  // タイトルロゴ 5連タップで管理画面に隠し遷移（1.5秒以内に5タップ）
+  (() => {
+    const logo = document.querySelector('.title-screen__logo');
+    if (!logo) return;
+    let count = 0;
+    let resetTimer = null;
+    function onLogoTap() {
+      count++;
+      if (resetTimer) clearTimeout(resetTimer);
+      if (count >= 5) {
+        count = 0;
+        showAdmin();
+        return;
+      }
+      resetTimer = setTimeout(() => { count = 0; }, 1500);
+    }
+    logo.addEventListener('click', onLogoTap);
+    logo.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      onLogoTap();
+    }, { passive: false });
+  })();
+
+  function startGameFromTitle() {
+    initGame();
+    showScreen(STATE.PLAYING);
+    // 少し間を置いてからラウンド開始
+    setTimeout(() => startRound(), 400);
+  }
+
+  // 選択ボタン（ぴょーん）
+  dom.btnPyon.addEventListener('click', () => onChoiceTap('pyon'));
+  dom.btnPyon.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    onChoiceTap('pyon');
+  }, { passive: false });
+
+  // 選択ボタン（びろーん）
+  dom.btnBiron.addEventListener('click', () => onChoiceTap('biron'));
+  dom.btnBiron.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    onChoiceTap('biron');
+  }, { passive: false });
+
+  function onChoiceTap(choice) {
+    // 多重タップガード: acceptingInput + animationLock
+    if (!game.acceptingInput || game.animationLock) return;
+    if (game.currentChoice !== null) return; // 既に選択済み
+
+    game.currentChoice = choice;
+    game.acceptingInput = false;
+    setButtonsEnabled(false); // 押した瞬間ボタンを視覚的にも無効化
+
+    // タップフィードバック（loveeez流 bounceBtn）
+    const btn = choice === 'pyon' ? dom.btnPyon : dom.btnBiron;
+    btn.style.animation = 'bounceBtn 0.4s cubic-bezier(.645,.045,.355,1)';
+    setTimeout(() => { btn.style.animation = ''; }, 420);
+
+    // 仕様変更（2026-05-17）: タップ即「ホイッ！」発動
+    triggerHoi(choice);
+  }
+
+  // 結果画面「もう一回チャレンジ！」: 即プレイ開始（リプレイ）
+  dom.btnRetryResult.addEventListener('click', replayGame);
+  dom.btnRetryResult.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    replayGame();
+  }, { passive: false });
+
+  // 結果画面「タイトル画面へ」: タイトル戻り
+  dom.btnBackToTitle.addEventListener('click', goBackToTitle);
+  dom.btnBackToTitle.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    goBackToTitle();
+  }, { passive: false });
+
+  function replayGame() {
+    dom.resultScreen.classList.remove('result-screen--perfect');
+    dom.playingScreen.classList.remove('playing-screen--perfect');
+    initGame();
+    showScreen(STATE.PLAYING);
+    setTimeout(() => startRound(), 400);
+  }
+
+  function goBackToTitle() {
+    dom.resultScreen.classList.remove('result-screen--perfect');
+    dom.playingScreen.classList.remove('playing-screen--perfect');
+    showScreen(STATE.TITLE);
+  }
+
+  // ============================================================
+  // 背景パーティクル生成（タイトル画面用）
+  // ============================================================
+  function initParticles() {
+    const container = dom.bgParticles;
+    container.innerHTML = '';
+    const colors = ['#ffb6c1','#ffd1dc','#ffb347','#b497f5','#6ecbf0','#c8f0a0'];
+    const count = 12;
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'bg-particles__dot';
+      const size = 8 + Math.random() * 16;
+      dot.style.width  = size + 'px';
+      dot.style.height = size + 'px';
+      dot.style.background = colors[Math.floor(Math.random() * colors.length)];
+      dot.style.left = (5 + Math.random() * 90) + '%';
+      dot.style.top  = (10 + Math.random() * 80) + 'vh';
+      const dur  = 3 + Math.random() * 4;
+      const del  = Math.random() * 5;
+      dot.style.animation = `particle-float ${dur}s ${del}s ease-in-out infinite`;
+      container.appendChild(dot);
+    }
+  }
+
+  initParticles();
+
+  // ============================================================
+  // タイトル画面 MVクロスフェード再生
+  // ============================================================
+  function initTitleMv() {
+    const a = document.getElementById('title-mv-a');
+    const b = document.getElementById('title-mv-b');
+    if (!a || !b) {
+      console.warn('[MV] video element not found');
+      return;
+    }
+
+    const files = [
+      'mv_01.mp4','mv_02.mp4','mv_03.mp4',
+      'mv_04.mp4','mv_05.mp4','mv_06.mp4',
+      'mv_07.mp4','mv_08.mp4','mv_09.mp4'
+    ];
+    const order = [...files].sort(() => Math.random() - 0.5);
+    let queueIdx = 0;
+    const nextFile = () => order[queueIdx++ % order.length];
+
+    const loadVideo = (el, name) => {
+      el.src = `assets/mv/${name}`;
+      el.load();
+    };
+
+    const safePlay = (el, label) => {
+      const p = el.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(err => console.warn(`[MV] ${label} play() rejected:`, err.name || err));
+      }
+    };
+
+    a.addEventListener('error', e => console.warn('[MV] A error', a.error));
+    b.addEventListener('error', e => console.warn('[MV] B error', b.error));
+
+    loadVideo(a, nextFile());
+    loadVideo(b, nextFile());
+
+    a.classList.add('title-screen__mv-video--active');
+    safePlay(a, 'A initial');
+
+    let activeIsA = true;
+    setInterval(() => {
+      const current = activeIsA ? a : b;
+      const next    = activeIsA ? b : a;
+
+      try { next.currentTime = 0; } catch (e) {}
+      safePlay(next, activeIsA ? 'B' : 'A');
+      next.classList.add('title-screen__mv-video--active');
+      current.classList.remove('title-screen__mv-video--active');
+
+      setTimeout(() => {
+        current.pause();
+        loadVideo(current, nextFile());
+      }, 1100);
+
+      activeIsA = !activeIsA;
+    }, 5000);
+
+    console.log('[MV] init OK, order =', order);
+  }
+
+  initTitleMv();
+
+  // ============================================================
+  // 管理画面（隠しURL #admin）
+  // ============================================================
+  function renderAdminScreen() {
+    const cfg = loadAdminConfig();
+    const list = document.getElementById('admin-sticker-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    STICKER_IDS.forEach(id => {
+      const s = cfg.stickers[id];
+      const row = document.createElement('div');
+      row.className = 'admin-sticker-row' + (s.enabled ? '' : ' admin-sticker-row--sold');
+      row.dataset.id = id;
+
+      const pad = String(id).padStart(2, '0');
+      row.innerHTML =
+        '<div class="admin-sticker-row__preview"><img src="assets/sticker_' + pad + '.png" alt="シール' + id + '"></div>' +
+        '<div class="admin-sticker-row__name">シール' + id + '</div>' +
+        '<div class="admin-sticker-row__weight">' +
+          '<div class="admin-sticker-row__weight-label">出現率（重み 1-10）</div>' +
+          '<div class="admin-sticker-row__weight-input">' +
+            '<input type="range"  min="1" max="10" step="1" value="' + s.weight + '" data-role="weight-range">' +
+            '<input type="number" min="1" max="10" step="1" value="' + s.weight + '" data-role="weight-number">' +
+          '</div>' +
+        '</div>' +
+        '<div class="admin-sticker-row__stock">' +
+          '<div class="admin-sticker-row__stock-label">在庫</div>' +
+          '<div class="admin-toggle ' + (s.enabled ? 'admin-toggle--on' : '') + '" data-role="toggle" role="switch" aria-checked="' + s.enabled + '">' +
+            '<div class="admin-toggle__knob"></div>' +
+          '</div>' +
+        '</div>';
+
+      const rangeEl = row.querySelector('[data-role="weight-range"]');
+      const numEl   = row.querySelector('[data-role="weight-number"]');
+      rangeEl.addEventListener('input', () => { numEl.value = rangeEl.value; });
+      numEl.addEventListener('change', () => {
+        const v = Math.max(1, Math.min(10, parseInt(numEl.value || '1', 10) || 1));
+        rangeEl.value = v;
+        numEl.value = v;
+      });
+
+      const toggle = row.querySelector('[data-role="toggle"]');
+      toggle.addEventListener('click', () => {
+        const on = !toggle.classList.contains('admin-toggle--on');
+        toggle.classList.toggle('admin-toggle--on', on);
+        toggle.setAttribute('aria-checked', on);
+        row.classList.toggle('admin-sticker-row--sold', !on);
+      });
+
+      list.appendChild(row);
+    });
+  }
+
+  function readAdminScreen() {
+    const cfg = getDefaultAdminConfig();
+    document.querySelectorAll('.admin-sticker-row').forEach(row => {
+      const id = parseInt(row.dataset.id, 10);
+      if (!cfg.stickers[id]) return;
+      const numEl  = row.querySelector('[data-role="weight-number"]');
+      const toggle = row.querySelector('[data-role="toggle"]');
+      cfg.stickers[id].weight  = Math.max(1, Math.min(10, parseInt(numEl.value || '1', 10) || 1));
+      cfg.stickers[id].enabled = toggle.classList.contains('admin-toggle--on');
+    });
+    return cfg;
+  }
+
+  function setAdminFeedback(msg) {
+    const el = document.getElementById('admin-feedback');
+    if (el) el.textContent = msg;
+  }
+
+  function showAdmin() {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('screen--active'));
+    const admin = document.getElementById('screen-admin');
+    admin.classList.add('screen--active');
+    renderAdminScreen();
+    setAdminFeedback('');
+  }
+
+  function hideAdmin() {
+    document.getElementById('screen-admin').classList.remove('screen--active');
+    screens.title.classList.add('screen--active');
+    if (location.hash === '#admin') {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  }
+
+  document.getElementById('btn-admin-save').addEventListener('click', () => {
+    const cfg = readAdminScreen();
+    if (saveAdminConfig(cfg)) {
+      setAdminFeedback('✓ 保存しました');
+      setTimeout(() => setAdminFeedback(''), 2000);
+    } else {
+      setAdminFeedback('保存に失敗しました');
+    }
+  });
+
+  document.getElementById('btn-admin-reset').addEventListener('click', () => {
+    localStorage.removeItem(ADMIN_STORAGE_KEY);
+    renderAdminScreen();
+    setAdminFeedback('✓ 初期値に戻しました（未保存）');
+    setTimeout(() => setAdminFeedback(''), 2500);
+  });
+
+  document.getElementById('btn-admin-close').addEventListener('click', hideAdmin);
+
+  function checkAdminHash() {
+    if (location.hash === '#admin') showAdmin();
+  }
+  window.addEventListener('hashchange', checkAdminHash);
+  checkAdminHash();
+
+  // ============================================================
+  // 初期化完了ログ（デバッグ用）
+  // ============================================================
+  console.log('[ぽちゃもんHOI] 初期化完了 v1.0.0');
+  console.log('[ぽちゃもんHOI] 状態: title / playing / result');
+  console.log('[ぽちゃもんHOI] アセット差し替え: assets/ フォルダに pochamon_idle.gif 等を配置');
+
+</script>
+</body>
+</html>
