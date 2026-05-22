@@ -2123,7 +2123,6 @@
   const pochamonState = {
     activeSlot:        'A',  // 'A' | 'B' (どちらが現在可視)
     currentKey:        null, // 現在表示中のGIFキー
-    idleCycleStartTs:  0,    // performance.now() 基準の idle 開始時刻
     swapToken:         0,    // 並行呼び出しのrace対策
   };
 
@@ -2152,9 +2151,6 @@
     nextEl.classList.remove('pochamon__img--hidden');
     pochamonState.activeSlot = nextSlot;
     pochamonState.currentKey = key;
-    if (key === 'idle') {
-      pochamonState.idleCycleStartTs = performance.now();
-    }
 
     // 2rAF後に旧スロット非可視化（1rAFだとpaint前でチラつき）
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -2162,12 +2158,6 @@
       if (pochamonState.activeSlot !== nextSlot) return;
       prevEl.classList.add('pochamon__img--hidden');
     }));
-  }
-
-  function idleRemainingToNextLoop() {
-    const dur = POCHAMON_GIFS.idle.duration;
-    const elapsed = (performance.now() - pochamonState.idleCycleStartTs) % dur;
-    return dur - elapsed;
   }
 
   // ============================================================
@@ -2325,9 +2315,9 @@
     showTelop('ホイッ！', 'telop--hoi', false);
     triggerFlash();
 
-    // idle GIFのループ境界まで待ってから B/C アニメへ切替（前後の途切れ防止）
-    const idleWait = idleRemainingToNextLoop();
-    setTimeout(async () => {
+    // タップ即時にアクションGIFへ切替（idle境界待ちは応答性優先で撤廃 2026-05-22）
+    // ダブルバッファの2rAF切替で継ぎ目はほぼ見えない
+    (async () => {
       // awaitで decode完了を待ってから duration計測（表示開始タイミング基準）
       await setPochamonGif(action);
       // B/C 完走後 → idle 復帰 → 結果テロップ
@@ -2337,7 +2327,7 @@
         await setPochamonGif('idle');
         judgeRound(isWin);
       }, POCHAMON_GIFS[action].duration - ACTION_END_MARGIN);
-    }, idleWait);
+    })();
   }
 
   // ============================================================
