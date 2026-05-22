@@ -2139,11 +2139,14 @@
     const nextEl   = nextSlot === 'A' ? dom.pochamonImgA : dom.pochamonImgB;
     const prevEl   = pochamonState.activeSlot === 'A' ? dom.pochamonImgA : dom.pochamonImgB;
 
-    // 1回再生GIF (B/C) は毎回頭出ししたいので querystring を毎回変える。
-    // ループGIF (idle) はキャッシュからdecode即決させたいので同URL（位相は無視可）。
-    const newSrc = def.loop ? def.src : def.src + '?t=' + Date.now();
-    if (nextEl.src.indexOf(newSrc) === -1) {
-      nextEl.src = newSrc;
+    // 1回再生GIF (B/C): 毎回頭出ししたいので src を一旦クリアしてから再set。
+    //   同URLでもブラウザは disk cache から取るのでネット往復ゼロ（?t=でURL変えると毎回再fetch=遅延）。
+    // ループGIF (idle): 同URLならsrc再setスキップで位相保持（チラつき防止）。
+    if (!def.loop) {
+      nextEl.removeAttribute('src');
+      nextEl.src = def.src;
+    } else if (nextEl.src.indexOf(def.src) === -1) {
+      nextEl.src = def.src;
     }
     try { await nextEl.decode(); } catch (e) { /* ignore */ }
     if (myToken !== pochamonState.swapToken) return; // 上書きされた
