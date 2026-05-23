@@ -1888,13 +1888,25 @@
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <script>
     // ===== Slide Data =====
-    const heroSlides = [
+    let heroSlides = [
       { tag: 'ILLUSTRATION', title: '色彩で紡ぐ、夏の記憶', caption: '人物イラスト / オリジナル作品' },
       { tag: 'ILLUSTRATION', title: '日常に宿る、静かな旋律', caption: '人物イラスト / オリジナル作品' },
       { tag: 'PROJECT', title: 'ギンピカ 2nd Anniversary', caption: 'NFTコレクション / イベント' },
       { tag: 'ILLUSTRATION', title: '光と水のあいだに', caption: '人物イラスト / オリジナル作品' },
       { tag: 'ILLUSTRATION', title: '春の訪れを描く', caption: '人物イラスト / オリジナル作品' },
     ];
+
+    // SP（≤600px）はスライド順を 1,5,3,2,4 に並び替え（DOM・データ配列を同時更新）
+    if (window.innerWidth <= 600) {
+      const spOrder = [0, 4, 2, 1, 3];
+      const wrapper = document.querySelector('.hero-swiper .swiper-wrapper');
+      if (wrapper) {
+        const slides = Array.from(wrapper.querySelectorAll('.swiper-slide'));
+        spOrder.forEach(i => wrapper.appendChild(slides[i]));
+        heroSlides = spOrder.map(i => heroSlides[i]);
+      }
+    }
+
     const totalHeroSlides = heroSlides.length;
 
     // ===== Opening Animation =====
