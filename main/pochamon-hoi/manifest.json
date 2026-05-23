@@ -1,0 +1,19 @@
+{
+  "name": "ぽちゃもんあっち向いてホイ",
+  "short_name": "ぽちゃもんホイ",
+  "description": "ぽちゃもんとあっち向いてホイで勝負！",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#FFE3F6",
+  "theme_color": "#FF4DF6",
+  "icons": [
+    {
+      "src": "assets/pochamon_idle.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

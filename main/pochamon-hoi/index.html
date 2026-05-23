@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ぽちゃもんホイ">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#FF4DF6">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/pochamon_idle.png">
   <title>ぽちゃもん あっちむいてホイ！</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2713,10 +2718,13 @@
 
   // ============================================================
   // タイトル画面 MVクロスフェード再生
+  // 全動画を Blob URL として一括プリロード → 以降はメモリから再生
+  // （iPadテザリング切断後もオフライン継続再生可能にする保険、SWキャッシュ完了前でも動く）
   // ============================================================
-  function initTitleMv() {
+  async function initTitleMv() {
     const a = document.getElementById('title-mv-a');
     const b = document.getElementById('title-mv-b');
+    const stage = document.getElementById('title-mv-stage');
     if (!a || !b) {
       console.warn('[MV] video element not found');
       return;
@@ -2727,12 +2735,43 @@
       'mv_04.mp4','mv_05.mp4','mv_06.mp4',
       'mv_07.mp4','mv_08.mp4','mv_09.mp4'
     ];
-    const order = [...files].sort(() => Math.random() - 0.5);
-    let queueIdx = 0;
-    const nextFile = () => order[queueIdx++ % order.length];
 
-    const loadVideo = (el, name) => {
-      el.src = `assets/mv/${name}`;
+    // プリロード中の表示（bg画像は body 側で見える）
+    let loadingEl = null;
+    if (stage) {
+      loadingEl = document.createElement('div');
+      loadingEl.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#FFE3F6;font-family:var(--font-pixel,monospace);font-size:11px;letter-spacing:3px;opacity:.5;z-index:0;pointer-events:none;';
+      loadingEl.textContent = 'LOADING...';
+      stage.appendChild(loadingEl);
+    }
+
+    // 全動画を並列 fetch → Blob URL 化（失敗時は直接URLにフォールバック）
+    const t0 = performance.now();
+    const sources = await Promise.all(files.map(async (name) => {
+      try {
+        const res = await fetch(`assets/mv/${name}`, { cache: 'force-cache' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      } catch (e) {
+        console.warn('[MV] preload failed, fallback to direct URL:', name, e);
+        return `assets/mv/${name}`;
+      }
+    }));
+    const preloadMs = Math.round(performance.now() - t0);
+    const blobCount = sources.filter(s => s.startsWith('blob:')).length;
+    console.log(`[MV] preloaded ${blobCount}/${files.length} as blob in ${preloadMs}ms`);
+
+    if (loadingEl && loadingEl.parentNode) {
+      loadingEl.parentNode.removeChild(loadingEl);
+    }
+
+    const order = [...sources].sort(() => Math.random() - 0.5);
+    let queueIdx = 0;
+    const nextSrc = () => order[queueIdx++ % order.length];
+
+    const loadVideo = (el, src) => {
+      el.src = src;
       el.load();
     };
 
@@ -2746,8 +2785,8 @@
     a.addEventListener('error', e => console.warn('[MV] A error', a.error));
     b.addEventListener('error', e => console.warn('[MV] B error', b.error));
 
-    loadVideo(a, nextFile());
-    loadVideo(b, nextFile());
+    loadVideo(a, nextSrc());
+    loadVideo(b, nextSrc());
 
     a.classList.add('title-screen__mv-video--active');
     safePlay(a, 'A initial');
@@ -2764,13 +2803,13 @@
 
       setTimeout(() => {
         current.pause();
-        loadVideo(current, nextFile());
+        loadVideo(current, nextSrc());
       }, 1100);
 
       activeIsA = !activeIsA;
     }, 5000);
 
-    console.log('[MV] init OK, order =', order);
+    console.log('[MV] init OK, sources =', order.length);
   }
 
   initTitleMv();
@@ -2895,6 +2934,44 @@
   console.log('[ぽちゃもんHOI] 状態: title / playing / result');
   console.log('[ぽちゃもんHOI] アセット差し替え: assets/ フォルダに pochamon_idle.gif 等を配置');
 
+</script>
+
+<!-- Service Worker 登録（オフライン対応）+ OFFLINE READY バッジ表示 -->
+<script>
+(function() {
+  if (!('serviceWorker' in navigator)) {
+    console.log('[SW] not supported');
+    return;
+  }
+
+  const showBadge = (text, bg) => {
+    const badge = document.createElement('div');
+    badge.textContent = text;
+    badge.style.cssText = 'position:fixed;top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));background:' + bg + ';color:#fff;font-family:monospace;font-size:11px;font-weight:bold;padding:6px 12px;border-radius:4px;z-index:99999;opacity:.95;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.3);letter-spacing:1px;';
+    document.body.appendChild(badge);
+    setTimeout(() => badge.remove(), 5000);
+  };
+
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('./sw.js');
+      console.log('[SW] registered, scope:', reg.scope);
+
+      if (navigator.serviceWorker.controller) {
+        // 既にSWに制御されている＝オフライン準備完了
+        showBadge('OFFLINE READY ✓', '#00C853');
+      } else {
+        // 新規インストール待ち
+        showBadge('CACHING...', '#FF9800');
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          showBadge('OFFLINE READY ✓', '#00C853');
+        });
+      }
+    } catch (err) {
+      console.warn('[SW] register failed:', err);
+    }
+  });
+})();
 </script>
 </body>
 </html>
