@@ -1,324 +1,2077 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head prefix="og: https://ogp.me/ns#">
-	<title>Jojima George Official Web</title>
-	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
-	<meta name="theme-color" content="#004CFF">
-	<meta name="description"  content="イラストレーター・城島ジョージ公式HPです。人物イラスト、すしだるまなど幅広いテイストで作品展開しています。">
-	<meta property="og:url" content="https://jojima-george.com/" />
-	<meta property="og:type" content="website" />
-	<meta property="og:title" content="Jojima George Official Web" />
-	<meta property="og:description" content="イラストレーター・城島ジョージ公式HPです。人物イラスト、すしだるまなど幅広いテイストで作品展開しています。" />
-	<meta property="og:site_name" content="Jojima George Official Web -Top" />
-	<meta property="og:image" content="https://jojima-george.com/image/banner_top.png" />
-	<meta name=”twitter:site” content=”@JojimaGeorgeNFT”>
-	<link href="parts/jojima.css?ver=1.0.7" rel="stylesheet" type="text/css" />
-	<link rel="icon" href="image/pfpfav.png" sizes="16x16" type="image/png" /> 
-	<link rel="icon" href="image/pfpfav.png" sizes="32x32" type="image/png" />  
-	<link rel="icon" href="image/pfpfav.png" sizes="48x48" type="image/png" /> 
-	<link rel="icon" href="image/pfpfav.png" sizes="62x62" type="image/png" />
-	<!-- Google Fonts -->
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Righteous&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
-	<!-- Google tag (gtag.js) -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=G-F6LJY0JQPR"></script>
-	<script>
-	  window.dataLayer = window.dataLayer || [];
-	  function gtag(){dataLayer.push(arguments);}
-	  gtag('js', new Date());
-	  gtag('config', 'G-F6LJY0JQPR');
-	</script>
-</head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DESIGN B1 — EDITORIAL MAGAZINE | Jojima George</title>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+  <style>
+    :root {
+      --color-blue: #004CFF;
+    }
 
+    html {
+      background: #000;
+      scroll-behavior: smooth;
+    }
+
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 100%;
+      font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif;
+      color: #1a1a1a;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ============================================
+       OPENING ANIMATION
+       ============================================ */
+    .opening {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 9999;
+      background: linear-gradient(135deg, #3a8fff 0%, #004CFF 40%, #0033cc 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.6s ease 0.2s;
+    }
+
+    .opening.is-end {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .opening-text {
+      position: relative;
+      z-index: 2;
+      color: #fff;
+      font-size: 40px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.6s ease, transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    .opening.is-show .opening-text {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .opening-text .char {
+      display: inline-block;
+      transition: transform 1s cubic-bezier(0.19, 1, 0.22, 1),
+                  opacity 0.5s ease;
+    }
+
+    .opening.is-end .opening-text .char {
+      transform: translateX(-80px);
+      opacity: 0;
+    }
+
+    /* ============================================
+       HERO SECTION (Swiper full-screen slider)
+       ============================================ */
+    .hero {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .hero-swiper {
+      width: 100%;
+      height: 100%;
+    }
+
+    .hero-swiper .swiper-slide {
+      overflow: hidden;
+    }
+
+    .swiper-slide-inner {
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      transition: transform 6s ease-out;
+    }
+
+    /* Slow Ken Burns zoom on active slide */
+    .hero-swiper .swiper-slide-active .swiper-slide-inner {
+      transform: scale(1.05);
+    }
+
+    .hero-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background:
+        linear-gradient(to top right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 25%, transparent 50%),
+        linear-gradient(to top left, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 20%, transparent 45%);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* NAV */
+    .hero-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      z-index: 100;
+      background: rgba(0,0,0,0.2);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: background 0.4s, backdrop-filter 0.4s, transform 0.35s ease;
+    }
+
+    .hero-nav.scrolled {
+      background: rgba(0,0,0,0.2);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .hero-nav.nav-hidden {
+      transform: translateY(-100%);
+    }
+
+    .hero-logo {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 6px;
+      color: #fff;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .hero-nav.scrolled .hero-logo {
+      opacity: 1;
+    }
+
+    .hero-menu {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .hero-menu li a {
+      color: rgba(255,255,255,0.9);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      transition: opacity 0.3s;
+    }
+
+    .hero-menu li a:hover {
+      opacity: 0.5;
+    }
+
+    /* HERO CONTENT - bottom left */
+    .hero-content {
+      position: absolute;
+      bottom: 32px;
+      left: 80px;
+      z-index: 10;
+      color: #fff;
+    }
+
+    .hero-eyebrow {
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 20px;
+    }
+
+    .hero-name {
+      margin-bottom: 24px;
+      line-height: 1;
+    }
+
+    .hero-name-main,
+    .hero-name-sub {
+      display: block;
+      font-size: 96px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+    }
+
+    .hero-name-sub {
+      margin-top: -4px;
+    }
+
+    /* SVG Stroke Animation for Hero Name */
+    .hero-name-svg {
+      display: block;
+      max-width: 500px;
+      width: 100%;
+      overflow: visible;
+    }
+
+    .hero-name-svg text {
+      font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif;
+      font-weight: 900;
+      text-transform: uppercase;
+      fill: rgba(255,255,255,0);
+      stroke: #fff;
+      stroke-width: 2;
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+    }
+
+    .hero-name-svg.is-active text {
+      animation: strokeAndFill 2.5s ease-out forwards;
+    }
+
+    @keyframes strokeAndFill {
+      0%   { stroke-dashoffset: 1000; fill: rgba(255,255,255,0); }
+      25%  { stroke-dashoffset: 400;  fill: rgba(255,255,255,0.1); }
+      45%  { stroke-dashoffset: 0;    fill: rgba(255,255,255,0.9); }
+      60%  { stroke-dashoffset: 0;    fill: rgba(255,255,255,1); }
+      100% { stroke-dashoffset: 0;    fill: rgba(255,255,255,1); }
+    }
+
+    .hero-desc {
+      font-size: 15px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.7);
+      max-width: 440px;
+      line-height: 1.8;
+      margin-bottom: 36px;
+    }
+
+    .hero-btn {
+      display: inline-block;
+      padding: 14px 48px;
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 50px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+
+    .hero-btn:hover {
+      background: #fff;
+      color: #000;
+    }
+
+    /* SLIDE OVERLAY TEXT (tag / title / caption) */
+    .slide-overlay {
+      position: absolute;
+      bottom: 100px;
+      right: 80px;
+      z-index: 10;
+      text-align: right;
+      color: #fff;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.4s ease, transform 0.5s ease;
+    }
+
+    .slide-overlay.is-active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .slide-tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 10px;
+    }
+
+    .slide-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      margin-bottom: 6px;
+    }
+
+    .slide-caption {
+      font-size: 12px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 2px;
+    }
+
+    /* HERO PROGRESS BAR */
+    .hero-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.15);
+      z-index: 20;
+    }
+
+    .hero-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--color-blue);
+    }
+
+    .hero-progress-bar.is-running {
+      width: 100%;
+      transition: width 5s linear;
+    }
+
+    /* ============================================
+       FIXED SOCIAL ICONS (bottom-right, like production)
+       ============================================ */
+    .social-icons {
+      position: fixed;
+      bottom: 32px;
+      right: 80px;
+      z-index: 200;
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .social-icons a {
+      display: inline-block;
+    }
+
+    .social-icons a.icon-tiktok {
+      background: #000;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 50px;
+      height: 50px;
+    }
+
+    .social-icons a.icon-tiktok svg {
+      width: 30px;
+      height: 30px;
+    }
+
+    .social-icons a img,
+    .social-icons a svg {
+      width: 50px;
+      height: 50px;
+      display: block;
+    }
+
+    /* ============================================
+       MAIN CONTENT (scrolls over hero)
+       ============================================ */
+    .main-content {
+      position: relative;
+      z-index: 10;
+      margin-top: 100vh;
+      background: #f5f3f0;
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.25);
+    }
+
+    /* ============================================
+       SHARED SECTION STYLES
+       ============================================ */
+    .section {
+      padding: 120px 0;
+    }
+
+    #links,
+    #contact {
+      padding: 160px 0;
+    }
+
+    .section-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 60px;
+    }
+
+    .section-white {
+      background: var(--color-blue);
+      color: #fff;
+      position: relative;
+    }
+
+    .section-white .section-title {
+      color: #fff;
+    }
+
+    .section-white .section-title-line {
+      background: rgba(255,255,255,0.4);
+    }
+
+    .section-light {
+      background: #f5f3f0;
+    }
+
+    .section-dark {
+      background: #111;
+      color: #fff;
+    }
+
+    .section-title-wrap {
+      display: inline-block;
+      margin-bottom: 64px;
+    }
+
+    .section-title {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .section-title-line {
+      height: 2px;
+      background: var(--color-blue);
+    }
+
+    /* ============================================
+       NEWS SECTION (GRID)
+       ============================================ */
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 64px;
+    }
+
+    .news-card {
+      display: block;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .news-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+
+    .news-card-img-wrap {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      overflow: hidden;
+    }
+
+    .news-card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+
+    .news-card:hover .news-card-img {
+      transform: scale(1.05);
+    }
+
+    .news-card-body {
+      padding: 14px 18px 16px;
+    }
+
+    .news-card-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #e8553d;
+      margin-bottom: 8px;
+    }
+
+    .news-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.5;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .news-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 18px 14px;
+    }
+
+    .news-card-date {
+      font-size: 12px;
+      font-weight: 700;
+      color: #999;
+      letter-spacing: 1px;
+    }
+
+    .news-card-arrow {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      font-size: 12px;
+      transition: background 0.3s;
+    }
+
+    .news-card:hover .news-card-arrow {
+      background: #e0e0e0;
+    }
+
+    /* More button */
+    .more-btn-wrap {
+      text-align: center;
+      margin-top: 48px;
+    }
+
+    .more-btn {
+      display: inline-block;
+      padding: 14px 48px;
+      border: 1px solid #ccc;
+      border-radius: 50px;
+      color: #333;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-decoration: none;
+      background: rgba(255,255,255,0.6);
+      transition: all 0.3s;
+    }
+
+    .more-btn:hover {
+      border-color: var(--color-blue);
+      color: var(--color-blue);
+      background: rgba(255,255,255,0.85);
+    }
+
+    /* ============================================
+       PROFILE SECTION
+       ============================================ */
+    .profile-card {
+      display: flex;
+      gap: 80px;
+      align-items: center;
+      background: rgba(0,30,120,0.35);
+      border-radius: 4px;
+      padding: 64px 72px;
+      box-shadow: none;
+    }
+
+    .profile-img-wrap {
+      flex-shrink: 0;
+    }
+
+    .profile-img {
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .profile-body {
+      flex: 1;
+    }
+
+    .profile-name {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+    }
+
+    .profile-name-en {
+      font-size: 13px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    .profile-bio {
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 2;
+      color: rgba(255,255,255,0.85);
+    }
+
+    .profile-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 24px;
+    }
+
+    .profile-tag {
+      display: inline-block;
+      padding: 6px 16px;
+      border: 1px solid rgba(255,255,255,0.4);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.7);
+      text-transform: uppercase;
+    }
+
+    /* ============================================
+       PROFILE TIMELINE
+       ============================================ */
+    .profile-timeline {
+      position: relative;
+      margin-top: 80px;
+      padding-left: 40px;
+    }
+
+    .profile-timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.2));
+    }
+
+    .timeline-item {
+      position: relative;
+      padding-bottom: 48px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    .timeline-item.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .timeline-item:last-child {
+      padding-bottom: 0;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -40px;
+      top: 4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid rgba(255,255,255,0.7);
+      z-index: 1;
+    }
+
+    .timeline-item:first-child::before {
+      background: #fff;
+    }
+
+    .timeline-year {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 8px;
+    }
+
+    .timeline-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .timeline-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.7;
+    }
+
+    /* ============================================
+       WORKS SECTION
+       ============================================ */
+    .work-item {
+      display: flex;
+      gap: 80px;
+      align-items: center;
+      margin-bottom: 100px;
+    }
+
+    .work-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .work-item.reversed {
+      flex-direction: row-reverse;
+    }
+
+    .work-img-wrap {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+
+    .work-img {
+      width: 100%;
+      border-radius: 8px;
+      display: block;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .work-img.is-visible {
+      transform: scale(1);
+    }
+
+    .work-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .work-num {
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 4px;
+      color: #bbb;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .work-title {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      margin-bottom: 24px;
+      line-height: 1.4;
+    }
+
+    .work-desc {
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 2;
+      color: #555;
+      margin-bottom: 32px;
+    }
+
+    .work-links {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .work-link {
+      display: inline-block;
+      padding: 12px 32px;
+      border: 2px solid #ccc;
+      border-radius: 50px;
+      color: #333;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-decoration: none;
+      background: rgba(255,255,255,0.6);
+      transition: all 0.3s;
+    }
+
+    .work-link:hover {
+      border-color: var(--color-blue);
+      color: var(--color-blue);
+      background: rgba(255,255,255,0.85);
+    }
+
+    /* ============================================
+       LINKS SECTION (GRID)
+       ============================================ */
+    .links-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 48px;
+    }
+
+    .link-card {
+      display: block;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.3s, transform 0.3s;
+    }
+
+    .link-card:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+      transform: translateY(-4px);
+    }
+
+    .link-card-img {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      display: block;
+    }
+
+    .link-card-body {
+      padding: 24px 28px;
+    }
+
+    .link-card-name {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    /* ============================================
+       CONTACT SECTION
+       ============================================ */
+    .contact-wrap {
+      display: flex;
+      gap: 80px;
+      align-items: center;
+    }
+
+    .contact-img-wrap {
+      flex-shrink: 0;
+    }
+
+    .contact-img {
+      width: 360px;
+      border-radius: 4px;
+      display: block;
+    }
+
+    .contact-body {
+      flex: 1;
+    }
+
+    .contact-text {
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 2;
+      color: #555;
+      margin-bottom: 36px;
+    }
+
+    .contact-buttons {
+      display: flex;
+      gap: 16px;
+    }
+
+    .contact-btn {
+      display: inline-block;
+      padding: 16px 48px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+
+    .contact-btn-primary {
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    .contact-btn-primary:hover {
+      background: var(--color-blue);
+    }
+
+    .contact-btn-secondary {
+      background: rgba(255,255,255,0.6);
+      color: #1a1a1a;
+      border: 1px solid #ccc;
+    }
+
+    .contact-btn-secondary:hover {
+      border-color: var(--color-blue);
+      color: var(--color-blue);
+      background: rgba(255,255,255,0.85);
+    }
+
+    /* ============================================
+       FOOTER
+       ============================================ */
+    .footer {
+      background: #0a0a0a;
+      color: rgba(255,255,255,0.5);
+      padding: 60px 0;
+    }
+
+    .footer-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .footer-copy {
+      font-size: 12px;
+      letter-spacing: 2px;
+    }
+
+    /* ============================================
+       SCROLL REVEAL ANIMATION (IntersectionObserver)
+       ============================================ */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-children > * {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    .reveal-children.is-visible > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-children.is-visible > *:nth-child(1) { transition-delay: 0s; }
+    .reveal-children.is-visible > *:nth-child(2) { transition-delay: 0.15s; }
+    .reveal-children.is-visible > *:nth-child(3) { transition-delay: 0.3s; }
+    .reveal-children.is-visible > *:nth-child(4) { transition-delay: 0.45s; }
+    .reveal-children.is-visible > *:nth-child(5) { transition-delay: 0.6s; }
+    .reveal-children.is-visible > *:nth-child(6) { transition-delay: 0.75s; }
+
+    /* ============================================
+       RESPONSIVE: TABLET (≤1024px)
+       ============================================ */
+    @media (max-width: 1024px) {
+      .hero-content {
+        left: 40px;
+        bottom: 32px;
+      }
+
+      .hero-name-main,
+      .hero-name-sub {
+        font-size: 64px;
+        letter-spacing: 4px;
+      }
+
+      .hero-desc {
+        max-width: 360px;
+        font-size: 14px;
+      }
+
+      .slide-overlay {
+        right: 40px;
+        bottom: 80px;
+      }
+
+      .section-inner {
+        padding: 0 40px;
+      }
+
+      .profile-card {
+        gap: 48px;
+        padding: 48px;
+      }
+
+      .work-item {
+        gap: 48px;
+      }
+
+      .contact-wrap {
+        gap: 48px;
+      }
+
+      .contact-img {
+        width: 280px;
+      }
+    }
+
+    /* ============================================
+       RESPONSIVE: MOBILE (≤768px)
+       ============================================ */
+    /* ============================================
+       HAMBURGER MENU (mobile drawer)
+       ============================================ */
+    .btn-hamburger {
+      display: none;
+      position: relative;
+      width: 28px;
+      height: 20px;
+      cursor: pointer;
+      z-index: 310;
+      flex-shrink: 0;
+    }
+
+    .btn-hamburger span {
+      position: absolute;
+      width: 100%;
+      height: 3px;
+      background: #fff;
+      border-radius: 2px;
+      transition: all 0.4s ease;
+    }
+
+    .btn-hamburger span:nth-child(1) { top: 0; }
+    .btn-hamburger span:nth-child(2) { top: 8px; }
+    .btn-hamburger span:nth-child(3) { top: 16px; }
+
+    .btn-hamburger.open span:nth-child(1) {
+      top: 8px;
+      transform: rotate(45deg);
+    }
+
+    .btn-hamburger.open span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .btn-hamburger.open span:nth-child(3) {
+      top: 8px;
+      transform: rotate(-45deg);
+    }
+
+    .mobile-drawer {
+      position: fixed;
+      top: 0;
+      right: -260px;
+      width: 220px;
+      height: 100dvh;
+      padding-top: 80px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background-image: linear-gradient(to bottom, rgba(129,114,255,0.57), rgba(255,77,187,0.64));
+      z-index: 300;
+      transition: right 0.3s ease;
+    }
+
+    .mobile-drawer.open {
+      right: 0;
+    }
+
+    .mobile-drawer ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .mobile-drawer ul li {
+      padding: 18px 32px;
+    }
+
+    .mobile-drawer ul li a {
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+
+    .mobile-drawer-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      z-index: 250;
+    }
+
+    .mobile-drawer-overlay.open {
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      /* Opening */
+      .opening-text {
+        font-size: 24px;
+        letter-spacing: 4px;
+      }
+
+      /* Hero */
+      .hero-content {
+        left: 20px;
+        right: 20px;
+        bottom: 32px;
+      }
+
+      .hero-eyebrow {
+        font-size: 10px;
+        letter-spacing: 3px;
+        margin-bottom: 12px;
+      }
+
+      .hero-name {
+        margin-bottom: 16px;
+      }
+
+      .hero-name-main,
+      .hero-name-sub {
+        font-size: 40px;
+        letter-spacing: 2px;
+      }
+
+      .hero-desc {
+        font-size: 13px;
+        max-width: 100%;
+        margin-bottom: 20px;
+        line-height: 1.7;
+      }
+
+      .hero-btn {
+        padding: 10px 32px;
+        font-size: 11px;
+        margin-top: 8px;
+      }
+
+      /* Hero overlay: bottom-up gradient only on SP */
+      .hero-overlay {
+        background:
+          linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 25%, rgba(0,0,0,0.2) 50%, transparent 65%);
+      }
+
+      /* Slide overlay: hide on SP */
+      .slide-overlay {
+        display: none;
+      }
+
+      /* Hero description: hide on SP */
+      .hero-desc {
+        display: none;
+      }
+
+      /* Nav: hide horizontal menu, show hamburger */
+      .hero-nav {
+        padding: 12px 16px;
+      }
+
+      /* Hide logo text on SP */
+      .hero-logo {
+        display: none;
+      }
+
+      .hero-menu {
+        display: none;
+      }
+
+      /* Nav: right-align hamburger, no background on SP */
+      .hero-nav {
+        justify-content: flex-end;
+        background: transparent;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+
+      .hero-nav.scrolled {
+        background: transparent;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+
+      .hero-nav.nav-hidden {
+        transform: none;
+      }
+
+      .btn-hamburger {
+        display: block;
+      }
+
+      /* Hamburger color: gray when scrolled past hero */
+      .hero-nav.scrolled .btn-hamburger span {
+        background: #888;
+      }
+
+      /* Social icons: fixed bottom-right like index.html */
+      .social-icons {
+        bottom: 10px;
+        right: 10px;
+        gap: 8px;
+      }
+
+      .social-icons a img,
+      .social-icons a svg {
+        width: 40px;
+        height: 40px;
+      }
+
+      .social-icons a.icon-tiktok {
+        width: 40px;
+        height: 40px;
+        border-radius: 9px;
+      }
+
+      .social-icons a.icon-tiktok svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      /* Sections */
+      .section {
+        padding: 64px 0;
+      }
+
+      .section-inner {
+        padding: 0 16px;
+      }
+
+      .section-title {
+        font-size: 18px;
+        letter-spacing: 4px;
+      }
+
+      .section-title-wrap {
+        margin-bottom: 32px;
+      }
+
+      /* News grid: 1 column on SP */
+      .news-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .news-card-img-wrap {
+        aspect-ratio: 3 / 4;
+      }
+
+      .news-card-body {
+        padding: 14px 16px 16px;
+      }
+
+      .news-card-title {
+        font-size: 13px;
+        line-height: 1.5;
+        margin-bottom: 8px;
+      }
+
+      .news-card-footer {
+        padding: 0 16px 14px;
+      }
+
+      .news-card-date {
+        font-size: 11px;
+      }
+
+      /* Profile */
+      .profile-card {
+        flex-direction: column;
+        gap: 24px;
+        padding: 28px 20px;
+        text-align: center;
+      }
+
+      .profile-img {
+        width: 120px;
+        height: 120px;
+      }
+
+      .profile-name {
+        font-size: 20px;
+      }
+
+      .profile-name-en {
+        font-size: 11px;
+        margin-bottom: 16px;
+      }
+
+      .profile-bio {
+        font-size: 13px;
+        text-align: left;
+        line-height: 1.9;
+      }
+
+      .profile-tags {
+        gap: 6px;
+        margin-top: 16px;
+        justify-content: center;
+      }
+
+      .profile-tag {
+        font-size: 11px;
+        padding: 5px 12px;
+      }
+
+      .profile-timeline {
+        margin-top: 48px;
+        padding-left: 32px;
+      }
+
+      .profile-timeline::before {
+        left: 5px;
+      }
+
+      .timeline-item {
+        padding-bottom: 32px;
+      }
+
+      .timeline-item::before {
+        left: -32px;
+        width: 12px;
+        height: 12px;
+        top: 3px;
+      }
+
+      .timeline-title {
+        font-size: 15px;
+      }
+
+      .timeline-desc {
+        font-size: 13px;
+      }
+
+      /* Hero SVG name responsive */
+      .hero-name-svg {
+        max-width: 260px;
+      }
+
+      /* Works */
+      .work-item,
+      .work-item.reversed {
+        flex-direction: column;
+        gap: 24px;
+        margin-bottom: 48px;
+      }
+
+      .work-num {
+        font-size: 10px;
+        margin-bottom: 10px;
+      }
+
+      .work-title {
+        font-size: 20px;
+        margin-bottom: 16px;
+      }
+
+      .work-desc {
+        font-size: 13px;
+        margin-bottom: 20px;
+        line-height: 1.9;
+      }
+
+      .work-link {
+        padding: 10px 24px;
+        font-size: 12px;
+      }
+
+      /* Links grid: 2 columns on SP */
+      .links-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+
+      .link-card-body {
+        padding: 16px 20px;
+      }
+
+      .link-card-name {
+        font-size: 14px;
+      }
+
+      /* Contact */
+      .contact-wrap {
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .contact-img {
+        width: 100%;
+        max-width: 240px;
+      }
+
+      .contact-text {
+        font-size: 13px;
+      }
+
+      .contact-buttons {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .contact-btn {
+        text-align: center;
+        padding: 14px 32px;
+        font-size: 13px;
+      }
+
+      /* More button */
+      .more-btn {
+        padding: 12px 36px;
+        font-size: 12px;
+      }
+
+      /* Main content top radius */
+      .main-content {
+        border-radius: 16px 16px 0 0;
+      }
+    }
+
+
+  </style>
+</head>
 <body>
 
-	
-<div id="wrappernavi" class="show">
-  <div class="btn-gnavi">
-    <span></span>
-    <span></span>
-    <span></span>
+  <!-- OPENING ANIMATION -->
+  <div class="opening" id="opening">
+    <div class="opening-text" id="opening-text">JOJIMA GEORGE</div>
   </div>
-  <nav id="global-navi">
-    <ul class="menu">
-	  <div class="letter menu">
-		  <li><a href="#top">TOP</a></li>
-		  <li><a href="#news">NEWS</a></li>
-		  <li><a href="#works">WORKS</a></li>
-		  <li><a href="https://jojima-george.com/illustration">PORTFOLIO</a></li>
-		  <li><a href="#links">LINKS</a></li>
-		  <li><a href="#contact">CONTACT</a></li>
-	  </div>
+
+  <!-- ============================================
+       1. HERO (fixed behind content, Swiper slider)
+       ============================================ -->
+  <!-- NAV (outside hero to avoid stacking context trap) -->
+  <nav class="hero-nav" id="hero-nav">
+    <div class="hero-logo">JOJIMA GEORGE</div>
+    <ul class="hero-menu">
+      <li><a href="#hero">TOP</a></li>
+      <li><a href="#news">NEWS</a></li>
+      <li><a href="#works">WORKS</a></li>
+      <li><a href="#portfolio">PORTFOLIO</a></li>
+      <li><a href="#links">LINKS</a></li>
+      <li><a href="#contact">CONTACT</a></li>
     </ul>
+    <!-- Hamburger button (mobile only) -->
+    <div class="btn-hamburger" id="btn-hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
   </nav>
-</div>
 
-<div id="background"></div>
-<div class="scrolldown4"><span>　</span></div>
-
-<div id="rightbox">
-<div class="yellowline"></div>
-<br><br><br><br>
-
-
- <a name="news"></a>
- <h1>
-  <span class="bgextend bgLRextendTrigger">
-    <span class="bgappearTrigger">　NEWS
-  </span></span>
-</h1>
-
-
-	<br><br><br>
-
-<div class="news-box animation-element">
-  <a href="https://jojima-george.com/news.html#news" class="news-link">
-    <div class="datebox">2025/11/16</div>
-    <div class="title-box">出展情報:FANTASIA2025</div>
-    <div class="arrow-box">
-      <span class="arrow"></span>
-    </div>
-  </a>
-</div>
-
-<div class="news-box animation-element">
-  <a href="https://jojima-george.com/news.html#news19" class="news-link">
-    <div class="datebox">2025/11/8</div>
-    <div class="title-box">出展情報:デザインフェスタ62</div>
-    <div class="arrow-box">
-      <span class="arrow"></span>
-    </div>
-  </a>
-</div>
-
-<div class="news-box animation-element">
-  <a href="https://jojima-george.com/news.html#news18" class="news-link">
-    <div class="datebox">2025/9/19</div>
-    <div class="title-box">作品展示「東海道五拾六次目」</div>
-    <div class="arrow-box">
-      <span class="arrow"></span>
-    </div>
-  </a>
-</div>
-
-
-
-<br><br><br><br><br><br><br><br><br><br>
-
-<h1><span class="bgextend bgLRextendTrigger"><span class="bgappearTrigger">　PROFILE</span></span></h1>
-	  
-  <div id="profile">
-<br><br><br>	  
-<img class="responsive-img animation-element" src="image/PFP.png" alt="プロフィール画像">
-
-	<a name="profile"></a>
-    <div class="profile-text">
-      <h1>城島ジョージ</h1>
-		<div class="blackbox animation-element">
-      <p>
-        2016年より絵を始める。１級色彩コーディネーター。
-        全国イラストコンテスト(ヒューマンアカデミー)での最優秀賞をきっかけに、クライアントワークを手掛けるようになる。
-        テイストの幅広さが特徴。
-        当ホームページのデザイン・コーディングも手掛けている。
-        現在はNFTクリエイターとしても活動し、200作品以上の販売実績あり。
-        また、国内NFT界で最大規模のオンラインイベント「NFT紅白」を主催している。
-      </p>
-	  </div>
-    </div>
-  </div>  
-  <br><br><br><br><br><br><br><br>
- 
-<a name="works"></a> 
-<h1><span class="bgextend bgLRextendTrigger"><span class="bgappearTrigger">　WORKS</span></span></h1>  
-
-<a href="https://jojima-george.com/illustration" target="_blank">
-<div class="parallaxbox">
-  <img class="thumbnail" src="image/figures.webp" alt="ポートフォリオイラスト">
-</div>
-</a>	
-	
-    <div class="left-box">
-      <h1>人物イラスト</h1>
-	  <div class="blackbox animation-element">
-      <p>
-		ゲームイラストやアパレルコラボなど、クライアントワークの実績が多数あります。
-		アニメ調のイラストから厚塗りまで、幅広い技法を取り入れて世界観を表現しています。
-		個人作品ではNFTアートとしての販売活動もおこなっています。丁寧に描き込んだ人物イラストをお楽しみください。
-      </p>
-	  </div>
-		<br>
-	  <a href="https://jojima-george.com/illustration" target="_blank" class="cp_textlink07"><h3>ポートフォリオ(作品集)</h3></a>
-    <br><br>
-    <a href="https://opensea.io/collection/jojimageorge" target="_blank" class="cp_textlink07"><h3>OpenSea(NFT)</h3></a>
-    <br><br>
-    <a href="https://foundation.app/@JojimaGeorgeNFT" target="_blank" class="cp_textlink07"><h3>Foundation(NFT)</h3></a>
-    <br>
-    </div>
-
-<a href="https://sushi-daruma.com" target="_blank">
-<div class="parallaxbox">
-  <img class="thumbnail" src="image/sushidaruma.gif" alt="image">
-</div>
-</a> 
-	
-    <div class="right-box">
-      <h1>すしだるま</h1>
-	  <div class="blackbox animation-element">
-      <p>
-		すしとゆきだるまが合体！可愛く飛び跳ねるアニメーションが特徴のキャラクターが誕生しました。
-		老若男女に親しまれることを目指し、グッズ展開やNFTアートの活動を行っています。
-		ポップなホームページを開設しましたので、ぜひ遊びにきてください。
-      </p>
-	  </div>
-		<br>
-	  	  <a href="https://sushi-daruma.com" target="_blank" class="cp_textlink07"><h3>すしだるまホームページ</h3></a>
-        <br><br>
-        <a href="https://opensea.io/collection/sushidaruma" target="_blank" class="cp_textlink07"><h3>OpenSea(NFT)</h3></a>
-        <br>
-    </div>	
-
-<a href="https://opensea.io/collection/tokime-moria" target="_blank">
-<div class="parallaxbox">
-  <img class="thumbnail" src="image/BB.webp" alt="image">
-</div>
-</a> 
-
-    <div class="left-box">
-      <h1>時女 守愛(72) Cute Girls Collection</h1>
-	  <div class="blackbox animation-element">
-      <p>
-		通称「ばーば」で親しまれている、とっても可愛らしい72歳の乙女。
-		Twitterではその愛くるしさで大人気になり、「着せ替えばーば」コンテスト、トゥンクフル(ときめきが止まらない)ブラウザゲームなど、たくさんのシーンで親しまれています。
-		一度見たら頭から離れない、濃密な一時をお過ごしください。
-      </p>
-	  </div>
-		<br>
-	   <a href="https://opensea.io/collection/tokime-moria" target="_blank" class="cp_textlink07"><h3>OpenSea(NFT)</h3></a>
-	   <br><br>
-	   <a href="https://jojima-george.com/tokimekibb" target="_blank" class="cp_textlink07"><h3>ブラウザゲームで恋する</h3></a>
-    </div>	
-	
-	<br><br><br><br><br>	
-
-
-<a name="links"></a> 
-<h1><span class="bgextend bgLRextendTrigger"><span class="bgappearTrigger">　LINKS</span></span></h1>  
-<br><br>
-
-  <div class="link-container">
-	  
-	 <div class="link-item animation-element">
-	<a href="https://jojima-george.com/ginpika2nd/" target="_blank">
-      <img class="link-image" src="image/ginpika_logo.png" alt="ギンピカアニバーサリー"></a>
-      <p class="link-description"></p>
-    </div>
-	  
-	<div class="link-item animation-element">
-	<a href="https://jojima-george.com/kouhaku2023/" target="_blank">
-      <img class="link-image" src="image/NFTkouhaku2023.png" alt="NFT紅白2023"></a>
-      <p class="link-description"></p>
-    </div>
-	  
-    <div class="link-item animation-element">
-	<a href="https://sushi-daruma.com" target="_blank">
-      <img class="link-image" src="image/sushidaruma_banner.png" alt="すしだるま"></a>
-      <p class="link-description"></p>
-    </div>
-	  
-    <div class="link-item animation-element">
-		<a href="https://sushidaruma-grandprix.studio.site/" target="_blank">
-      <img class="link-image" src="image/grandprix.png" alt="すしだるまグランプリ"></a>
-      <p class="link-description"></p>
-    </div>
-	  
-	  <a href="https://note.com/jojima_george/" target="_blank">
-	   <div class="link-item animation-element">
-      <img class="link-image" src="image/note.webp" alt="note"></a>
-      <p class="link-description"></p>
-    </div>	
-</div>
-
-<br><br><br><br><br>
-
-
-
-<a name="contact"></a> 
-<h1><span class="bgextend bgLRextendTrigger"><span class="bgappearTrigger">　CONTACT</span></span></h1>  
-
-	  <div id="profile">
-    <div class="profile-text">
-		<img src="image/eatme.png" alt="eatme">
-		<div class="blackbox animation-element">
-      <p>
-お仕事・コラボ等のご相談は、X(twitter)DMまたはGoogle Formsよりお問い合わせください。
-      </p>
-		<br>
-		<a href="https://twitter.com/jojima?george" target="_blank" class="cp_textlink07"><h3>X(twitter)</h3></a>
-		<a href="https://docs.google.com/forms/d/e/1FAIpQLSeJoD19lmZkOfHqdDr6TNpdMHv_xNbkj32XNEH_34wQPdMrKg/viewform" target="_blank" class="cp_textlink07"><h3>Google Forms</h3></a>
-    </div>
-	</div>
-  </div>  
-
-
-<br><br><br><br><br><br><br><br><br><br><br><br><br>
-
-</div>
-
-<div class=empty-space></div>
-		
-<ul class="bgimg">
-    <li></li>
-    <li></li>
-    <li></li>
-    <li></li>
-</ul>
-	
-
-
-<!--タイトル-->
-<div class="left-sidebar"></div>
-<div class="text floating-text" id="flexible-text">
-	<span class="bgextend bgLRextendTrigger"><span class="bgappearTrigger">
-  <div class="line">JOJIMA GEORGE</div></span> </span>
-	<span class="bgextend bgLRextendTrigger"><span class="bgappearTrigger">
-  <div class="line">OFFICIAL WEB</div></span> </span>
-</div>
-
-
-
-<div class="social-icons">
-  <a href="https://twitter.com/jojima_george" target="_blank" rel="noopener noreferrer">
-    <img src="image/X_logo.png" alt="X">
-  </a>
-  <a href="https://www.instagram.com/jojima_george/" target="_blank" rel="noopener noreferrer">
-    <img src="image/instagram_logo.png" alt="Instagram">
-  </a>
-  <a href="https://opensea.io/Jojima_GeorgeNFT/created" target="_blank" rel="noopener noreferrer">
-    <img src="image/opensea_logo.png" alt="OpenSea">
-  </a>
-</div>
-
-
-
-<footer>
-  <div class="footer-content">
-    <p class="copyright">
-      &copy; Jojima George
-    </p>
+  <!-- Mobile drawer (mobile only) -->
+  <div class="mobile-drawer-overlay" id="drawer-overlay"></div>
+  <div class="mobile-drawer" id="mobile-drawer">
+    <ul>
+      <li><a href="#hero" class="drawer-link">TOP</a></li>
+      <li><a href="#news" class="drawer-link">NEWS</a></li>
+      <li><a href="#works" class="drawer-link">WORKS</a></li>
+      <li><a href="#portfolio" class="drawer-link">PORTFOLIO</a></li>
+      <li><a href="#links" class="drawer-link">LINKS</a></li>
+      <li><a href="#contact" class="drawer-link">CONTACT</a></li>
+    </ul>
   </div>
-</footer>		
 
-	<script type="text/javascript" src="parts/jojima.js?ver=1.0.0"></script>
-	<script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="  crossorigin="anonymous"></script>
-	<script src="js/luxy.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/simple-parallax-js@5.6.2/dist/simpleParallax.min.js"></script>
-	<script type="text/javascript" src="parts/leftscroll.js?ver=1.0.1"></script>
+  <section class="hero" id="hero">
+    <!-- Swiper full-screen slider -->
+    <div class="swiper hero-swiper">
+      <div class="swiper-wrapper">
+        <div class="swiper-slide">
+          <div class="swiper-slide-inner" data-pc="image/summer.webp" data-sp="image/m_summer.webp"></div>
+        </div>
+        <div class="swiper-slide">
+          <div class="swiper-slide-inner" data-pc="image/humming.webp" data-sp="image/m_humming.webp"></div>
+        </div>
+        <div class="swiper-slide">
+          <div class="swiper-slide-inner" data-pc="image/ginpika.webp" data-sp="image/m_whiteend.webp"></div>
+        </div>
+        <div class="swiper-slide">
+          <div class="swiper-slide-inner" data-pc="image/poolside.webp" data-sp="image/m_poolside.webp"></div>
+        </div>
+        <div class="swiper-slide">
+          <div class="swiper-slide-inner" data-pc="image/haru.webp" data-sp="image/m_tokaido.webp"></div>
+        </div>
+      </div>
+    </div>
 
+    <div class="hero-overlay"></div>
+
+    <!-- CONTENT (bottom-left) -->
+    <div class="hero-content">
+      <div class="hero-eyebrow">Illustrator &amp; Designer</div>
+      <div class="hero-name">
+        <svg class="hero-name-svg" id="hero-name-svg" viewBox="0 0 540 200" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="80" font-size="96" letter-spacing="8">Jojima</text>
+          <text x="0" y="180" font-size="96" letter-spacing="8">George</text>
+        </svg>
+      </div>
+      <p class="hero-desc">Bringing stories to life through vibrant illustration and design. Character art, editorial, NFT &mdash; a wide range of creative expression.</p>
+      <a href="#works" class="hero-btn">View Works</a>
+    </div>
+
+    <!-- SLIDE OVERLAY (bottom-right, tag/title/caption) -->
+    <div class="slide-overlay is-active" id="slide-overlay">
+      <div class="slide-tag" id="slide-tag">ILLUSTRATION</div>
+      <div class="slide-title" id="slide-title-text">色彩で紡ぐ、夏の記憶</div>
+      <div class="slide-caption" id="slide-caption-text">人物イラスト / オリジナル作品</div>
+    </div>
+
+    <!-- PROGRESS BAR -->
+    <div class="hero-progress">
+      <div class="hero-progress-bar" id="hero-progress-bar"></div>
+    </div>
+  </section>
+
+  <!-- FIXED SOCIAL ICONS (bottom-right, matching jojima-george.com) -->
+  <div class="social-icons">
+    <a href="https://twitter.com/jojima_george" target="_blank" rel="noopener noreferrer">
+      <img src="image/X_logo.png" alt="X">
+    </a>
+    <a href="https://www.instagram.com/jojima_george/" target="_blank" rel="noopener noreferrer">
+      <img src="image/instagram_logo.png" alt="Instagram">
+    </a>
+    <a href="https://www.tiktok.com/@pochamon_jp" target="_blank" rel="noopener noreferrer" class="icon-tiktok">
+      <svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V9.33a8.16 8.16 0 004.76 1.52v-3.4a4.85 4.85 0 01-1-.76z"/>
+      </svg>
+    </a>
+  </div>
+
+  <!-- ============================================
+       MAIN CONTENT (scrolls over hero with parallax)
+       ============================================ -->
+  <div class="main-content">
+
+    <!-- 2. NEWS (CAROUSEL) -->
+    <section class="section section-light" id="news">
+      <div class="section-inner">
+        <div class="section-title-wrap reveal">
+          <div class="section-title">News</div>
+          <div class="section-title-line"></div>
+        </div>
+
+        <div class="news-grid reveal-children">
+          <a href="news.html#news" class="news-card">
+            <div class="news-card-img-wrap">
+              <img class="news-card-img" src="image/FANTASIA2025.webp" alt="FANTASIA2025">
+            </div>
+            <div class="news-card-body">
+              <div class="news-card-tag">Exhibition</div>
+              <div class="news-card-title">出展情報：FANTASIA2025に出展します。すしだるまグッズをお楽しみください。</div>
+            </div>
+            <div class="news-card-footer">
+              <span class="news-card-date">2025.11.16</span>
+              <span class="news-card-arrow">&#x276F;</span>
+            </div>
+          </a>
+
+          <a href="news.html#news19" class="news-card">
+            <div class="news-card-img-wrap">
+              <img class="news-card-img" src="image/designfes62.webp" alt="デザインフェスタ62">
+            </div>
+            <div class="news-card-body">
+              <div class="news-card-tag">Exhibition</div>
+              <div class="news-card-title">出展情報：デザインフェスタ62に出展します。新作グッズも多数ご用意。</div>
+            </div>
+            <div class="news-card-footer">
+              <span class="news-card-date">2025.11.8</span>
+              <span class="news-card-arrow">&#x276F;</span>
+            </div>
+          </a>
+
+          <a href="news.html#news18" class="news-card">
+            <div class="news-card-img-wrap">
+              <img class="news-card-img" src="illust/34_tokaido.webp" alt="東海道五拾六次目">
+            </div>
+            <div class="news-card-body">
+              <div class="news-card-tag">Exhibition</div>
+              <div class="news-card-title">作品展示「東海道五拾六次目」に参加。新作イラストを展示します。</div>
+            </div>
+            <div class="news-card-footer">
+              <span class="news-card-date">2025.9.19</span>
+              <span class="news-card-arrow">&#x276F;</span>
+            </div>
+          </a>
+
+          <a href="news.html#news17" class="news-card">
+            <div class="news-card-img-wrap">
+              <img class="news-card-img" src="image/COMITIA153.webp" alt="COMITIA153">
+            </div>
+            <div class="news-card-body">
+              <div class="news-card-tag">Exhibition</div>
+              <div class="news-card-title">COMITIA153に出展。すしだるまグッズを取り揃えてお待ちしております。</div>
+            </div>
+            <div class="news-card-footer">
+              <span class="news-card-date">2025.8.31</span>
+              <span class="news-card-arrow">&#x276F;</span>
+            </div>
+          </a>
+
+          <a href="news.html#news16" class="news-card">
+            <div class="news-card-img-wrap">
+              <img class="news-card-img" src="illust/33_whiteend.webp" alt="White End">
+            </div>
+            <div class="news-card-body">
+              <div class="news-card-tag">New Work</div>
+              <div class="news-card-title">『White End』新作案内。冬のかけら展示作品のオークションを実施します。</div>
+            </div>
+            <div class="news-card-footer">
+              <span class="news-card-date">2024.12.23</span>
+              <span class="news-card-arrow">&#x276F;</span>
+            </div>
+          </a>
+
+          <a href="news.html#news15" class="news-card">
+            <div class="news-card-img-wrap">
+              <img class="news-card-img" src="image/haru.webp" alt="Sunrise公式キャラクターHARU">
+            </div>
+            <div class="news-card-body">
+              <div class="news-card-tag">Client Work</div>
+              <div class="news-card-title">Sunrise公式マスコットキャラクター「HARU」のデザインを手がけました。</div>
+            </div>
+            <div class="news-card-footer">
+              <span class="news-card-date">2024.11.12</span>
+              <span class="news-card-arrow">&#x276F;</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="more-btn-wrap">
+          <a href="news.html" class="more-btn">もっと見る</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. PROFILE -->
+    <section class="section section-white" id="profile">
+      <div class="section-inner">
+        <div class="section-title-wrap reveal">
+          <div class="section-title">Profile</div>
+          <div class="section-title-line"></div>
+        </div>
+
+        <div class="profile-card reveal">
+          <div class="profile-img-wrap">
+            <img class="profile-img" src="image/PFP.png" alt="城島ジョージ">
+          </div>
+          <div class="profile-body">
+            <div class="profile-name">城島ジョージ</div>
+            <div class="profile-name-en">Jojima George</div>
+            <p class="profile-bio">2016年に独学で絵を始め、アニメ調からリアル厚塗りまで幅広いテイストを武器にクライアントワークを展開。全国イラストコンテスト（ヒューマンアカデミー主催）最優秀賞を受賞し、本格的に商業制作へ。<br><br>ゲームイラスト、アパレルコラボ、ブロックチェーンプロジェクトのキャラクターデザインなど、ジャンルを越えた制作実績を持つ。１級色彩コーディネーターの資格を活かした配色設計も強み。<br><br>オリジナルキャラクター「すしだるま」「ぽちゃもん」はSNS・イベントで展開中。NFTアートでは200作品以上の販売実績があり、国内最大規模のオンラインイベント「NFT紅白」を主催。Web・グッズ・イベントの企画からデザイン・コーディングまで一貫して手がけるクリエイター。</p>
+            <div class="profile-tags">
+              <span class="profile-tag">Illustration</span>
+              <span class="profile-tag">Character Design</span>
+              <span class="profile-tag">NFT Art</span>
+              <span class="profile-tag">Web Design</span>
+              <span class="profile-tag">Color Coordination</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-timeline">
+          <div class="timeline-item">
+            <div class="timeline-year">2016</div>
+            <div class="timeline-title">独学でイラスト制作を開始</div>
+            <div class="timeline-desc">アニメ調からリアル厚塗りまで幅広いテイストを独学で習得</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-year">2019</div>
+            <div class="timeline-title">全国イラストコンテスト 最優秀賞受賞</div>
+            <div class="timeline-desc">ヒューマンアカデミー主催コンテストで最優秀賞を受賞し、商業制作へ本格参入</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-year">2021</div>
+            <div class="timeline-title">NFTアート・ブロックチェーン領域へ進出</div>
+            <div class="timeline-desc">200作品以上の販売実績。国内最大規模のオンラインイベント「NFT紅白」を主催</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-year">2023</div>
+            <div class="timeline-title">オリジナルキャラクター展開</div>
+            <div class="timeline-desc">「すしだるま」「ぽちゃもん」をSNS・リアルイベントで展開。グッズ制作も手がける</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-year">NOW</div>
+            <div class="timeline-title">ジャンルを越えた制作活動</div>
+            <div class="timeline-desc">ゲームイラスト、アパレルコラボ、Web・グッズ・イベントの企画からデザイン・コーディングまで一貫して手がけるクリエイターとして活動中</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 4. WORKS -->
+    <section class="section section-light" id="works">
+      <div class="section-inner">
+        <div class="section-title-wrap reveal">
+          <div class="section-title">Works</div>
+          <div class="section-title-line"></div>
+        </div>
+
+        <!-- Work 1: ぽちゃもん -->
+        <div class="work-item reveal">
+          <div class="work-img-wrap">
+            <video class="work-img" src="image/pochamon_sakura_surfing.mp4" poster="image/pochamon_sakura_surfing_poster.jpg" autoplay loop muted playsinline preload="metadata" aria-label="ぽちゃもん"></video>
+          </div>
+          <div class="work-body">
+            <div class="work-num">Work 01</div>
+            <div class="work-title">ぽちゃもん</div>
+            <p class="work-desc">ぽちゃっとしたモモンガが自由に動き回る！ころころ楽しい手描きアニメーションの中で元気に過ごしています。グッズも展開中で、展示会等でご購入いただけます。びろーんとしたぽちゃもんに夢中になる人が増えています。</p>
+            <div class="work-links">
+              <a href="https://www.tiktok.com/@pochamon_jp" class="work-link">TikTok</a>
+              <a href="#" class="work-link">Instagram</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Work 2: すしだるま -->
+        <div class="work-item reversed reveal">
+          <div class="work-img-wrap">
+            <img class="work-img" src="image/sushidaruma.gif" alt="すしだるま">
+          </div>
+          <div class="work-body">
+            <div class="work-num">Work 02</div>
+            <div class="work-title">すしだるま</div>
+            <p class="work-desc">すしとゆきだるまが合体！可愛く飛び跳ねるアニメーションが特徴のキャラクターが誕生しました。老若男女に親しまれることを目指し、グッズ展開やNFTアートの活動を行っています。</p>
+            <div class="work-links">
+              <a href="https://sushi-daruma.com" class="work-link">すしだるまホームページ</a>
+              <a href="https://opensea.io/collection/sushidaruma" class="work-link">OpenSea(NFT)</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Work 3: 人物イラスト -->
+        <div class="work-item reveal">
+          <div class="work-img-wrap">
+            <img class="work-img" src="image/figures.webp" alt="人物イラスト">
+          </div>
+          <div class="work-body">
+            <div class="work-num">Work 03</div>
+            <div class="work-title">人物イラスト</div>
+            <p class="work-desc">ゲームイラストやアパレルコラボなど、クライアントワークの実績が多数あります。アニメ調のイラストから厚塗りまで、幅広い技法を取り入れて世界観を表現しています。</p>
+            <div class="work-links">
+              <a href="https://jojima-george.com/illustration" class="work-link">ポートフォリオ(作品集)</a>
+              <a href="https://opensea.io/collection/jojimageorge" class="work-link">OpenSea(NFT)</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Work 4: 時女 守愛 -->
+        <div class="work-item reversed reveal">
+          <div class="work-img-wrap">
+            <img class="work-img" src="image/BB.webp" alt="時女 守愛(ばーば)">
+          </div>
+          <div class="work-body">
+            <div class="work-num">Work 04</div>
+            <div class="work-title">時女 守愛(72)<br>Cute Girls Collection</div>
+            <p class="work-desc">通称「ばーば」で親しまれている、とっても可愛らしい72歳の乙女。Twitterではその愛くるしさで大人気になりました。</p>
+            <div class="work-links">
+              <a href="https://opensea.io/collection/tokime-moria" class="work-link">OpenSea(NFT)</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. LINKS (CAROUSEL) -->
+    <section class="section section-white" id="links">
+      <div class="section-inner">
+        <div class="section-title-wrap reveal">
+          <div class="section-title">Links</div>
+          <div class="section-title-line"></div>
+        </div>
+
+        <div class="links-grid reveal-children">
+          <a href="https://jojima-george.com/ginpika2nd/" class="link-card">
+            <img class="link-card-img" src="image/ginpika_logo.png" alt="ギンピカ">
+          </a>
+          <a href="https://jojima-george.com/kouhaku2023/" class="link-card">
+            <img class="link-card-img" src="image/NFTkouhaku2023.png" alt="NFT紅白2023">
+          </a>
+          <a href="https://sushi-daruma.com" class="link-card">
+            <img class="link-card-img" src="image/sushidaruma_banner.png" alt="すしだるま">
+          </a>
+          <a href="https://sushidaruma-grandprix.studio.site/" class="link-card">
+            <img class="link-card-img" src="image/grandprix.png" alt="すしだるまグランプリ">
+          </a>
+          <a href="https://note.com/jojima_george/" class="link-card">
+            <img class="link-card-img" src="image/note.webp" alt="note">
+          </a>
+          <a href="https://jojima-george.com/tokimekibb/" class="link-card">
+            <img class="link-card-img" src="image/tokimeki_summer_logo.gif" alt="ときめきサマー">
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. CONTACT -->
+    <section class="section section-light" id="contact">
+      <div class="section-inner">
+        <div class="section-title-wrap reveal">
+          <div class="section-title">Contact</div>
+          <div class="section-title-line"></div>
+        </div>
+
+        <div class="contact-wrap reveal">
+          <div class="contact-img-wrap">
+            <img class="contact-img" src="image/eatme.png" alt="Contact illustration">
+          </div>
+          <div class="contact-body">
+            <p class="contact-text">お仕事・コラボ等のご相談は、X(twitter)DMまたはGoogle Formsよりお問い合わせください。</p>
+            <div class="contact-buttons">
+              <a href="https://twitter.com/jojima_george" class="contact-btn contact-btn-primary">X(twitter)</a>
+              <a href="https://docs.google.com/forms/d/e/1FAIpQLSeJoD19lmZkOfHqdDr6TNpdMHv_xNbkj32XNEH_34wQPdMrKg/viewform" class="contact-btn contact-btn-secondary">Google Forms</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. FOOTER -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-copy">&copy; Jojima George</div>
+      </div>
+    </footer>
+
+  </div><!-- /.main-content -->
+
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script>
+    // ===== Slide Data =====
+    const heroSlides = [
+      { tag: 'ILLUSTRATION', title: '色彩で紡ぐ、夏の記憶', caption: '人物イラスト / オリジナル作品' },
+      { tag: 'ILLUSTRATION', title: '日常に宿る、静かな旋律', caption: '人物イラスト / オリジナル作品' },
+      { tag: 'PROJECT', title: 'ギンピカ 2nd Anniversary', caption: 'NFTコレクション / イベント' },
+      { tag: 'ILLUSTRATION', title: '光と水のあいだに', caption: '人物イラスト / オリジナル作品' },
+      { tag: 'ILLUSTRATION', title: '春の訪れを描く', caption: '人物イラスト / オリジナル作品' },
+    ];
+    const totalHeroSlides = heroSlides.length;
+
+    // ===== Opening Animation =====
+    const opening = document.getElementById('opening');
+    const openingText = document.getElementById('opening-text');
+
+    const chars = openingText.textContent.split('');
+    openingText.innerHTML = chars.map((c, i) =>
+      c === ' '
+        ? '&nbsp;'
+        : `<span class="char" style="transition-delay: ${0.03 * i}s">${c}</span>`
+    ).join('');
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => opening.classList.add('is-show'), 200);
+      setTimeout(() => opening.classList.add('is-end'), 1600);
+      setTimeout(() => opening.remove(), 2800);
+      setTimeout(() => startProgress(), 2400);
+
+      // SVG stroke animation starts after opening ends
+      const heroNameSvg = document.getElementById('hero-name-svg');
+      setTimeout(() => {
+        heroNameSvg.classList.add('is-active');
+      }, 2200);
+    });
+    // Fallback: force remove opening if still visible after 5s
+    setTimeout(() => {
+      const op = document.getElementById('opening');
+      if (op) { op.classList.add('is-end'); setTimeout(() => op.remove(), 600); startProgress(); }
+      const svg = document.getElementById('hero-name-svg');
+      if (svg && !svg.classList.contains('is-active')) {
+        svg.classList.add('is-active');
+      }
+    }, 5000);
+
+    // ===== Hero Swiper (full-screen fade slider) =====
+    const heroSwiper = new Swiper('.hero-swiper', {
+      loop: true,
+      speed: 800,
+      autoplay: false,
+      effect: 'fade',
+      fadeEffect: { crossFade: true },
+    });
+
+    // ===== Slide Overlay Text =====
+    const slideOverlay = document.getElementById('slide-overlay');
+    const slideTagEl = document.getElementById('slide-tag');
+    const slideTitleEl = document.getElementById('slide-title-text');
+    const slideCaptionEl = document.getElementById('slide-caption-text');
+    const progressBar = document.getElementById('hero-progress-bar');
+    const SLIDE_DURATION = 5000;
+    let progressTimer = null;
+
+    function updateSlideOverlay(index) {
+      const data = heroSlides[index % totalHeroSlides];
+      slideOverlay.classList.remove('is-active');
+
+      setTimeout(() => {
+        slideTagEl.textContent = data.tag;
+        slideTitleEl.textContent = data.title;
+        slideCaptionEl.textContent = data.caption;
+        slideOverlay.classList.add('is-active');
+      }, 400);
+    }
+
+    function startProgress() {
+      progressBar.style.transition = 'none';
+      progressBar.style.width = '0%';
+      progressBar.classList.remove('is-running');
+      void progressBar.offsetWidth;
+      progressBar.style.transition = '';
+      progressBar.style.width = '';
+      progressBar.classList.add('is-running');
+
+      clearTimeout(progressTimer);
+      progressTimer = setTimeout(() => {
+        heroSwiper.slideNext();
+      }, SLIDE_DURATION);
+    }
+
+    heroSwiper.on('slideChange', () => {
+      updateSlideOverlay(heroSwiper.realIndex);
+      startProgress();
+    });
+
+    // ===== Nav scroll behavior + Parallax =====
+    const heroEl = document.getElementById('hero');
+    const nav = document.getElementById('hero-nav');
+    let lastScrollY = 0;
+
+    window.addEventListener('scroll', () => {
+      const scrollY = window.scrollY;
+
+      if (scrollY > window.innerHeight * 0.5) {
+        nav.classList.add('scrolled');
+      } else {
+        nav.classList.remove('scrolled');
+      }
+
+      if (scrollY < 100) {
+        nav.classList.remove('nav-hidden');
+      } else if (scrollY > lastScrollY) {
+        nav.classList.add('nav-hidden');
+      } else {
+        nav.classList.remove('nav-hidden');
+      }
+
+      lastScrollY = scrollY;
+
+      if (scrollY < window.innerHeight * 1.5) {
+        heroEl.style.transform = `translateY(${scrollY * -0.15}px)`;
+      }
+    });
+
+    // ===== Works image parallax on scroll =====
+    const workImages = document.querySelectorAll('.work-img');
+    const workObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+        }
+      });
+    }, { threshold: 0.2 });
+
+    workImages.forEach(img => {
+      img.style.transform = 'scale(1.08)';
+      workObserver.observe(img);
+    });
+
+    window.addEventListener('scroll', () => {
+      workImages.forEach(img => {
+        const rect = img.getBoundingClientRect();
+        const windowH = window.innerHeight;
+        if (rect.top < windowH && rect.bottom > 0) {
+          const progress = (windowH - rect.top) / (windowH + rect.height);
+          const offset = (progress - 0.5) * -30;
+          const scale = img.classList.contains('is-visible') ? 1 : 1.08;
+          img.style.transform = `scale(${scale}) translateY(${offset}px)`;
+        }
+      });
+    });
+
+
+    // ===== Hero responsive images (PC/SP switch) =====
+    function setHeroImages() {
+      const isMobile = window.innerWidth <= 600;
+      document.querySelectorAll('.swiper-slide-inner[data-pc]').forEach(el => {
+        const src = isMobile ? el.dataset.sp : el.dataset.pc;
+        el.style.backgroundImage = `url('${src}')`;
+      });
+    }
+    setHeroImages();
+    window.addEventListener('resize', setHeroImages);
+
+    // ===== Hamburger Menu =====
+    const btnHamburger = document.getElementById('btn-hamburger');
+    const mobileDrawer = document.getElementById('mobile-drawer');
+    const drawerOverlay = document.getElementById('drawer-overlay');
+
+    function toggleDrawer() {
+      btnHamburger.classList.toggle('open');
+      mobileDrawer.classList.toggle('open');
+      drawerOverlay.classList.toggle('open');
+    }
+
+    function closeDrawer() {
+      btnHamburger.classList.remove('open');
+      mobileDrawer.classList.remove('open');
+      drawerOverlay.classList.remove('open');
+    }
+
+    btnHamburger.addEventListener('click', toggleDrawer);
+    drawerOverlay.addEventListener('click', closeDrawer);
+
+    document.querySelectorAll('.drawer-link').forEach(link => {
+      link.addEventListener('click', closeDrawer);
+    });
+
+    // ===== Scroll Reveal (IntersectionObserver) =====
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+        }
+      });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.reveal, .reveal-children').forEach(el => revealObserver.observe(el));
+
+    // ===== Timeline Reveal =====
+    const timelineObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+        }
+      });
+    }, { threshold: 0.2 });
+    document.querySelectorAll('.timeline-item').forEach((el, i) => {
+      el.style.transitionDelay = (i * 0.15) + 's';
+      timelineObserver.observe(el);
+    });
+
+
+  </script>
 
 </body>
-
-
 </html>
