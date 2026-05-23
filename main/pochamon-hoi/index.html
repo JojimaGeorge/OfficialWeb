@@ -1755,8 +1755,8 @@
       </div>
 
       <div class="title-screen__cta">
-        <button class="btn btn--primary btn--pulse" id="btn-start" aria-label="ゲームスタート">
-          タップでスタート！
+        <button class="btn btn--primary btn--pulse" id="btn-start" aria-label="ゲームスタート 200円">
+          スタート ¥200
         </button>
       </div>
     </div>
@@ -2662,19 +2662,22 @@
     triggerHoi(choice);
   }
 
+  // 結果画面ボタン: 二重発火・誤タップ防止
+  // touch-action: manipulation 効いてる前提で click のみ。両ボタン共通ロックで
+  // 「タイトル画面へタップ→ touchend/click ズレで隣のリプレイが反応」を遮断
+  let resultBtnLock = false;
+  const guardResultBtn = (fn) => () => {
+    if (resultBtnLock) return;
+    resultBtnLock = true;
+    setTimeout(() => { resultBtnLock = false; }, 600);
+    fn();
+  };
+
   // 結果画面「もう一回チャレンジ！」: 即プレイ開始（リプレイ）
-  dom.btnRetryResult.addEventListener('click', replayGame);
-  dom.btnRetryResult.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    replayGame();
-  }, { passive: false });
+  dom.btnRetryResult.addEventListener('click', guardResultBtn(replayGame));
 
   // 結果画面「タイトル画面へ」: タイトル戻り
-  dom.btnBackToTitle.addEventListener('click', goBackToTitle);
-  dom.btnBackToTitle.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    goBackToTitle();
-  }, { passive: false });
+  dom.btnBackToTitle.addEventListener('click', guardResultBtn(goBackToTitle));
 
   function replayGame() {
     dom.resultScreen.classList.remove('result-screen--perfect');
