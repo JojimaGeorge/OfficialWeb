@@ -1,7 +1,7 @@
 // ぽちゃもんあっち向いてホイ Service Worker
 // 全アセットを precache してオフライン動作可能にする
 // 更新時は CACHE_NAME の version を bump する
-const CACHE_NAME = 'pochamon-hoi-v4';
+const CACHE_NAME = 'pochamon-hoi-v5';
 
 const ASSETS = [
   './',
@@ -18,6 +18,7 @@ const ASSETS = [
   './assets/sticker_04.png',
   './assets/sticker_05.png',
   './assets/sticker_06.png',
+  './assets/qr-homepage.png',
   './assets/mv/mv_01.mp4',
   './assets/mv/mv_02.mp4',
   './assets/mv/mv_03.mp4',

@@ -549,6 +549,38 @@
       max-width: 400px;
     }
 
+    /* ホームページQRカード（タイトル画面下部・名刺代替） */
+    .title-screen__qr {
+      position: relative;
+      z-index: 1;
+      margin: 16px auto 0;
+      width: calc(100% - 48px);
+      max-width: 400px;
+      background: #fff;
+      border: 3px solid var(--deep);
+      border-radius: var(--radius-card);
+      padding: 10px 16px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 0 var(--deep);
+    }
+    .title-screen__qr-label {
+      font-family: var(--font-pixel);
+      font-size: 12px;
+      color: var(--shock-pink);
+      letter-spacing: 4px;
+      font-weight: 400;
+      text-shadow: 0 1px 0 var(--deep);
+    }
+    .title-screen__qr-img {
+      width: 90px;
+      height: 90px;
+      display: block;
+      background: #fff;
+    }
+
     .btn {
       display: flex;
       align-items: center;
@@ -1599,6 +1631,15 @@
         text-stroke: 8px #fff;
       }
 
+      .title-screen__qr {
+        max-width: 560px;
+        padding: 16px 30px 18px;
+        margin-top: 24px;
+        gap: 10px;
+      }
+      .title-screen__qr-label { font-size: 18px; letter-spacing: 6px; }
+      .title-screen__qr-img { width: 140px; height: 140px; }
+
       .title-screen__rules {
         max-width: 560px;
         padding: 22px 30px 24px;
@@ -1801,6 +1842,12 @@
         <button class="btn btn--primary btn--pulse" id="btn-start" aria-label="ゲームスタート 200円">
           スタート ¥200
         </button>
+      </div>
+
+      <!-- ホームページQR（名刺代替・タイトル画面のみ表示） -->
+      <div class="title-screen__qr">
+        <div class="title-screen__qr-label">ホームページ</div>
+        <img class="title-screen__qr-img" src="assets/qr-homepage.png" alt="ホームページのQRコード">
       </div>
     </div>
 
