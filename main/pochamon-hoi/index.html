@@ -549,17 +549,16 @@
       max-width: 400px;
     }
 
-    /* ホームページQRカード（タイトル画面下部・名刺代替） */
+    /* ホームページQRカード（タイトル画面下部・名刺代替・正方形に近い形） */
     .title-screen__qr {
       position: relative;
       z-index: 1;
       margin: 16px auto 0;
-      width: calc(100% - 48px);
-      max-width: 400px;
+      width: fit-content;
       background: #fff;
       border: 3px solid var(--deep);
       border-radius: var(--radius-card);
-      padding: 10px 16px 12px;
+      padding: 10px 14px 12px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -1632,8 +1631,7 @@
       }
 
       .title-screen__qr {
-        max-width: 560px;
-        padding: 16px 30px 18px;
+        padding: 14px 22px 16px;
         margin-top: 24px;
         gap: 10px;
       }
@@ -1821,23 +1819,8 @@
       <video class="title-screen__mv-video" id="title-mv-b" muted playsinline autoplay preload="auto"></video>
     </div>
 
-    <!-- 下部：ルール + CTA -->
+    <!-- 下部：CTA + QR（ルールセクションは削除：縦スペース確保） -->
     <div class="title-screen__bottom">
-      <div class="title-screen__rules">
-        <div class="title-screen__rule-item">
-          <span class="title-screen__rule-icon">①</span>
-          <span>ぽちゃもんとポーズが合えば勝ち(2択)</span>
-        </div>
-        <div class="title-screen__rule-item">
-          <span class="title-screen__rule-icon">②</span>
-          <span>5回戦中3回以上勝てばシール3枚</span>
-        </div>
-        <div class="title-screen__rule-item">
-          <span class="title-screen__rule-icon">③</span>
-          <span>シールは必ず2枚もらえるよ</span>
-        </div>
-      </div>
-
       <div class="title-screen__cta">
         <button class="btn btn--primary btn--pulse" id="btn-start" aria-label="ゲームスタート 200円">
           スタート ¥200
