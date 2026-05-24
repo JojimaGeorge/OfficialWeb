@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ぽちゃもんホイ">
+  <meta name="apple-mobile-web-app-title" content="ぽちゃもんびろーん">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#FF4DF6">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/pochamon_idle.png">
-  <title>ぽちゃもん あっちむいてホイ！</title>
+  <title>ぽちゃもん あっちむいてびろーん</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@500;800;900&family=Cherry+Bomb+One&family=Coiny&family=Bagel+Fat+One&family=DotGothic16&family=Rubik+Mono+One&display=swap" rel="stylesheet">
@@ -1004,6 +1004,16 @@
 
     .result-screen__sub {
       display: none;
+      font-size: clamp(15px, 4vw, 18px);
+      font-weight: 700;
+      color: var(--color-text);
+      text-align: center;
+      margin: 0 24px 16px;
+      line-height: 1.6;
+      letter-spacing: 0.5px;
+    }
+    .result-screen__sub--show {
+      display: block;
     }
 
     /* スコアバー（結果画面用） */
@@ -1537,6 +1547,38 @@
       margin-top: 14px;
     }
 
+    .admin-screen__debug {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 2px dashed rgba(42,11,74,0.25);
+    }
+    .admin-screen__debug-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--deep);
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .admin-screen__debug-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .admin-btn--debug {
+      background: #FFE600;
+      color: var(--deep);
+      flex: none;
+      width: 100%;
+    }
+    .admin-screen__debug-note {
+      font-size: 11px;
+      color: #888;
+      text-align: center;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
     /* ============================================================
        タブレット（iPad縦）スケーリング
        ※ 元のスマホ縦設計を上書きして大画面で間延びしないよう拡大
@@ -1674,6 +1716,7 @@
       /* 結果画面：シール枠を大きく */
       .result-screen { padding: 56px 40px 48px; }
       .result-screen__title { font-size: clamp(56px, 10vw, 84px); margin-bottom: 16px; }
+      .result-screen__sub { font-size: clamp(22px, 3.2vw, 30px); margin: 0 40px 28px; line-height: 1.5; }
 
       .sticker-award { max-width: 800px; margin-bottom: 40px; }
       .sticker-award__title { font-size: 36px; margin-bottom: 28px; letter-spacing: 3px; }
@@ -1726,7 +1769,7 @@
       <div class="title-screen__logo">
         <div class="title-screen__logo-main">
           ぽちゃもん<br>
-          あっちむいて<span>ホイ！</span>
+          あっちむいて<span>びろーん</span>
         </div>
       </div>
     </div>
@@ -1742,7 +1785,7 @@
       <div class="title-screen__rules">
         <div class="title-screen__rule-item">
           <span class="title-screen__rule-icon">①</span>
-          <span>ぽちゃもんとポーズが合えば勝ち</span>
+          <span>ぽちゃもんとポーズが合えば勝ち(2択)</span>
         </div>
         <div class="title-screen__rule-item">
           <span class="title-screen__rule-icon">②</span>
@@ -1889,6 +1932,18 @@
         ・重みは1〜10の10段階で、比率で出現確率が決まります（例: 全て5なら均等、特定だけ10にすれば2倍出やすい）。<br>
         ・初期値は全シール 重み5／在庫あり。設定は端末のlocalStorageに保存されます（同一iPadで継続）。
       </p>
+
+      <!-- デバッグ：結果画面プレビュー（実プレイなしで遷移確認） -->
+      <div class="admin-screen__debug">
+        <h2 class="admin-screen__debug-title">デバッグ：結果画面プレビュー</h2>
+        <div class="admin-screen__debug-buttons">
+          <button class="admin-btn admin-btn--debug" id="btn-debug-lose-all">0勝5敗（5連敗）</button>
+          <button class="admin-btn admin-btn--debug" id="btn-debug-1win">1勝4敗</button>
+          <button class="admin-btn admin-btn--debug" id="btn-debug-3win">3勝2敗</button>
+          <button class="admin-btn admin-btn--debug" id="btn-debug-perfect">5勝0敗（パーフェクト）</button>
+        </div>
+        <p class="admin-screen__debug-note">タップで該当の結果画面に直接遷移します。閉じるとタイトルに戻る。</p>
+      </div>
     </div>
   </div>
 
@@ -2006,6 +2061,7 @@
     // シール関連
     randomStickerIds: [],
     selectedStickerId: null,
+    selectedStickerIds: [],      // 5連敗時の2枚選択用
   };
 
   // ============================================================
@@ -2237,6 +2293,7 @@
     game.consecutiveWins = 0;
     game.consecutiveLoses = 0;
     game.selectedStickerId = null;
+    game.selectedStickerIds = [];
     game.randomStickerIds = [];
 
     // 長め溜めを入れるラウンドをランダムで決定
@@ -2422,10 +2479,7 @@
     // 5勝でも追加報酬はなく、3枚配布のみ。虹色背景演出のみ残す。
     dom.resultScreen.classList.toggle('result-screen--perfect', isPerfect);
 
-    // タイトル・サブテキスト
-    const stickerCount = wins >= 3 ? 3 : 2;
-    dom.resultTitle.textContent = wins + '勝' + loses + '敗！';
-    dom.resultSub.textContent   = 'シール' + stickerCount + '枚ゲット！';
+    const isLoseAll = (wins === 0 && loses === 5);
 
     // 結果スコアバー
     dom.resultScoreSlots.forEach((slot, i) => {
@@ -2443,6 +2497,24 @@
       }
     });
 
+    if (isLoseAll) {
+      // 5連敗専用演出: 選択2枚
+      dom.resultTitle.textContent = '逆にすごい！';
+      dom.resultSub.textContent   = '好きなステッカーを2枚選んでね。元気出そう👌';
+      dom.resultSub.classList.add('result-screen__sub--show');
+      buildStickerAwardLoseAll();
+      buildStickerSelector2();
+      return;
+    }
+
+    // 通常分岐: サブテキスト非表示（5連敗→通常への遷移で残らないよう明示リセット）
+    dom.resultSub.classList.remove('result-screen__sub--show');
+
+    // タイトル・サブテキスト（通常）
+    const stickerCount = wins >= 3 ? 3 : 2;
+    dom.resultTitle.textContent = wins + '勝' + loses + '敗！';
+    dom.resultSub.textContent   = 'シール' + stickerCount + '枚ゲット！';
+
     // シール配布ロジック（管理画面の重み・在庫設定を反映）
     const drawn = drawWeightedStickers(2);
     game.randomStickerIds = drawn;
@@ -2457,7 +2529,7 @@
       dom.stickerSelector.style.display = 'none';
     }
 
-    // 励ましテキスト（2勝以下）
+    // 励ましテキスト（2勝以下、0勝5敗以外）
     if (wins < 3) {
       dom.resultSub.textContent = 'シール2枚ゲット！また挑戦してな！';
     }
@@ -2536,6 +2608,10 @@
     dom.stickerSelector.style.display = 'block';
     dom.stickerSelectorGrid.innerHTML = '';
 
+    // タイトルを1枚選択用に戻す（5連敗モードで書き換えられている可能性）
+    const titleEl = dom.stickerSelector.querySelector('.sticker-selector__title');
+    if (titleEl) titleEl.textContent = '好きなシールを1枚選んでね！';
+
     const availableIds = getAvailableStickerIds();
     availableIds.forEach(id => {
       const item = document.createElement('div');
@@ -2585,6 +2661,122 @@
       img.className = 'sticker__pic';
       preview.appendChild(img);
     }
+  }
+
+  // ============================================================
+  // 5連敗（0勝5敗）専用: 好きなシール2枚を選ぶ
+  // ============================================================
+  // 確定枠2つ（初期は空、選択時に埋まる）
+  function buildStickerAwardLoseAll() {
+    dom.stickerAwardTitle.textContent = 'もらえるシール（2枚選択）';
+    dom.stickerAwardRow.innerHTML = '';
+
+    for (let i = 0; i < 2; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'sticker-slot sticker-slot--choice';
+      const circle = document.createElement('div');
+      circle.className = 'sticker';
+      circle.style.background = '#f0e0f8';
+      circle.id = 'choice-sticker-display-' + (i + 1);
+      const label = document.createElement('div');
+      label.className = 'sticker__choice-label';
+      label.textContent = (i + 1) + '枚目';
+      circle.appendChild(label);
+      slot.appendChild(circle);
+      dom.stickerAwardRow.appendChild(slot);
+      setTimeout(() => slot.classList.add('sticker-slot--visible'), 200 + i * 200);
+    }
+  }
+
+  // セレクタグリッド（在庫ありシールから2枚選択）
+  function buildStickerSelector2() {
+    dom.stickerSelector.style.display = 'block';
+    dom.stickerSelectorGrid.innerHTML = '';
+    game.selectedStickerIds = [];
+
+    // タイトルを2枚選択用に上書き
+    const titleEl = dom.stickerSelector.querySelector('.sticker-selector__title');
+    if (titleEl) titleEl.textContent = '好きなシールを2枚選んでね！';
+
+    const availableIds = getAvailableStickerIds();
+    availableIds.forEach(id => {
+      const item = document.createElement('div');
+      item.className = 'sticker-selector__item';
+      item.dataset.id = id;
+
+      const circle = document.createElement('div');
+      circle.className = 'sticker-selector__sticker sticker--img sticker-selector__sticker--' + id;
+      const img = document.createElement('img');
+      img.src = 'assets/sticker_' + String(id).padStart(2, '0') + '.png';
+      img.alt = 'シール' + id;
+      img.className = 'sticker__pic';
+      circle.appendChild(img);
+
+      const check = document.createElement('div');
+      check.className = 'sticker-selector__check';
+      check.textContent = '選択';
+
+      item.appendChild(circle);
+      item.appendChild(check);
+      dom.stickerSelectorGrid.appendChild(item);
+
+      item.addEventListener('click', () => selectSticker2(id));
+      item.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        selectSticker2(id);
+      }, { passive: false });
+    });
+  }
+
+  function selectSticker2(id) {
+    const idx = game.selectedStickerIds.indexOf(id);
+    if (idx !== -1) {
+      // 既選択なら解除
+      game.selectedStickerIds.splice(idx, 1);
+    } else if (game.selectedStickerIds.length < 2) {
+      // 2枚未満なら追加
+      game.selectedStickerIds.push(id);
+    } else {
+      // 既に2枚: 古い方をFIFOで削除して新追加
+      game.selectedStickerIds.shift();
+      game.selectedStickerIds.push(id);
+    }
+    updateStickerSelector2UI();
+  }
+
+  function updateStickerSelector2UI() {
+    document.querySelectorAll('.sticker-selector__item').forEach(item => {
+      const id = parseInt(item.dataset.id);
+      item.classList.toggle('sticker-selector__item--selected', game.selectedStickerIds.indexOf(id) !== -1);
+    });
+    updateChoiceSlotDisplay(1, game.selectedStickerIds[0]);
+    updateChoiceSlotDisplay(2, game.selectedStickerIds[1]);
+  }
+
+  function updateChoiceSlotDisplay(slotNo, id) {
+    const target = document.getElementById('choice-sticker-display-' + slotNo);
+    if (!target) return;
+    if (id === undefined) {
+      // 未選択: プレースホルダーに戻す
+      target.className = 'sticker';
+      target.style.background = '#f0e0f8';
+      target.innerHTML = '';
+      const label = document.createElement('div');
+      label.className = 'sticker__choice-label';
+      label.textContent = slotNo + '枚目';
+      target.appendChild(label);
+      return;
+    }
+    // 選択済み: 画像表示
+    target.className = 'sticker sticker--img sticker--' + id;
+    target.style.background = '';
+    target.style.border = '';
+    target.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = 'assets/sticker_' + String(id).padStart(2, '0') + '.png';
+    img.alt = 'シール' + id;
+    img.className = 'sticker__pic';
+    target.appendChild(img);
   }
 
   // ============================================================
@@ -2923,6 +3115,31 @@
   });
 
   document.getElementById('btn-admin-close').addEventListener('click', hideAdmin);
+
+  // ============================================================
+  // デバッグ：結果画面プレビュー（管理画面から直接遷移）
+  // ============================================================
+  function triggerDebugResult(scoresArr) {
+    game.scores = scoresArr.slice();
+    hideAdmin();
+    const wins = scoresArr.filter(s => s === 'win').length;
+    const loses = 5 - wins;
+    const isPerfect = wins === 5;
+    buildResultScreen(wins, loses, isPerfect);
+    showScreen(STATE.RESULT);
+  }
+  document.getElementById('btn-debug-lose-all').addEventListener('click', () => {
+    triggerDebugResult(['lose','lose','lose','lose','lose']);
+  });
+  document.getElementById('btn-debug-1win').addEventListener('click', () => {
+    triggerDebugResult(['win','lose','lose','lose','lose']);
+  });
+  document.getElementById('btn-debug-3win').addEventListener('click', () => {
+    triggerDebugResult(['win','win','win','lose','lose']);
+  });
+  document.getElementById('btn-debug-perfect').addEventListener('click', () => {
+    triggerDebugResult(['win','win','win','win','win']);
+  });
 
   function checkAdminHash() {
     if (location.hash === '#admin') showAdmin();
