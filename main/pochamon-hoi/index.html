@@ -553,7 +553,6 @@
     .title-screen__qr {
       position: relative;
       z-index: 1;
-      margin: 16px auto 0;
       width: fit-content;
       background: #fff;
       border: 3px solid var(--deep);
@@ -1632,7 +1631,6 @@
 
       .title-screen__qr {
         padding: 14px 22px 16px;
-        margin-top: 24px;
         gap: 10px;
       }
       .title-screen__qr-label { font-size: 18px; letter-spacing: 6px; }
@@ -1819,18 +1817,18 @@
       <video class="title-screen__mv-video" id="title-mv-b" muted playsinline autoplay preload="auto"></video>
     </div>
 
-    <!-- 下部：CTA + QR（ルールセクションは削除：縦スペース確保） -->
+    <!-- 下部：QR + CTA（ルールセクションは削除：縦スペース確保） -->
     <div class="title-screen__bottom">
-      <div class="title-screen__cta">
-        <button class="btn btn--primary btn--pulse" id="btn-start" aria-label="ゲームスタート 200円">
-          スタート ¥200
-        </button>
-      </div>
-
       <!-- ホームページQR（名刺代替・タイトル画面のみ表示） -->
       <div class="title-screen__qr">
         <div class="title-screen__qr-label">ホームページ</div>
         <img class="title-screen__qr-img" src="assets/qr-homepage.png" alt="ホームページのQRコード">
+      </div>
+
+      <div class="title-screen__cta">
+        <button class="btn btn--primary btn--pulse" id="btn-start" aria-label="ゲームスタート 200円">
+          スタート ¥200
+        </button>
       </div>
     </div>
 
