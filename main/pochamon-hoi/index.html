@@ -2405,7 +2405,8 @@
     game.pochamonAction = action;
     const isWin = (choice === action);
 
-    showTelop('ホイッ！', 'telop--hoi', false);
+    // showTelop('ホイッ！', 'telop--hoi', false); // 2026-06-06: 「ホイッ」文字は手描き画像に置換のため一旦非表示
+    hideTelop(); // 2026-06-06: ボタン押下時に「あっちむいて」文字を非表示（GIF切替時の手描き文字との被り防止）
     triggerFlash();
 
     // タップ即時にアクションGIFへ切替（idle境界待ちは応答性優先で撤廃 2026-05-22）
