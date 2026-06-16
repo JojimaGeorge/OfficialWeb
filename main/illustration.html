@@ -12,6 +12,119 @@
 <link rel="stylesheet" type="text/css" href="parts/portfolio.css?ver=1.0.1">
 <link rel="stylesheet" type="text/css" href="https://coco-factory.jp/ugokuweb/wp-content/themes/ugokuweb/data/reset.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css">
+<!-- index.htmlのヘッダーと揃えるためのFigtreeフォント -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;700;900&display=swap" rel="stylesheet">
+
+<!--===== ▼▼ Müller-Brockmann グリッド規律トライアル（このコピー限定の上書き／原本CSSは無改変） ▼▼ =====-->
+<style id="grid-trial">
+:root{
+  --cols: 3;        /* カラム数：グリッドの唯一の真実 */
+  --bl: 8px;        /* ベースライン単位 */
+  --gx: 24px;       /* 横ガター = 3×bl（旧20pxを統一） */
+  --gy: 32px;       /* 縦ガター = 4×bl（旧30pxを統一） */
+  --margin: 40px;   /* 外側マージン = 5×bl */
+  --maxw: 1440px;   /* 測りの上限：列が広がり過ぎないよう中央寄せ */
+}
+
+/* 中央寄せ＋最大幅で“測り”を安定させる（旧: padding:0 20px のフル幅） */
+.wrapper{
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding: 88px calc(var(--margin) - var(--gx)/2) 0; /* 上=固定ヘッダー(約69px)のクリアランス／左右=端の画像が外マージンに揃う */
+  box-sizing: border-box;
+  position: relative;                            /* ガイドの基準 */
+}
+
+/* アイテム幅・ガターを変数から導出（マジックナンバー排除・横縦ガター統一） */
+.item{
+  width: calc(100% / var(--cols) - 1px);
+  padding: 0 calc(var(--gx)/2) var(--gy) calc(var(--gx)/2);
+}
+
+/* 横はみ出し封じ（ハンバーガー隠しドロワー由来の横スクロールを止める） */
+html, body{ overflow-x: hidden; }
+
+/* Foundation / OpenSea などのECボタンを全非表示 */
+.grid .caption{ display: none; }
+
+/* ===== 配色調整 ===== */
+/* 背景：純白 → オフホワイト */
+body{ background-color: #FAFAFA; }
+/* カテゴリ選択バー：グラデ廃止 → 単色パープル、文字はオフホワイト */
+.sort-btn{ background-image: none; background-color: #8760FE; color: #FAFAFA; }
+/* チェックボックス枠線・チェックマークもオフホワイトに統一 */
+.sort-btn ul li::before{ border-color: #FAFAFA; }
+.sort-btn ul li.active::after{ border-left-color: #FAFAFA; border-bottom-color: #FAFAFA; }
+
+/* カテゴリ選択バーは現在未使用のため一旦非表示（復活時は上の配色がそのまま効く） */
+.sort-btn{ display: none; }
+
+/* ===== ヘッダー：index.html と揃える（Figtree書体＋左ワードマーク＋ブラーバー） ===== */
+/* 左ワードマーク：固定ヘッダー(position:fixed)を基準に絶対配置で重ねる（右寄せメニューは無改変） */
+.gridhdr-logo{
+  position: absolute;
+  left: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: #222;                /* 明るい背景(#FAFAFA)に合わせて濃色（indexは暗いヒーロー上の白文字） */
+  text-decoration: none;
+  white-space: nowrap;
+  z-index: 101;
+  transition: opacity .3s;
+}
+.gridhdr-logo:hover{ opacity: .6; }
+/* メニューもindexの.hero-menuと同じ書体・サイズ・字間に（12px/700/字間4px/大文字。PCの色は明るい背景に合わせ濃色維持） */
+#wrappernavi nav ul li a{
+  font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+/* PC（601px〜）のみ：ヘッダーバーをブラー＋白半透明に。
+   ※backdrop-filterは子孫のposition:fixedに対し包含ブロックを生成する。SPはドロワー/ハンバーガーがfixedになるため、
+     ここで付けるとそれらが#wrappernaviの箱基準に潰れて崩壊する → SPには絶対に付けない */
+@media only screen and (min-width:601px){
+  #wrappernavi{
+    background: rgba(255,255,255,0.6);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+}
+
+/* SP（〜600px）：indexと同じ作りに。ヘッダー自体は透明（blur無し＝包含ブロックの罠を回避）、メニューは右スライドのドロワー */
+@media only screen and (max-width:600px){
+  /* ヘッダーバーはindex同様SPでは透明（blurを付けないことがドロワー崩れ防止の肝） */
+  #wrappernavi{ background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  /* 左ワードマークは右上ハンバーガーと縦位置を合わせて固定px配置 */
+  .gridhdr-logo{ left: 16px; top: 22px; transform: none; font-size: 13px; letter-spacing: 4px; }
+  /* ドロワー本体：indexの.mobile-drawerに寄せる（幅220・上下グラデ・blur20・上余白80） */
+  #wrappernavi nav{
+    width: 220px;
+    padding-top: 80px;
+    background-image: linear-gradient(to bottom, rgba(129,114,255,0.57), rgba(255,77,187,0.64));
+  }
+  /* 項目は左揃えで縦積み（旧float:rightを解除） */
+  .letter{ float: none; padding-right: 0; }
+  /* リンクはindexの.mobile-drawer ul li a に合わせる（白・14px・padding18/32） */
+  #wrappernavi nav ul li{ padding: 18px 32px; }
+  #wrappernavi nav ul li a{ color: #fff; font-size: 14px; padding-right: 0; }
+}
+
+/* レスポンシブはカラム数だけ切替（幅式は1本に保つ） */
+@media only screen and (max-width:768px){ :root{ --cols:1; --gx:0px; --gy:40px; --margin:16px; } .wrapper{ padding-top: 40px; } /* SPはヘッダーがドロワー型で上バー無し→余白控えめ */ }
+@media only screen and (min-width:1800px){ :root{ --cols:4; } }
+@media only screen and (min-width:2600px){ :root{ --cols:5; } }
+</style>
+<!--===== ▲▲ グリッド規律トライアル ここまで ▲▲ =====-->
 </head>
 
 <body>
@@ -23,6 +136,7 @@
 	
 	
 <div id="wrappernavi" class="show">
+  <a class="gridhdr-logo" href="https://jojima-george.com/#top">JOJIMA GEORGE</a>
   <div class="btn-gnavi">
     <span></span>
     <span></span>
@@ -539,5 +653,6 @@
 <script src="https://unpkg.com/muuri@0.8.0/dist/muuri.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script>
 <script src="parts/portfolio.js"></script>
+
 </body>
 </html>
