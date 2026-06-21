@@ -1,9 +1,9 @@
 name: Deploy to Lollipop
 
+# 2026-06-21: Vercel へ移行したため自動デプロイを無効化。
+# Lolipop は解約予定。手動実行のみ残す（解約までの安全網）。
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
