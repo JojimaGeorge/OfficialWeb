@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="utf-8">
+	<title>すしだるまショップ</title>
+	<meta name="theme-color" content="#FFED4D">
+	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="description" content="すしだるまオフィシャルグッズショップ。缶バッジ、ステッカー、アクリルグッズなど。">
+	<meta property="og:url" content="https://jojima-george.com/sushidaruma/shop.html" />
+	<meta property="og:type" content="website" />
+	<meta property="og:title" content="すしだるまショップ" />
+	<meta property="og:description" content="眺めてもよし、使ってもよし。あなたのそばに、すしだるま。" />
+	<meta property="og:site_name" content="すしだるま 公式HP" />
+	<meta property="og:image" content="https://jojima-george.com/image/banner_sushidaruma.png" />
+	<meta name="twitter:site" content="@jojima_george">
+	<link rel="icon" href="image/h_salmon.png" sizes="16x16" type="image/png" />
+	<link rel="icon" href="image/h_salmon.png" sizes="32x32" type="image/png" />
+	<link rel="icon" href="image/h_salmon.png" sizes="48x48" type="image/png" />
+	<link rel="icon" href="image/h_salmon.png" sizes="62x62" type="image/png" />
+	<link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
+	<link href="sushidaruma.css" rel="stylesheet" type="text/css" />
+	<link href="shop.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+
+<!-- ナビゲーション -->
+<div id="wrapper">
+  <div class="btn-gnavi">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+  <nav id="global-navi">
+    <ul class="menu">
+      <li><a href="index.html"><img src="image/logo.png" class="logo" alt="すしだるまロゴ"></a></li>
+	  <div class="letter">
+		  <li><a href="index.html#top">TOP</a></li>
+		  <li><a href="index.html#news">NEWS</a></li>
+		  <li><a href="index.html#history">HISTORY</a></li>
+		  <li><a href="index.html#NFT">NFT</a></li>
+		  <li class="nav-shop-item">
+		    <a href="shop.html" style="color: #e8637a;">SHOP</a>
+		    <button id="cart-toggle" class="cart-toggle-nav" aria-label="カートを開く">
+		      <svg viewBox="0 0 24 24" width="18" height="18" fill="#555050"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM7.16 14.26l.04-.12.94-1.7h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0020.04 4H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7.42c-.14 0-.25-.11-.25-.25z"/></svg>
+		      <span id="cart-badge" class="cart-badge" style="display:none;">0</span>
+		    </button>
+		  </li>
+		  <li><a href="index.html#links">LINKS</a></li>
+		  <li><a href="index.html#contact">CONTACT</a></li>
+	  </div>
+    </ul>
+  </nav>
+</div>
+
+<!-- カートドロワー -->
+<div id="cart-overlay" class="cart-overlay"></div>
+<aside id="cart-drawer" class="cart-drawer">
+  <div class="cart-drawer-header">
+    <h2>カート</h2>
+    <button id="cart-close" class="cart-close" aria-label="カートを閉じる">&times;</button>
+  </div>
+  <div id="cart-items" class="cart-items">
+    <p class="cart-empty">カートは空です</p>
+  </div>
+  <div id="cart-footer" class="cart-footer" style="display:none;">
+    <div class="cart-total">
+      <span>合計</span>
+      <span id="cart-total-price">¥0</span>
+    </div>
+    <p class="cart-note">※ 商品ごとに決済ページへ進みます</p>
+  </div>
+</aside>
+
+<!-- 通知バナー（JSで制御） -->
+<div id="notification-area"></div>
+
+<!-- ヒーローセクション -->
+<section class="shop-hero">
+  <h1 class="animation-element">すしだるまショップ</h1>
+  <p class="shop-subtitle animation-element">眺めてもよし、使ってもよし。あなたのそばに、すしだるま。</p>
+</section>
+
+<!-- 商品一覧 -->
+<section class="shop-section yellow-bg">
+  <div class="product-grid">
+
+    <!-- 1. ころころ缶バッジくじ -->
+    <a href="product.html?id=badge-kuji" class="product-card animation-element" style="--card-order: 0;">
+      <div class="product-image">🎰</div>
+      <div class="product-info">
+        <h3 class="product-name">ころころ缶バッジくじ</h3>
+        <div class="product-price">
+          <span class="price-main"><span class="yen">¥200</span><span class="tax">（税込）</span></span>
+          <span class="price-set">3回 ¥500 <span class="badge badge-deal">お得！</span></span>
+        </div>
+      </div>
+    </a>
+
+    <!-- 2. キラキラステッカー -->
+    <a href="product.html?id=sticker" class="product-card animation-element" style="--card-order: 1;">
+      <div class="product-image">✨</div>
+      <div class="product-info">
+        <h3 class="product-name">キラキラステッカー</h3>
+        <div class="product-price">
+          <span class="price-main"><span class="yen">¥200</span><span class="tax">（税込）</span></span>
+          <span class="price-set">4枚セット ¥500 <span class="badge badge-deal">お得！</span></span>
+        </div>
+      </div>
+    </a>
+
+    <!-- 3. 肉厚！アクリルブロック -->
+    <a href="product.html?id=acrylic-block" class="product-card animation-element" style="--card-order: 2;">
+      <div class="product-image">🧊</div>
+      <div class="product-info">
+        <h3 class="product-name">肉厚！アクリルブロック</h3>
+        <div class="product-price">
+          <span class="price-main"><span class="yen">¥600</span><span class="tax">（税込）</span></span>
+        </div>
+      </div>
+    </a>
+
+    <!-- 4. ぷりちーポストカード -->
+    <a href="product.html?id=postcard" class="product-card animation-element" style="--card-order: 3;">
+      <div class="product-image">🖼️</div>
+      <div class="product-info">
+        <h3 class="product-name">ぷりちーポストカード</h3>
+        <div class="product-price">
+          <span class="price-main"><span class="yen">¥200</span><span class="tax">（税込）</span></span>
+          <span class="price-set">3枚セット ¥500 <span class="badge badge-deal">お得！</span></span>
+        </div>
+      </div>
+    </a>
+
+    <!-- 5. もこもこ缶ケース（限定） -->
+    <a href="product.html?id=can-case" class="product-card animation-element" style="--card-order: 4;">
+      <span class="badge badge-limited">限定</span>
+      <div class="product-image">🍣</div>
+      <div class="product-info">
+        <h3 class="product-name">もこもこ缶ケース</h3>
+        <div class="product-price">
+          <span class="price-main"><span class="yen">¥1,200</span><span class="tax">（税込）</span></span>
+        </div>
+      </div>
+    </a>
+
+    <!-- 6. ごきげんトートバッグ（旬） -->
+    <a href="product.html?id=tote-bag" class="product-card animation-element" style="--card-order: 5;">
+      <span class="badge badge-seasonal">旬</span>
+      <div class="product-image">👜</div>
+      <div class="product-info">
+        <h3 class="product-name">ごきげんトートバッグ</h3>
+        <div class="product-price">
+          <span class="price-main"><span class="yen">¥1,800</span><span class="tax">（税込）</span></span>
+        </div>
+      </div>
+    </a>
+
+    <!-- 7. フレーム付きアクリルスタンドセット -->
+    <a href="product.html?id=acrylic-stand" class="product-card animation-element" style="--card-order: 6;">
+      <div class="product-image">🖼️</div>
+      <div class="product-info">
+        <h3 class="product-name">フレーム付きアクリルスタンドセット</h3>
+        <div class="product-price">
+          <span class="price-main"><span class="yen">¥1,400</span><span class="tax">（税込）</span></span>
+        </div>
+      </div>
+    </a>
+
+    <!-- 8. アクリルキーホルダー（大） -->
+    <a href="product.html?id=keychain-large" class="product-card animation-element" style="--card-order: 7;">
+      <div class="product-image">🔑</div>
+      <div class="product-info">
+        <h3 class="product-name">アクリルキーホルダー（大）</h3>
+        <div class="product-price">
+          <span class="price-main"><span class="yen">¥700</span><span class="tax">（税込）</span></span>
+        </div>
+      </div>
+    </a>
+
+    <!-- 9. アクリルキーホルダー（中） -->
+    <a href="product.html?id=keychain-medium" class="product-card animation-element" style="--card-order: 8;">
+      <div class="product-image">🔑</div>
+      <div class="product-info">
+        <h3 class="product-name">アクリルキーホルダー（中）</h3>
+        <div class="product-price">
+          <span class="price-main"><span class="yen">¥500</span><span class="tax">（税込）</span></span>
+        </div>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<!-- フッターリンク -->
+<div class="shop-footer-links">
+  <a href="tokushoho.html">特定商取引法に基づく表記</a>
+</div>
+
+<!-- フッター -->
+<footer>
+  <div class="footer-content animation-element">
+    <img src="image/footer.png" alt="フッター画像" class="footer-image">
+    <p class="copyright">&copy; Jojima George</p>
+  </div>
+</footer>
+
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="shop.js"></script>
+
+</body>
+</html>

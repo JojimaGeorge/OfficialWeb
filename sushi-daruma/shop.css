@@ -1,0 +1,1100 @@
+@charset "utf-8";
+/* ============================================
+   すしだるまショップ - shop.css
+   sushidaruma.css の後に読み込むこと
+   ============================================ */
+
+
+/* ------------------------------------------
+   通知バナー（success / cancel）
+   ------------------------------------------ */
+.notification-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 200;
+  text-align: center;
+  padding: 14px 20px;
+  font-weight: bold;
+  font-size: 15px;
+  cursor: pointer;
+  animation: bannerSlideIn 0.4s ease-out;
+}
+
+.notification-banner.success-banner {
+  background-color: rgba(72, 187, 120, 0.92);
+  color: #fff;
+}
+
+.notification-banner.cancel-banner {
+  background-color: rgba(66, 153, 225, 0.88);
+  color: #fff;
+}
+
+@keyframes bannerSlideIn {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+
+/* ------------------------------------------
+   ショップヒーロー — ストライプ背景
+   ------------------------------------------ */
+.shop-hero {
+  padding: 120px 40px 50px;
+  background: repeating-linear-gradient(
+    90deg,
+    #FFED4D 0px,
+    #FFED4D 40px,
+    #FFF8A0 40px,
+    #FFF8A0 80px
+  );
+  text-align: center;
+}
+
+.shop-hero h1 {
+  font-size: 32px;
+  color: #555050;
+  margin-bottom: 12px;
+  letter-spacing: 0.08em;
+}
+
+.shop-hero .shop-subtitle {
+  font-size: 16px;
+  color: #555050;
+  font-weight: bold;
+  line-height: 1.8;
+  padding: 0;
+}
+
+
+/* ------------------------------------------
+   商品グリッド — ちいかわ風に gap 詰め
+   ------------------------------------------ */
+.shop-section {
+  padding: 40px 40px 60px;
+  background-color: #FFF8A0;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+
+/* ------------------------------------------
+   カスケードスクロールイン
+   ------------------------------------------ */
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(2rem); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.product-card.animation-element {
+  opacity: 0;
+  transform: translateY(2rem);
+}
+
+.product-card.animation-element.show {
+  animation: cardSlideIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-delay: calc(var(--card-order, 0) * 100ms);
+}
+
+
+/* ------------------------------------------
+   商品カード — ちいかわ風ミニマルカード
+   ------------------------------------------ */
+.product-card {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 0;
+  text-align: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Vertical Lift ホバー */
+.product-card:hover {
+  transform: translateY(-0.5rem);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.product-card:active {
+  transform: translateY(-0.25rem);
+}
+
+
+/* ------------------------------------------
+   商品画像エリア — ちいかわ風（白背景・ボーダーなし）
+   ------------------------------------------ */
+.product-image {
+  aspect-ratio: 1 / 1;
+  background-color: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  overflow: hidden;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+}
+
+/* 画像ホバーズーム */
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.product-card:hover .product-image img {
+  transform: scale(1.05);
+}
+
+
+/* ------------------------------------------
+   カード下部のテキストエリア
+   ------------------------------------------ */
+.product-info {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-grow: 1;
+}
+
+
+/* ------------------------------------------
+   商品名 — ちいかわ風
+   ------------------------------------------ */
+.product-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
+  line-height: 1.5;
+  padding: 0;
+}
+
+
+/* ------------------------------------------
+   価格表示 — ¥600（税込）形式
+   ------------------------------------------ */
+.product-price {
+  margin-bottom: 12px;
+}
+
+.price-main {
+  display: block;
+  font-size: 16px;
+  font-weight: normal;
+  color: #333;
+}
+
+.price-main .yen {
+  font-weight: bold;
+}
+
+.price-main .tax {
+  font-size: 12px;
+  font-weight: normal;
+  color: #999;
+  margin-left: 2px;
+}
+
+.price-set {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  color: #2d8a4e;
+  margin-top: 4px;
+}
+
+
+/* ------------------------------------------
+   バッジ — 左上、画像に被せる（ちいかわ風）
+   ------------------------------------------ */
+.badge {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: bold;
+  color: #fff;
+  padding: 7px 24px;
+  border-radius: 0 0 10px 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+}
+
+.badge-limited {
+  background-color: #ee8a2e;
+}
+
+.badge-seasonal {
+  background-color: #ee8a2e;
+}
+
+.badge-deal {
+  background-color: #48bb78;
+  position: static;
+  margin-left: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+
+/* ------------------------------------------
+   カートに入れるボタン — 角丸なし、下揃え
+   ------------------------------------------ */
+.buy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 20px;
+  text-decoration: none;
+  font-weight: bold;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  border-radius: 0;
+  background-color: #FF6B6B;
+  font-family: inherit;
+  margin-top: auto;
+  transition: background-color 0.25s ease;
+}
+
+.buy-btn:hover {
+  background-color: #5A86FF;
+}
+
+.buy-btn:active {
+  background-color: #466EDC;
+}
+
+.cart-icon {
+  width: 15px;
+  height: 15px;
+  fill: #fff;
+  flex-shrink: 0;
+}
+
+
+/* ------------------------------------------
+   ヘッダーカートアイコン（SHOP横に配置）
+   ------------------------------------------ */
+.nav-shop-item {
+  display: inline !important;
+  vertical-align: baseline;
+}
+
+.nav-shop-item a {
+  vertical-align: baseline;
+}
+
+.cart-toggle-nav {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 0 0 2px;
+  vertical-align: baseline;
+  display: inline;
+  transition: opacity 0.2s;
+}
+
+.cart-toggle-nav svg {
+  vertical-align: -3px;
+}
+
+.cart-toggle-nav:hover {
+  opacity: 0.7;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -10px;
+  right: -12px;
+  background-color: #FF6B6B;
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 9px;
+  padding: 0 4px;
+  font-family: inherit;
+  pointer-events: none;
+}
+
+@keyframes cartBadgePop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+.cart-badge.pop {
+  animation: cartBadgePop 0.3s ease;
+}
+
+
+/* ------------------------------------------
+   カートドロワー（右からスライド）
+   ------------------------------------------ */
+.cart-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 300;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.cart-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.cart-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 360px;
+  max-width: 85vw;
+  height: 100%;
+  background-color: #fff;
+  z-index: 310;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.cart-drawer.open {
+  transform: translateX(0);
+}
+
+.cart-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.cart-drawer-header h2 {
+  font-size: 18px;
+  color: #333;
+  margin: 0;
+}
+
+.cart-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.cart-close:hover {
+  color: #333;
+}
+
+.cart-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.cart-empty {
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  padding: 40px 0;
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.cart-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-item-name {
+  font-size: 13px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cart-item-price {
+  font-size: 14px;
+  color: #555;
+}
+
+.cart-item-qty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cart-item-qty button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  transition: background-color 0.15s;
+}
+
+.cart-item-qty button:hover {
+  background-color: #f5f5f5;
+}
+
+.cart-item-qty span {
+  font-size: 14px;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+}
+
+.cart-item-remove {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.15s;
+}
+
+.cart-item-remove:hover {
+  color: #FF6B6B;
+}
+
+.cart-item-checkout {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  background-color: #FF6B6B;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cart-item-checkout:hover {
+  background-color: #5A86FF;
+}
+
+.cart-footer {
+  padding: 16px 20px;
+  border-top: 2px solid #eee;
+  background-color: #fafafa;
+}
+
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.cart-note {
+  font-size: 11px;
+  color: #999;
+  text-align: center;
+}
+
+
+/* ------------------------------------------
+   カート追加モーダル
+   ------------------------------------------ */
+.cart-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.cart-modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.cart-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 380px;
+  max-width: 88vw;
+  padding: 32px 28px 24px;
+  text-align: center;
+  transform: scale(0.9);
+  transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.cart-modal-overlay.show .cart-modal {
+  transform: scale(1);
+}
+
+.cart-modal-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkmark-svg {
+  width: 56px;
+  height: 56px;
+}
+
+.checkmark-circle {
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  fill: #48bb78;
+  fill-opacity: 0;
+}
+
+.checkmark-check {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+}
+
+.cart-modal-overlay.show .checkmark-circle {
+  animation: checkmark-circle 0.4s ease-out 0.1s forwards;
+}
+
+.cart-modal-overlay.show .checkmark-check {
+  animation: checkmark-check 0.3s ease-out 0.5s forwards;
+}
+
+@keyframes checkmark-circle {
+  0% {
+    stroke-dashoffset: 145;
+    fill-opacity: 0;
+  }
+  70% {
+    stroke-dashoffset: 0;
+    fill-opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    fill-opacity: 1;
+  }
+}
+
+@keyframes checkmark-check {
+  0% {
+    stroke-dashoffset: 40;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.cart-modal-message {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.cart-modal-product {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 24px;
+}
+
+.cart-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cart-modal-btn {
+  display: block;
+  width: 100%;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: bold;
+  font-family: inherit;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  text-decoration: none;
+  text-align: center;
+}
+
+.cart-modal-btn:hover {
+  opacity: 0.85;
+}
+
+.cart-modal-btn-primary {
+  background-color: #555050;
+  color: #fff;
+}
+
+.cart-modal-btn-secondary {
+  background-color: #f5f5f5;
+  color: #555;
+}
+
+
+/* ------------------------------------------
+   商品カードリンク化（テキスト装飾なし）
+   ------------------------------------------ */
+a.product-card {
+  text-decoration: none;
+  color: inherit;
+}
+
+
+/* ------------------------------------------
+   商品詳細ページ
+   ------------------------------------------ */
+.product-detail-section {
+  padding: 140px 40px 60px;
+  background-color: #FFF8A0;
+  min-height: 60vh;
+}
+
+.product-detail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  max-width: 960px;
+  margin: 0 auto;
+  background-color: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.product-detail-image {
+  aspect-ratio: 1 / 1;
+  background-color: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.product-detail-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-detail-emoji {
+  font-size: 120px;
+}
+
+.product-detail-info {
+  padding: 40px 40px 40px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-badge {
+  display: inline-block;
+  background-color: #ee8a2e;
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 5px 16px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  align-self: flex-start;
+}
+
+.detail-name {
+  font-size: 22px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.detail-price {
+  margin-bottom: 8px;
+}
+
+.detail-yen {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+
+.detail-tax {
+  font-size: 14px;
+  color: #999;
+  margin-left: 4px;
+}
+
+.detail-set {
+  font-size: 14px;
+  font-weight: bold;
+  color: #2d8a4e;
+  margin-bottom: 8px;
+}
+
+.detail-description {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.8;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.detail-qty-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.detail-qty-row label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+}
+
+.detail-qty-select {
+  font-size: 16px;
+  font-family: inherit;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #fff;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.detail-btn {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: bold;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  transition: opacity 0.2s ease;
+  margin-bottom: 10px;
+  border-radius: 0;
+}
+
+.detail-btn:hover {
+  opacity: 0.85;
+}
+
+.detail-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.detail-btn-cart {
+  background-color: #555050;
+  color: #fff;
+}
+
+.detail-btn-added {
+  background-color: #48bb78 !important;
+}
+
+.detail-btn-buy {
+  background-color: #FF6B6B;
+  color: #fff;
+}
+
+.product-detail-back {
+  max-width: 960px;
+  margin: 24px auto 0;
+}
+
+.product-detail-back a {
+  color: #555050;
+  font-size: 14px;
+  font-weight: bold;
+  text-decoration: none;
+  border-bottom: 1px dashed #555050;
+  padding-bottom: 2px;
+  transition: color 0.3s;
+}
+
+.product-detail-back a:hover {
+  color: #5A86FF;
+}
+
+
+/* ------------------------------------------
+   商品スペック（サイズ — 説明の直後にインライン表示）
+   ------------------------------------------ */
+.detail-specs {
+  font-size: 12px;
+  color: #999;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+
+/* ------------------------------------------
+   商品詳細 レスポンシブ
+   ------------------------------------------ */
+@media screen and (max-width: 768px) {
+  .product-detail-section {
+    padding: 80px 12px 40px;
+  }
+
+  .product-detail {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .product-detail-info {
+    padding: 24px 20px 30px;
+  }
+
+  .product-detail-emoji {
+    font-size: 80px;
+  }
+
+  .detail-name {
+    font-size: 18px;
+  }
+
+  .detail-yen {
+    font-size: 20px;
+  }
+
+  .detail-btn {
+    font-size: 14px;
+    padding: 14px;
+  }
+
+}
+
+
+/* ------------------------------------------
+   フッター画像の縮小（ショップページ用）
+   ------------------------------------------ */
+.footer-content .footer-image {
+  width: 60%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+
+/* ------------------------------------------
+   フッターリンクエリア
+   ------------------------------------------ */
+.shop-footer-links {
+  text-align: center;
+  padding: 30px 20px 10px;
+  background-color: #FFED4D;
+}
+
+.shop-footer-links a {
+  color: #555050;
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 14px;
+  border-bottom: 1px dashed #555050;
+  padding-bottom: 2px;
+  transition: color 0.3s;
+}
+
+.shop-footer-links a:hover {
+  color: #5A86FF;
+}
+
+
+/* ------------------------------------------
+   特定商取引法テーブル
+   ------------------------------------------ */
+.tokushoho-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.tokushoho-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tokushoho-table th,
+.tokushoho-table td {
+  padding: 16px 20px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 237, 77, 0.5);
+  font-size: 14px;
+  color: #555050;
+  line-height: 1.8;
+}
+
+.tokushoho-table th {
+  width: 200px;
+  font-weight: bold;
+  background-color: rgba(255, 237, 77, 0.3);
+  white-space: nowrap;
+}
+
+.tokushoho-table tr:last-child th,
+.tokushoho-table tr:last-child td {
+  border-bottom: none;
+}
+
+.table-link {
+  color: #e8637a;
+  text-decoration: none;
+  border-bottom: 1px dashed #e8637a;
+}
+
+.table-link:hover {
+  color: #5A86FF;
+}
+
+
+/* ============================================
+   タブレット（max-width: 1200px）
+   ============================================ */
+@media (max-width: 1200px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .shop-hero {
+    padding: 110px 30px 40px;
+  }
+
+  .shop-hero h1 {
+    font-size: 28px;
+  }
+}
+
+
+/* ============================================
+   スマホ（max-width: 768px）
+   ============================================ */
+@media screen and (max-width: 768px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    max-width: 100%;
+  }
+
+  .shop-hero {
+    padding: 100px 20px 30px;
+  }
+
+  .shop-hero h1 {
+    font-size: 24px;
+  }
+
+  .shop-hero .shop-subtitle {
+    font-size: 14px;
+  }
+
+  .shop-section {
+    padding: 20px 10px 40px;
+  }
+
+  .product-image {
+    font-size: 40px;
+  }
+
+  .product-info {
+    padding: 10px 10px 12px;
+  }
+
+  .product-name {
+    font-size: 12px;
+  }
+
+  .price-main {
+    font-size: 14px;
+  }
+
+  .price-set {
+    font-size: 11px;
+  }
+
+  .buy-btn {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+
+  .tokushoho-table th {
+    display: block;
+    width: 100%;
+    padding-bottom: 4px;
+    border-bottom: none;
+  }
+
+  .tokushoho-table td {
+    display: block;
+    padding-top: 0;
+    padding-bottom: 16px;
+  }
+}

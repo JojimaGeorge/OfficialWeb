@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Font to SVG Path Generator</title>
+  <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+</head>
+<body>
+  <h2>SVG Path Output</h2>
+  <div id="preview"></div>
+  <pre id="output" style="background:#eee;padding:20px;font-size:12px;max-height:600px;overflow:auto;"></pre>
+  <script>
+    async function generatePaths() {
+      const outputEl = document.getElementById('output');
+      const previewEl = document.getElementById('preview');
+      outputEl.textContent = 'Loading font...';
+
+      try {
+        const font = await opentype.load('Figtree-Black.ttf');
+
+        const lines = [
+          { text: 'Jojima', y: 80 },
+          { text: 'George', y: 180 }
+        ];
+
+        const fontSize = 96;
+        const letterSpacing = 8;
+        let svgPaths = '';
+        let pathData = [];
+
+        lines.forEach(line => {
+          let x = 0;
+          for (let i = 0; i < line.text.length; i++) {
+            const char = line.text[i];
+            const glyph = font.charToGlyph(char);
+            const path = font.getPath(char, x, line.y, fontSize);
+            const d = path.toPathData(2);
+            const advance = (glyph.advanceWidth / font.unitsPerEm) * fontSize + letterSpacing;
+
+            svgPaths += `  <path class="letter" data-char="${char}" d="${d}" />\n`;
+            pathData.push({ char, d, x, y: line.y });
+            x += advance;
+          }
+        });
+
+        // Create preview SVG
+        const svgHTML = `<svg viewBox="0 0 540 200" width="540" height="200" xmlns="http://www.w3.org/2000/svg" style="background:#222">
+  <g fill="none" stroke="#fff" stroke-width="2">
+${svgPaths}  </g>
+</svg>`;
+
+        previewEl.innerHTML = svgHTML;
+
+        // Output the path data for copy
+        outputEl.textContent = svgPaths;
+
+        // Also log path lengths
+        setTimeout(() => {
+          const paths = previewEl.querySelectorAll('.letter');
+          let lengthInfo = '\n\n<!-- Path lengths -->\n';
+          paths.forEach((p, i) => {
+            const len = Math.ceil(p.getTotalLength());
+            lengthInfo += `<!-- ${pathData[i].char}: length=${len} -->\n`;
+            p.style.strokeDasharray = len;
+            p.style.strokeDashoffset = len;
+          });
+          outputEl.textContent += lengthInfo;
+          console.log('PATHS_READY');
+          console.log(JSON.stringify(pathData.map((p, i) => ({
+            char: p.char,
+            length: Math.ceil(paths[i].getTotalLength()),
+            d: p.d
+          }))));
+        }, 500);
+
+      } catch (e) {
+        outputEl.textContent = 'Error: ' + e.message;
+        console.log('ERROR: ' + e.message);
+      }
+    }
+
+    generatePaths();
+  </script>
+</body>
+</html>
