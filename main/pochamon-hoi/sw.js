@@ -1,7 +1,7 @@
 // ぽちゃもんあっち向いてホイ Service Worker
 // 全アセットを precache してオフライン動作可能にする
 // 更新時は CACHE_NAME の version を bump する
-const CACHE_NAME = 'pochamon-hoi-v11';
+const CACHE_NAME = 'pochamon-hoi-v12';
 
 const ASSETS = [
   './',
@@ -19,6 +19,12 @@ const ASSETS = [
   './assets/sticker_05.png',
   './assets/sticker_06.png',
   './assets/qr-homepage.png',
+  './assets/fonts/ZenMaruGothic-Regular.woff2',
+  './assets/fonts/ZenMaruGothic-Medium.woff2',
+  './assets/fonts/ZenMaruGothic-Bold.woff2',
+  './assets/fonts/ZenMaruGothic-Black.woff2',
+  './assets/fonts/CherryBombOne-Regular.woff2',
+  './assets/fonts/RubikMonoOne-Regular.woff2',
   './assets/mv/mv_01.mp4',
   './assets/mv/mv_02.mp4',
   './assets/mv/mv_03.mp4',

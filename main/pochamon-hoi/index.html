@@ -11,11 +11,19 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/pochamon_idle.png">
   <title>ぽちゃもん あっちむいてびろーん</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@500;800;900&family=Cherry+Bomb+One&family=Coiny&family=Bagel+Fat+One&family=DotGothic16&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+  <!-- フォントは assets/fonts/ に同梱（会場オフライン対策。使用文字だけ切り出した woff2） -->
 
   <style>
+    /* ============================================================
+       同梱フォント（2026-08-20: Google Fonts 依存を外してオフライン対応）
+    ============================================================ */
+    @font-face { font-family: 'Zen Maru Gothic'; font-weight: 400; font-display: swap; src: url('assets/fonts/ZenMaruGothic-Regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Zen Maru Gothic'; font-weight: 500; font-display: swap; src: url('assets/fonts/ZenMaruGothic-Medium.woff2') format('woff2'); }
+    @font-face { font-family: 'Zen Maru Gothic'; font-weight: 700; font-display: swap; src: url('assets/fonts/ZenMaruGothic-Bold.woff2') format('woff2'); }
+    @font-face { font-family: 'Zen Maru Gothic'; font-weight: 900; font-display: swap; src: url('assets/fonts/ZenMaruGothic-Black.woff2') format('woff2'); }
+    @font-face { font-family: 'Cherry Bomb One'; font-weight: 400; font-display: swap; src: url('assets/fonts/CherryBombOne-Regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Rubik Mono One'; font-weight: 400; font-display: swap; src: url('assets/fonts/RubikMonoOne-Regular.woff2') format('woff2'); }
+
     /* ============================================================
        CSS 変数
     ============================================================ */
@@ -1775,6 +1783,362 @@
       .result-screen__score .score-bar__slot { width: 80px; height: 80px; font-size: 40px; }
     }
 
+
+    /* ============================================================
+       リッチ演出（2026-08-20 COMITIA157向け追加）
+       ・Canvas粒子レイヤー／画面縁エフェクト／集中線／負けの沈み
+       ・飛ぶ◯✕・スロット着弾・テロップの出方
+       ・結果画面の順出し・シールの3Dめくり＋キラ帯
+       ・アイリスワイプ遷移・タイトルのアテンション
+    ============================================================ */
+
+    /* 粒子レイヤー（紙吹雪・星） */
+    .fx-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 95;
+    }
+
+    /* 画面縁エフェクト：ビネット（待ち）／赤脈動（ラスト）／虹光（連勝） */
+    .edge-fx {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 40;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .edge-fx--vignette {
+      opacity: 1;
+      background: radial-gradient(ellipse at 50% 45%, rgba(42,11,74,0) 45%, rgba(42,11,74,0.5) 100%);
+    }
+    .edge-fx--last {
+      opacity: 1;
+      background: radial-gradient(ellipse at 50% 45%, rgba(255,40,90,0) 48%, rgba(255,40,90,0.6) 100%);
+      animation: edge-pulse 0.45s ease-in-out infinite alternate;
+    }
+    .edge-fx--combo {
+      opacity: 1;
+      box-shadow:
+        inset 0 0 40px 8px rgba(255,230,0,0.6),
+        inset 0 0 80px 16px rgba(255,62,165,0.35);
+      animation: edge-hue 1.2s linear infinite;
+    }
+    @keyframes edge-pulse { from { opacity: 0.35; } to { opacity: 1; } }
+    @keyframes edge-hue   { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+
+    /* 集中線（ラストチャンス） */
+    .speed-lines {
+      position: fixed;
+      inset: -35%;
+      pointer-events: none;
+      z-index: 39;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0) 0deg 5deg, rgba(255,255,255,0.36) 5deg 6.5deg);
+      -webkit-mask-image: radial-gradient(circle at center, transparent 26%, #000 60%);
+              mask-image: radial-gradient(circle at center, transparent 26%, #000 60%);
+    }
+    .speed-lines--on {
+      opacity: 1;
+      animation: speed-spin 7s linear infinite;
+    }
+    @keyframes speed-spin { to { transform: rotate(360deg); } }
+
+    /* 負けの沈み（青白いフィルム） */
+    .lose-tint {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 38;
+      background: rgba(60,80,160,0.28);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .lose-tint--on { opacity: 1; }
+
+    /* ホイッ！のフラッシュを強める */
+    .round-flash--on { background: rgba(255,255,255,0.6); }
+
+    /* 画面全体のヒットストップ／ズームパンチ（#app に付与） */
+    .app--hitstop { transform: scale(1.03); }
+    .app--punch   { animation: app-punch 0.45s cubic-bezier(0.2,0.8,0.2,1); }
+    @keyframes app-punch { 0% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+    /* 飛ぶ◯✕ */
+    .fly-mark {
+      position: fixed;
+      left: 0; top: 0;
+      z-index: 96;
+      pointer-events: none;
+      width: 64px; height: 64px;
+      margin: -32px 0 0 -32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 34px; font-weight: 900; color: #fff;
+      border: 3px solid rgba(255,255,255,0.9);
+      box-shadow: 0 4px 14px rgba(42,11,74,0.35);
+    }
+    .fly-mark--win  { background: var(--color-score-win); }
+    .fly-mark--lose { background: var(--color-score-lose); }
+
+    /* スロット着弾（勝ち＝はねる／負け＝ガタつく） */
+    .score-bar__slot--pop   { animation: slot-pop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+    .score-bar__slot--shake { animation: slot-shake 0.4s ease-in-out; }
+    @keyframes slot-pop {
+      0%   { transform: scale(0.6); }
+      50%  { transform: scale(1.45); }
+      100% { transform: scale(1.12); }
+    }
+    @keyframes slot-shake {
+      0%, 100% { translate: 0 0; }
+      20% { translate: -6px 0; }
+      40% { translate: 6px 0; }
+      60% { translate: -4px 0; }
+      80% { translate: 4px 0; }
+    }
+
+    /* 汗マーク（負け） */
+    .sweat {
+      position: fixed;
+      z-index: 96;
+      pointer-events: none;
+      width: 26px; height: 26px;
+      margin: -13px 0 0 -13px;
+      background: #8fd3ff;
+      border: 3px solid var(--deep);
+      border-radius: 0 50% 50% 50%;
+      rotate: 45deg;
+      animation: sweat-drop 0.8s ease-out forwards;
+    }
+    @keyframes sweat-drop {
+      0%   { opacity: 0; translate: 0 -10px; scale: 0.6; }
+      20%  { opacity: 1; scale: 1; }
+      100% { opacity: 0; translate: 8px 44px; }
+    }
+
+    /* テロップの出方：ぽん（勝ち）／落下（負け）／ドン（ラスト） */
+    .telop--pop.telop--visible  { animation: telop-pop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+    .telop--drop.telop--visible { animation: telop-drop 0.55s cubic-bezier(0.34,1.56,0.64,1); }
+    .telop--lastchance.telop--visible {
+      animation:
+        telop-slam 0.45s cubic-bezier(0.2,0.9,0.3,1.3),
+        lastchance-pulse 1.0s ease-in-out 0.45s infinite;
+    }
+    .telop--combo.telop--visible { animation: telop-pop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes telop-pop {
+      0%   { transform: scale(0.2) rotate(-8deg); }
+      60%  { transform: scale(1.25) rotate(3deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    @keyframes telop-drop {
+      0%   { transform: translateY(-90px) scale(1.1); opacity: 0; }
+      55%  { transform: translateY(10px) scale(0.95); opacity: 1; }
+      100% { transform: translateY(0) scale(1); }
+    }
+    @keyframes telop-slam {
+      0%   { transform: scale(2.6); opacity: 0; }
+      60%  { transform: scale(0.92); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* 待ち中のボタン鼓動 */
+    .choice-btn--beat      { animation: btn-beat 0.9s ease-in-out infinite; }
+    .choice-btn--beat-fast { animation: btn-beat 0.45s ease-in-out infinite; }
+    @keyframes btn-beat {
+      0%, 100% { scale: 1; }
+      30% { scale: 1.045; }
+      45% { scale: 1; }
+      60% { scale: 1.03; }
+    }
+
+    /* アイリスワイプ中の新画面は最前面・フェード無し */
+    .screen--wiping {
+      z-index: 5;
+      transition: none !important;
+    }
+    /* ワイプ中だけ不透明な背景を敷く（画面は背景透明で body の空画像に頼っているため、
+       円の内側から下の画面が透けるのを防ぐ） */
+    .screen--wiping::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: #FFE3F6 url('assets/bg.png') center center / cover no-repeat;
+    }
+    .result-screen.screen--wiping::before {
+      background:
+        linear-gradient(160deg, rgba(255,214,245,0.6) 0%, rgba(224,181,255,0.6) 50%, rgba(192,173,255,0.6) 100%),
+        #FFE3F6 url('assets/bg.png') center center / cover no-repeat;
+    }
+    .result-screen--perfect.screen--wiping::before {
+      background: linear-gradient(135deg, #ffecf4, #fff4ec, #fffae8, #eaf8ff, #f4eeff, #ffecf4);
+      background-size: 400% 400%;
+      animation: rainbow-bg 4s ease infinite;
+    }
+
+    /* ---- 結果画面 ---- */
+    .result-screen__title { opacity: 0; }
+    .result-screen__title--slam {
+      animation: telop-slam 0.5s cubic-bezier(0.2,0.9,0.3,1.3) both;
+    }
+    .result-screen__title--rainbow {
+      background: linear-gradient(90deg, #ff6b9d, #ffb347, #ffe066, #6ecbf0, #b497f5, #ff6b9d);
+      background-size: 300% auto;
+      -webkit-background-clip: text;
+              background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation:
+        telop-slam 0.5s cubic-bezier(0.2,0.9,0.3,1.3) both,
+        rainbow-bg 2s linear 0.5s infinite;
+    }
+    .result-screen__score .score-bar__slot {
+      opacity: 0;
+      scale: 0.5;
+      transition: opacity 0.25s ease, scale 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .result-screen__score .score-bar__slot--reveal {
+      opacity: 1;
+      scale: 1;
+    }
+    .sticker-selector,
+    .result-screen__actions {
+      opacity: 0;
+      translate: 0 14px;
+      pointer-events: none;
+      transition: opacity 0.4s ease, translate 0.45s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .sticker-selector--in,
+    .result-screen__actions--in {
+      opacity: 1;
+      translate: 0 0;
+      pointer-events: auto;
+    }
+
+    /* シールのめくり（裏＝キラ地の「?」→表＝実画像）
+       2段階の scaleX で擬似的にめくる。preserve-3d＋backface-visibility 方式は
+       WebKit（Playwright）で裏面が消えず、本番iPadで試せないため3D機能に頼らない形にした（2026-08-21） */
+    .sticker-card { position: relative; }
+    .sticker-card__inner { position: relative; }
+    /* scaleX(0) ちょうど（逆行列の無い行列）は WebKit が潰さず元のサイズで描くことがあるので
+       0.01 に留め、opacity でも確実に隠す（2026-08-21 実測） */
+    .sticker-card__front {
+      transform: scaleX(0.01);
+      opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0s linear;
+    }
+    .sticker-card__back {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, #ffb3d9, #ffe600, #3ee8ff, #c39bff, #ff3ea5, #b5f0c8, #ffb3d9);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-size: 44px;
+      color: #fff;
+      text-shadow: 2px 2px 0 var(--deep);
+      border: 4px solid #fff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      transform: scaleX(1);
+      opacity: 1;
+      transition: transform 0.3s ease-in, opacity 0s linear 0.3s;
+    }
+    .sticker-card--flipped .sticker-card__front { transform: scaleX(1); opacity: 1; transition-delay: 0.3s; }
+    .sticker-card--flipped .sticker-card__back  { transform: scaleX(0.01); opacity: 0; }
+
+    /* キラ帯（メタリック地に光が流れる。シールの形にマスク） */
+    .sticker__shine {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      -webkit-mask-size: contain;   mask-size: contain;
+      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+      -webkit-mask-position: center; mask-position: center;
+      background: linear-gradient(115deg,
+        rgba(255,255,255,0) 32%,
+        rgba(255,190,255,0.35) 43%,
+        rgba(255,255,255,0.9) 50%,
+        rgba(170,255,255,0.35) 57%,
+        rgba(255,255,255,0) 68%);
+      background-size: 300% 100%;
+      opacity: 0.85;
+      animation: shine-sweep 2.6s ease-in-out infinite;
+    }
+    @keyframes shine-sweep {
+      0%        { background-position: 100% 50%; }
+      65%, 100% { background-position: 0% 50%; }
+    }
+
+    /* 選んだシールが確定枠へ飛ぶ */
+    .fly-sticker {
+      position: fixed;
+      left: 0; top: 0;
+      z-index: 96;
+      pointer-events: none;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 10px rgba(42,11,74,0.35));
+    }
+    .sticker--pop { animation: pop-any 0.45s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes pop-any {
+      0%   { scale: 0.7; }
+      60%  { scale: 1.18; }
+      100% { scale: 1; }
+    }
+
+    /* ---- タイトル ---- */
+    /* ロゴを行ごとにぷるんと跳ねさせる */
+    .title-screen__logo-main .lg {
+      display: inline-block;
+      color: inherit;
+      animation: logo-wave 2.8s ease-in-out infinite;
+      animation-delay: calc(var(--i) * 0.18s);
+    }
+    @keyframes logo-wave {
+      0%, 66%, 100% { translate: 0 0; scale: 1; }
+      76% { translate: 0 -12px; scale: 1.06; }
+      86% { translate: 0 3px; scale: 0.97; }
+    }
+    /* スタートボタン：シャイン＋たまに跳ねる */
+    .btn--attention {
+      position: relative;
+      overflow: hidden;
+      animation: btn-attention 3.2s ease-in-out infinite;
+    }
+    .btn--attention::after {
+      content: '';
+      position: absolute;
+      top: -30%; bottom: -30%;
+      width: 26%;
+      left: -40%;
+      background: linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0) 100%);
+      transform: skewX(-20deg);
+      pointer-events: none;
+      animation: btn-shine 3.2s ease-in-out infinite;
+    }
+    @keyframes btn-attention {
+      0%, 100% { scale: 1; translate: 0 0; rotate: 0deg; }
+      10%  { scale: 1.04; }
+      20%  { scale: 1; }
+      70%  { translate: 0 0; rotate: 0deg; }
+      76%  { translate: 0 -12px; rotate: -2deg; }
+      82%  { translate: 0 0; rotate: 2deg; }
+      88%  { rotate: 0deg; }
+    }
+    @keyframes btn-shine {
+      0%, 30%   { left: -40%; }
+      60%, 100% { left: 130%; }
+    }
+
+    /* ---- iPad縦：演出パーツも拡大 ---- */
+    @media (min-width: 700px) and (orientation: portrait) {
+      .fly-mark { width: 100px; height: 100px; margin: -50px 0 0 -50px; font-size: 52px; border-width: 4px; }
+      .sweat { width: 44px; height: 44px; margin: -22px 0 0 -22px; border-width: 4px; }
+      .sticker-card__back { font-size: 84px; border-width: 6px; }
+      .speed-lines { background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0) 0deg 4deg, rgba(255,255,255,0.36) 4deg 5.2deg); }
+    }
   </style>
 </head>
 <body>
@@ -1791,6 +2155,12 @@
 <!-- ラウンドフラッシュ -->
 <div class="round-flash" id="round-flash"></div>
 
+<!-- 演出レイヤー（2026-08-20）: 粒子Canvas／画面縁／集中線／負けの沈み -->
+<canvas class="fx-canvas" id="fx-canvas" aria-hidden="true"></canvas>
+<div class="edge-fx" id="edge-fx" aria-hidden="true"></div>
+<div class="speed-lines" id="speed-lines" aria-hidden="true"></div>
+<div class="lose-tint" id="lose-tint" aria-hidden="true"></div>
+
 <div class="app" id="app">
 
   <!-- ============================================================
@@ -1805,8 +2175,8 @@
     <div class="title-screen__top">
       <div class="title-screen__logo">
         <div class="title-screen__logo-main">
-          ぽちゃもん<br>
-          あっちむいて<span>びろーん</span>
+          <span class="lg" style="--i:0">ぽちゃもん</span><br>
+          <span class="lg" style="--i:1">あっちむいて<span>びろーん</span></span>
         </div>
       </div>
     </div>
@@ -1826,7 +2196,7 @@
       </div>
 
       <div class="title-screen__cta">
-        <button class="btn btn--primary btn--pulse" id="btn-start" aria-label="ゲームスタート 200円">
+        <button class="btn btn--primary btn--attention" id="btn-start" aria-label="ゲームスタート 200円">
           スタート ¥200
         </button>
       </div>
@@ -1990,6 +2360,215 @@
   window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
 
   // ============================================================
+  // 演出モジュール FX（2026-08-20 追加）
+  //   - Canvas 粒子（burst=爆ぜる／rain=降る）
+  //   - 画面揺れ shake／ズームパンチ punch
+  //   - 飛ぶ◯✕ flyMark／シールが確定枠へ飛ぶ flyImage／汗 sweat
+  //   外部ライブラリ無し（オフラインPWAのため）
+  // ============================================================
+  const FX = (() => {
+    const canvas = document.getElementById('fx-canvas');
+    const ctx = canvas.getContext('2d');
+    const app = document.getElementById('app');
+    let W = 0, H = 0, particles = [], running = false, last = 0;
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', () => setTimeout(resize, 350));
+
+    const COLORS = ['#FF3EA5', '#FFE600', '#3EE8FF', '#B14BFF', '#FF4DF6', '#B5F0C8', '#ffffff'];
+    const MAX_PARTICLES = 260; // iPad Safari での負荷上限
+
+    function spawn(p) {
+      if (particles.length >= MAX_PARTICLES) particles.shift();
+      particles.push(p);
+      if (!running) { running = true; last = performance.now(); requestAnimationFrame(tick); }
+    }
+
+    function drawStar(r) {
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const rr = (i % 2) ? r * 0.45 : r;
+        const a = i * Math.PI / 5 - Math.PI / 2;
+        ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function tick(now) {
+      const dt = Math.min(40, now - last) / 16.667; // 60fps基準の倍率
+      last = now;
+      ctx.clearRect(0, 0, W, H);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life += dt * 16.667;
+        if (p.life >= p.ttl) { particles.splice(i, 1); continue; }
+        p.vy += p.g * dt;
+        const drag = Math.pow(p.drag, dt);
+        p.vx *= drag; p.vy *= drag;
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        p.rot += p.vr * dt;
+        const t = p.life / p.ttl;
+        ctx.globalAlpha = t > 0.7 ? 1 - (t - 0.7) / 0.3 : 1;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        if (p.shape === 'rect') {
+          ctx.scale(1, Math.cos(p.life / 90 + p.seed)); // ひらひら
+          ctx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.66);
+        } else if (p.shape === 'circle') {
+          ctx.beginPath(); ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2); ctx.fill();
+        } else {
+          drawStar(p.size / 2);
+        }
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+      if (particles.length) requestAnimationFrame(tick);
+      else { running = false; ctx.clearRect(0, 0, W, H); }
+    }
+
+    // 1点から爆ぜる
+    function burst(x, y, opt) {
+      opt = opt || {};
+      const n = opt.count || 90;
+      const colors = opt.colors || COLORS;
+      const baseAngle = (opt.angle !== undefined) ? opt.angle : -Math.PI / 2;
+      const spread = (opt.spread !== undefined) ? opt.spread : Math.PI * 1.3;
+      const starRatio = (opt.starRatio !== undefined) ? opt.starRatio : 0.25;
+      for (let i = 0; i < n; i++) {
+        const ang = baseAngle + (Math.random() - 0.5) * spread;
+        const sp = (opt.speed || 14) * (0.4 + Math.random() * 0.8);
+        const r = Math.random();
+        spawn({
+          x: x, y: y,
+          vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+          g: (opt.gravity !== undefined) ? opt.gravity : 0.35,
+          drag: 0.96,
+          rot: Math.random() * Math.PI * 2, vr: (Math.random() - 0.5) * 0.3,
+          size: (opt.size || 12) * (0.6 + Math.random() * 0.8),
+          color: colors[Math.floor(Math.random() * colors.length)],
+          shape: r < starRatio ? 'star' : (r < starRatio + (1 - starRatio) / 2 ? 'rect' : 'circle'),
+          life: 0, ttl: (opt.ttl || 1400) * (0.7 + Math.random() * 0.6),
+          seed: Math.random() * 10
+        });
+      }
+    }
+
+    // 上から降る（パーフェクト）
+    function rain(opt) {
+      opt = opt || {};
+      const n = opt.count || 140, dur = opt.duration || 1800;
+      for (let i = 0; i < n; i++) {
+        setTimeout(() => spawn({
+          x: Math.random() * W, y: -20,
+          vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random() * 3,
+          g: 0.12, drag: 0.995,
+          rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.25,
+          size: 10 + Math.random() * 10,
+          color: COLORS[i % COLORS.length],
+          shape: Math.random() < 0.2 ? 'star' : 'rect',
+          life: 0, ttl: 3400, seed: Math.random() * 10
+        }), Math.random() * dur);
+      }
+    }
+
+    // 画面揺れ（#app を translate で小刻みに）
+    let shakeUntil = 0, shakeAmp = 0, shakeDur = 1, shaking = false;
+    function shake(amp, dur) {
+      shakeAmp = amp || 8; shakeDur = dur || 320;
+      shakeUntil = performance.now() + shakeDur;
+      if (!shaking) { shaking = true; requestAnimationFrame(shakeTick); }
+    }
+    function shakeTick(now) {
+      if (now >= shakeUntil) { app.style.translate = ''; shaking = false; return; }
+      const a = shakeAmp * Math.min(1, (shakeUntil - now) / shakeDur);
+      app.style.translate = ((Math.random() - 0.5) * 2 * a) + 'px ' + ((Math.random() - 0.5) * 2 * a) + 'px';
+      requestAnimationFrame(shakeTick);
+    }
+
+    // ズームパンチ（一瞬寄って戻る）
+    function punch() {
+      app.classList.remove('app--punch');
+      void app.offsetWidth;
+      app.classList.add('app--punch');
+    }
+
+    function centerOf(el) {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+
+    // ◯✕がキャラ位置からスコアバーへ山なりに飛ぶ
+    function flyMark(isWin, fromEl, toEl) {
+      return new Promise((resolve) => {
+        const m = document.createElement('div');
+        m.className = 'fly-mark ' + (isWin ? 'fly-mark--win' : 'fly-mark--lose');
+        m.textContent = isWin ? '◯' : '✕';
+        document.body.appendChild(m);
+        if (!m.animate) { m.remove(); resolve(); return; }
+        const a = centerOf(fromEl), b = centerOf(toEl);
+        const mx = (a.x + b.x) / 2, my = Math.min(a.y, b.y) - 110;
+        const anim = m.animate([
+          { transform: 'translate(' + a.x + 'px,' + a.y + 'px) scale(0.4)', opacity: 0 },
+          { transform: 'translate(' + a.x + 'px,' + (a.y - 40) + 'px) scale(1.6)', opacity: 1, offset: 0.28 },
+          { transform: 'translate(' + mx + 'px,' + my + 'px) scale(1.2)', opacity: 1, offset: 0.62 },
+          { transform: 'translate(' + b.x + 'px,' + b.y + 'px) scale(0.7)', opacity: 1 }
+        ], { duration: isWin ? 520 : 440, easing: 'cubic-bezier(0.4,0,0.6,1)' });
+        anim.onfinish = () => { m.remove(); resolve(); };
+      });
+    }
+
+    // 画像が fromEl の位置から toEl の位置へ飛ぶ（FLIP）
+    function flyImage(fromEl, toEl, src, done) {
+      const a = fromEl.getBoundingClientRect(), b = toEl.getBoundingClientRect();
+      const img = document.createElement('img');
+      img.src = src;
+      img.className = 'fly-sticker';
+      img.style.width = a.width + 'px';
+      img.style.height = a.height + 'px';
+      document.body.appendChild(img);
+      if (!img.animate) { img.remove(); done && done(); return; }
+      const sx = b.width / a.width;
+      const anim = img.animate([
+        { transform: 'translate(' + a.left + 'px,' + a.top + 'px) scale(1)' },
+        { transform: 'translate(' + (b.left + (b.width - a.width) / 2) + 'px,' + (b.top + (b.height - a.height) / 2) + 'px) scale(' + sx + ')' }
+      ], { duration: 450, easing: 'cubic-bezier(0.3,0.8,0.3,1.15)' });
+      anim.onfinish = () => { img.remove(); done && done(); };
+    }
+
+    // 汗マーク（キャラの右上あたり）
+    function sweat(el) {
+      const r = el.getBoundingClientRect();
+      const s = document.createElement('div');
+      s.className = 'sweat';
+      s.style.left = (r.left + r.width * 0.66) + 'px';
+      s.style.top = (r.top + r.height * 0.36) + 'px';
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 900);
+    }
+
+    // 要素を「ぽん」と弾ませる
+    function pop(el) {
+      el.classList.remove('sticker--pop');
+      void el.offsetWidth;
+      el.classList.add('sticker--pop');
+    }
+
+    return { burst, rain, shake, punch, centerOf, flyMark, flyImage, sweat, pop, COLORS };
+  })();
+
+
+  // ============================================================
   // 管理画面 設定（localStorage 永続化）
   //   stickers: { id => { weight: 0-100, enabled: bool } }
   //   - weight: 抽選の重み（0 or enabled=false で抽選対象から除外）
@@ -2128,29 +2707,51 @@
     playingScreen:    document.getElementById('screen-playing'),
     resultScreen:     document.getElementById('screen-result'),
     bgParticles:      document.getElementById('bg-particles'),
+    // 演出レイヤー
+    app:              document.getElementById('app'),
+    edgeFx:           document.getElementById('edge-fx'),
+    speedLines:       document.getElementById('speed-lines'),
+    loseTint:         document.getElementById('lose-tint'),
+    resultActions:    document.querySelector('.result-screen__actions'),
   };
 
   // ============================================================
   // 画面遷移
   // ============================================================
-  function showScreen(name) {
-    Object.entries(screens).forEach(([key, el]) => {
-      if (key === name) {
-        el.classList.add('screen--active');
-      } else {
-        el.classList.remove('screen--active');
-      }
-    });
+  // origin={x,y} を渡すとその点から円が広がるアイリスワイプで切替（無ければ従来のフェード）
+  function showScreen(name, origin) {
+    const next = screens[name];
     game.state = name;
+    const prevActive = Object.values(screens).filter(el => el !== next && el.classList.contains('screen--active'));
+    if (!origin || !next.animate || prevActive.length === 0) {
+      Object.entries(screens).forEach(([key, el]) => {
+        el.classList.toggle('screen--active', key === name);
+      });
+      return;
+    }
+    const x = origin.x, y = origin.y;
+    const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)) + 24;
+    next.classList.add('screen--wiping', 'screen--active');
+    const anim = next.animate([
+      { clipPath: 'circle(0px at ' + x + 'px ' + y + 'px)' },
+      { clipPath: 'circle(' + r + 'px at ' + x + 'px ' + y + 'px)' }
+    ], { duration: 600, easing: 'cubic-bezier(0.3,0.7,0.2,1)' });
+    const finish = () => {
+      next.classList.remove('screen--wiping');
+      prevActive.forEach(el => el.classList.remove('screen--active'));
+    };
+    anim.onfinish = finish;
+    anim.oncancel = finish;
   }
 
   // ============================================================
   // スコアバー更新
   // ============================================================
-  function updateScoreBar() {
+  // pendingIndex のスロットは「飛んでくる◯✕」の着弾まで未消化表示のまま
+  function updateScoreBar(pendingIndex) {
     dom.scoreSlots.forEach((slot, i) => {
       slot.className = 'score-bar__slot';
-      if (i < game.scores.length) {
+      if (i < game.scores.length && i !== pendingIndex) {
         const r = game.scores[i];
         if (r === 'win') {
           slot.textContent = '◯';
@@ -2336,6 +2937,7 @@
 
     updateScoreBar();
     dom.playingScreen.classList.remove('playing-screen--perfect');
+    clearPhaseFx();
     setPochamonGif('idle');
     setButtonsEnabled(false);
   }
@@ -2360,9 +2962,13 @@
     // 5戦目のラストチャンス演出
     if (game.round === 4) {
       showTelop('ラストチャンス！', 'telop--lastchance', false);
+      // 縁が赤く脈打つ＋集中線＋着地の揺れ
+      dom.edgeFx.className = 'edge-fx edge-fx--last';
+      dom.speedLines.classList.add('speed-lines--on');
+      setTimeout(() => FX.shake(7, 240), 260);
       setTimeout(() => {
         startAcchiPhase();
-      }, 900);
+      }, 1000);
     } else {
       // 通常は少し間を置いてから開始
       setTimeout(() => {
@@ -2383,11 +2989,32 @@
 
     showTelop('あっち むいて', 'telop--acchi', true);
 
+    // 四隅を暗くして中央に集中（5戦目は赤脈動のまま）
+    if (game.round !== 4) dom.edgeFx.className = 'edge-fx edge-fx--vignette';
+
     // ボタン受付開始（テロップ表示後すぐ、誤タップ防止に300ms猶予）
     setTimeout(() => {
       game.acceptingInput = true;
       setButtonsEnabled(true);
+      setChoiceBeat(true);
     }, 300);
+  }
+
+  // 待ち中のボタン鼓動 ON/OFF（5戦目は速い）
+  function setChoiceBeat(on) {
+    const fast = game.round === 4;
+    [dom.btnPyon, dom.btnBiron].forEach(b => {
+      b.classList.toggle('choice-btn--beat', on && !fast);
+      b.classList.toggle('choice-btn--beat-fast', on && fast);
+    });
+  }
+
+  // 待ち・ラストの縁演出をまとめて消す
+  function clearPhaseFx() {
+    dom.edgeFx.className = 'edge-fx';
+    dom.speedLines.classList.remove('speed-lines--on');
+    dom.loseTint.classList.remove('lose-tint--on');
+    setChoiceBeat(false);
   }
 
   // ============================================================
@@ -2407,21 +3034,33 @@
 
     // showTelop('ホイッ！', 'telop--hoi', false); // 2026-06-06: 「ホイッ」文字は手描き画像に置換のため一旦非表示
     hideTelop(); // 2026-06-06: ボタン押下時に「あっちむいて」文字を非表示（GIF切替時の手描き文字との被り防止）
-    triggerFlash();
+    setChoiceBeat(false);
+    dom.edgeFx.className = 'edge-fx';
+    dom.speedLines.classList.remove('speed-lines--on');
 
-    // タップ即時にアクションGIFへ切替（idle境界待ちは応答性優先で撤廃 2026-05-22）
-    // ダブルバッファの2rAF切替で継ぎ目はほぼ見えない
-    (async () => {
-      // awaitで decode完了を待ってから duration計測（表示開始タイミング基準）
-      await setPochamonGif(action);
-      // B/C 完走後 → idle 復帰 → 結果テロップ
-      // -60ms マージン: idle復帰のdecode/paint待ち時間中にB/C GIFが2周目に入るのを防ぐ
-      const ACTION_END_MARGIN = 60;
-      setTimeout(async () => {
-        await setPochamonGif('idle');
-        judgeRound(isWin);
-      }, POCHAMON_GIFS[action].duration - ACTION_END_MARGIN);
-    })();
+    // ヒットストップ: 70ms だけ画面を止めて（少し寄せて）から、フラッシュ＋揺れと同時にGIF再生
+    const HITSTOP_MS = 70;
+    dom.app.classList.add('app--hitstop');
+    setTimeout(() => {
+      dom.app.classList.remove('app--hitstop');
+      triggerFlash();
+      FX.punch();
+      FX.shake(7, 260);
+
+      // タップ即時にアクションGIFへ切替（idle境界待ちは応答性優先で撤廃 2026-05-22）
+      // ダブルバッファの2rAF切替で継ぎ目はほぼ見えない
+      (async () => {
+        // awaitで decode完了を待ってから duration計測（表示開始タイミング基準）
+        await setPochamonGif(action);
+        // B/C 完走後 → idle 復帰 → 結果テロップ
+        // -60ms マージン: idle復帰のdecode/paint待ち時間中にB/C GIFが2周目に入るのを防ぐ
+        const ACTION_END_MARGIN = 60;
+        setTimeout(async () => {
+          await setPochamonGif('idle');
+          judgeRound(isWin);
+        }, POCHAMON_GIFS[action].duration - ACTION_END_MARGIN);
+      })();
+    }, HITSTOP_MS);
   }
 
   // ============================================================
@@ -2440,7 +3079,8 @@
       game.consecutiveWins = 0;
     }
 
-    updateScoreBar();
+    const slotIndex = game.scores.length - 1;
+    updateScoreBar(slotIndex); // 最新スロットは◯✕が飛んで着弾するまで保留
 
     // テロップ決定
     let telopText, telopClass;
@@ -2451,32 +3091,62 @@
         telopClass = 'telop--combo';
       } else {
         telopText  = 'やった！';
-        telopClass = 'telop--win';
+        telopClass = 'telop--win telop--pop';
       }
     } else {
       if (game.consecutiveLoses >= 2) {
         telopText  = 'がんばれ〜！';
-        telopClass = 'telop--gambare';
+        telopClass = 'telop--gambare telop--drop';
       } else {
         telopText  = 'ちーん';
-        telopClass = 'telop--lose';
+        telopClass = 'telop--lose telop--drop';
       }
     }
 
     showTelop(telopText, telopClass, false);
 
-    // 0.8秒後に次ラウンド
+    // 勝ち：キャラから紙吹雪＋寄り／連勝は縁も光る。負け：青白く沈む＋汗＋小揺れ
+    const ph = dom.pochamonPH;
+    const c = FX.centerOf(ph);
+    if (isWin) {
+      const combo = game.consecutiveWins >= 2;
+      FX.burst(c.x, c.y + ph.getBoundingClientRect().height * 0.05, {
+        count: combo ? 150 : 95,
+        speed: combo ? 18 : 14,
+        size: combo ? 14 : 12
+      });
+      FX.punch();
+      if (combo) dom.edgeFx.className = 'edge-fx edge-fx--combo';
+    } else {
+      dom.loseTint.classList.add('lose-tint--on');
+      FX.sweat(ph);
+      FX.shake(4, 200);
+    }
+
+    // ◯✕がキャラからスコアバーへ飛んで着弾
+    FX.flyMark(isWin, ph, dom.scoreSlots[slotIndex]).then(() => {
+      updateScoreBar();
+      const s = dom.scoreSlots[slotIndex];
+      s.classList.add(isWin ? 'score-bar__slot--pop' : 'score-bar__slot--shake');
+      if (isWin) {
+        const sc = FX.centerOf(s);
+        FX.burst(sc.x, sc.y, { count: 18, speed: 6, size: 7, ttl: 700, gravity: 0.25, spread: Math.PI * 2 });
+      }
+    });
+
+    // 余韻のあと次ラウンド（勝ち1.0秒／負け0.9秒）
     setTimeout(() => {
       game.round++;
       game.animationLock = false;
       hideTelop();
+      clearPhaseFx();
 
       if (game.round >= 5) {
         endGame();
       } else {
         startRound();
       }
-    }, 800);
+    }, isWin ? 1000 : 900);
   }
 
   // ============================================================
@@ -2490,20 +3160,69 @@
     // パーフェクト演出
     if (isPerfect) {
       dom.playingScreen.classList.add('playing-screen--perfect');
-      launchSparkles();
+      FX.rain({ count: 170, duration: 1600 });
+      FX.shake(6, 300);
     }
 
-    // 少し間を置いてから結果画面へ
+    // 少し間を置いてから結果画面へ（キャラ中心から円が開く）
     setTimeout(() => {
       buildResultScreen(wins, loses, isPerfect);
-      showScreen(STATE.RESULT);
-    }, 600);
+      showScreen(STATE.RESULT, FX.centerOf(dom.pochamonPH));
+    }, isPerfect ? 900 : 600);
   }
 
   // ============================================================
   // 結果画面 組み立て
   // ============================================================
+  // 結果画面のタイマー（作り直し時に前回分を止める）
+  const RESULT_STICKER_DELAY = 1000;
+  const resultTimers = [];
+  function T(fn, ms) { resultTimers.push(setTimeout(fn, ms)); }
+  function clearResultTimers() { while (resultTimers.length) clearTimeout(resultTimers.pop()); }
+
+  // シール枠を delay 後に出し、めくりカードなら少し遅れて表にして小さく爆ぜる
+  function revealSlot(slot, delay) {
+    T(() => slot.classList.add('sticker-slot--visible'), delay);
+    const card = slot.querySelector('.sticker-card');
+    if (!card) return;
+    T(() => card.classList.add('sticker-card--flipped'), delay + 280);
+    T(() => {
+      const c = FX.centerOf(card);
+      FX.burst(c.x, c.y, { count: 24, speed: 7, size: 7, ttl: 800, spread: Math.PI * 2, gravity: 0.2 });
+    }, delay + 680);
+  }
+
+  // スコア→タイトル→（シールは各builderが revealSlot）→選択UI→ボタン の順に出す
+  function revealResultSequence(wins, isPerfect) {
+    const title = dom.resultTitle;
+    title.classList.remove('result-screen__title--slam', 'result-screen__title--rainbow');
+    dom.stickerSelector.classList.remove('sticker-selector--in');
+    dom.resultActions.classList.remove('result-screen__actions--in');
+
+    dom.resultScoreSlots.forEach((s, i) => T(() => {
+      s.classList.add('score-bar__slot--reveal');
+      if (game.scores[i] === 'win') {
+        const c = FX.centerOf(s);
+        FX.burst(c.x, c.y, { count: 10, speed: 5, size: 6, ttl: 600, spread: Math.PI * 2 });
+      }
+    }, 150 + i * 130));
+
+    T(() => {
+      title.classList.add(isPerfect ? 'result-screen__title--rainbow' : 'result-screen__title--slam');
+      FX.shake(wins >= 3 ? 6 : 3, 220);
+      if (wins >= 3) {
+        const c = FX.centerOf(title);
+        FX.burst(c.x, c.y, { count: 70, speed: 11, spread: Math.PI * 2 });
+      }
+      if (isPerfect) FX.rain({ count: 120, duration: 1500 });
+    }, 830);
+
+    T(() => dom.stickerSelector.classList.add('sticker-selector--in'), RESULT_STICKER_DELAY + 950);
+    T(() => dom.resultActions.classList.add('result-screen__actions--in'), RESULT_STICKER_DELAY + 1150);
+  }
+
   function buildResultScreen(wins, loses, isPerfect) {
+    clearResultTimers();
     // 仕様変更（2026-05-17）: 「PERFECT」バナー削除（特別シール誤解防止）。
     // 5勝でも追加報酬はなく、3枚配布のみ。虹色背景演出のみ残す。
     dom.resultScreen.classList.toggle('result-screen--perfect', isPerfect);
@@ -2533,6 +3252,7 @@
       dom.resultSub.classList.add('result-screen__sub--show');
       buildStickerAwardLoseAll();
       buildStickerSelector2();
+      revealResultSequence(wins, isPerfect);
       return;
     }
 
@@ -2562,6 +3282,8 @@
     if (wins < 3) {
       dom.resultSub.textContent = 'シール2枚ゲット！また挑戦してな！';
     }
+
+    revealResultSequence(wins, isPerfect);
   }
 
   // ランダム2枚シール表示（2勝以下）
@@ -2572,7 +3294,7 @@
     ids.forEach((id, i) => {
       const slot = createStickerSlot(id, false, '');
       dom.stickerAwardRow.appendChild(slot);
-      setTimeout(() => slot.classList.add('sticker-slot--visible'), 200 + i * 200);
+      revealSlot(slot, RESULT_STICKER_DELAY + i * 260);
     });
   }
 
@@ -2598,15 +3320,42 @@
     ids.forEach((id, i) => {
       const slot = createStickerSlot(id, false, '');
       dom.stickerAwardRow.appendChild(slot);
-      setTimeout(() => slot.classList.add('sticker-slot--visible'), 200 + i * 200);
+      revealSlot(slot, RESULT_STICKER_DELAY + i * 260);
     });
 
     // 選択枠を最後に追加
     dom.stickerAwardRow.appendChild(choiceSlot);
-    setTimeout(() => choiceSlot.classList.add('sticker-slot--visible'), 600);
+    revealSlot(choiceSlot, RESULT_STICKER_DELAY + ids.length * 260);
   }
 
-  // シールスロット生成
+  function stickerSrc(id) {
+    return 'assets/sticker_' + String(id).padStart(2, '0') + '.png';
+  }
+
+  // キラ帯（シールの形に -webkit-mask でくり抜く）
+  function makeShine(id) {
+    const s = document.createElement('div');
+    s.className = 'sticker__shine';
+    const u = 'url("' + stickerSrc(id) + '")';
+    s.style.webkitMaskImage = u;
+    s.style.maskImage = u;
+    return s;
+  }
+
+  // シール表面（実画像＋キラ帯）
+  function makeStickerFace(id) {
+    const sticker = document.createElement('div');
+    sticker.className = 'sticker sticker--img sticker--' + id;
+    const img = document.createElement('img');
+    img.src = stickerSrc(id);
+    img.alt = 'シール' + id;
+    img.className = 'sticker__pic';
+    sticker.appendChild(img);
+    sticker.appendChild(makeShine(id));
+    return sticker;
+  }
+
+  // シールスロット生成（裏面「?」から表へめくれるカード）
   function createStickerSlot(id, isChoice, labelText) {
     const slot = document.createElement('div');
     slot.className = 'sticker-slot' + (isChoice ? ' sticker-slot--choice' : '');
@@ -2619,16 +3368,20 @@
       slot.appendChild(label);
     }
 
-    // シール本体（実画像）
-    const sticker = document.createElement('div');
-    sticker.className = 'sticker sticker--img sticker--' + id;
-    const img = document.createElement('img');
-    img.src = 'assets/sticker_' + String(id).padStart(2, '0') + '.png';
-    img.alt = 'シール' + id;
-    img.className = 'sticker__pic';
-    sticker.appendChild(img);
+    const card  = document.createElement('div');
+    card.className = 'sticker-card';
+    const inner = document.createElement('div');
+    inner.className = 'sticker-card__inner';
+    const front = makeStickerFace(id);
+    front.classList.add('sticker-card__front');
+    const back  = document.createElement('div');
+    back.className = 'sticker-card__back';
+    back.textContent = '?';
+    inner.appendChild(front);
+    inner.appendChild(back);
+    card.appendChild(inner);
 
-    slot.appendChild(sticker);
+    slot.appendChild(card);
     return slot;
   }
 
@@ -2672,24 +3425,31 @@
   }
 
   function selectSticker(id) {
+    const prevId = game.selectedStickerId;
     game.selectedStickerId = id;
     // グリッドの選択状態更新
     document.querySelectorAll('.sticker-selector__item').forEach(item => {
       item.classList.toggle('sticker-selector__item--selected', parseInt(item.dataset.id) === id);
     });
-    // 選択シール確定枠を更新（？マーク→画像）
+    // 選択シール確定枠を更新（「選択中」→画像）。候補から飛んで入る
     const preview = document.getElementById('choice-sticker-display');
-    if (preview) {
+    if (!preview) return;
+    const apply = () => {
       preview.className = 'sticker sticker--img sticker--' + id;
       preview.style.background = '';
       preview.style.border = '';
       preview.innerHTML = '';
       const img = document.createElement('img');
-      img.src = 'assets/sticker_' + String(id).padStart(2, '0') + '.png';
+      img.src = stickerSrc(id);
       img.alt = 'シール' + id;
       img.className = 'sticker__pic';
       preview.appendChild(img);
-    }
+      preview.appendChild(makeShine(id));
+      FX.pop(preview);
+    };
+    const fromEl = document.querySelector('.sticker-selector__item[data-id="' + id + '"] .sticker-selector__sticker');
+    if (fromEl && prevId !== id) FX.flyImage(fromEl, preview, stickerSrc(id), apply);
+    else apply();
   }
 
   // ============================================================
@@ -2713,7 +3473,7 @@
       circle.appendChild(label);
       slot.appendChild(circle);
       dom.stickerAwardRow.appendChild(slot);
-      setTimeout(() => slot.classList.add('sticker-slot--visible'), 200 + i * 200);
+      revealSlot(slot, RESULT_STICKER_DELAY + i * 260);
     }
   }
 
@@ -2759,27 +3519,37 @@
 
   function selectSticker2(id) {
     const idx = game.selectedStickerIds.indexOf(id);
+    let added = false;
     if (idx !== -1) {
       // 既選択なら解除
       game.selectedStickerIds.splice(idx, 1);
-    } else if (game.selectedStickerIds.length < 2) {
-      // 2枚未満なら追加
-      game.selectedStickerIds.push(id);
     } else {
-      // 既に2枚: 古い方をFIFOで削除して新追加
-      game.selectedStickerIds.shift();
+      // 既に2枚なら古い方をFIFOで削除して新追加
+      if (game.selectedStickerIds.length >= 2) game.selectedStickerIds.shift();
       game.selectedStickerIds.push(id);
+      added = true;
     }
-    updateStickerSelector2UI();
+    const slotNo = added ? game.selectedStickerIds.indexOf(id) + 1 : 0;
+    updateStickerSelector2UI(slotNo);
+    if (!added) return;
+    // 追加した1枚だけ候補から確定枠へ飛ばす
+    const fromEl = document.querySelector('.sticker-selector__item[data-id="' + id + '"] .sticker-selector__sticker');
+    const target = document.getElementById('choice-sticker-display-' + slotNo);
+    if (fromEl && target) {
+      FX.flyImage(fromEl, target, stickerSrc(id), () => { updateChoiceSlotDisplay(slotNo, id); FX.pop(target); });
+    } else {
+      updateChoiceSlotDisplay(slotNo, id);
+    }
   }
 
-  function updateStickerSelector2UI() {
+  // skipSlotNo の枠は（飛んでくる途中なので）ここでは触らない
+  function updateStickerSelector2UI(skipSlotNo) {
     document.querySelectorAll('.sticker-selector__item').forEach(item => {
       const id = parseInt(item.dataset.id);
       item.classList.toggle('sticker-selector__item--selected', game.selectedStickerIds.indexOf(id) !== -1);
     });
-    updateChoiceSlotDisplay(1, game.selectedStickerIds[0]);
-    updateChoiceSlotDisplay(2, game.selectedStickerIds[1]);
+    if (skipSlotNo !== 1) updateChoiceSlotDisplay(1, game.selectedStickerIds[0]);
+    if (skipSlotNo !== 2) updateChoiceSlotDisplay(2, game.selectedStickerIds[1]);
   }
 
   function updateChoiceSlotDisplay(slotNo, id) {
@@ -2796,16 +3566,17 @@
       target.appendChild(label);
       return;
     }
-    // 選択済み: 画像表示
+    // 選択済み: 画像表示（キラ帯つき）
     target.className = 'sticker sticker--img sticker--' + id;
     target.style.background = '';
     target.style.border = '';
     target.innerHTML = '';
     const img = document.createElement('img');
-    img.src = 'assets/sticker_' + String(id).padStart(2, '0') + '.png';
+    img.src = stickerSrc(id);
     img.alt = 'シール' + id;
     img.className = 'sticker__pic';
     target.appendChild(img);
+    target.appendChild(makeShine(id));
   }
 
   // ============================================================
@@ -2844,7 +3615,7 @@
 
   function startGameFromTitle() {
     initGame();
-    showScreen(STATE.PLAYING);
+    showScreen(STATE.PLAYING, FX.centerOf(document.getElementById('btn-start')));
     // 少し間を置いてからラウンド開始
     setTimeout(() => startRound(), 400);
   }
@@ -2904,14 +3675,14 @@
     dom.resultScreen.classList.remove('result-screen--perfect');
     dom.playingScreen.classList.remove('playing-screen--perfect');
     initGame();
-    showScreen(STATE.PLAYING);
+    showScreen(STATE.PLAYING, FX.centerOf(dom.btnRetryResult));
     setTimeout(() => startRound(), 400);
   }
 
   function goBackToTitle() {
     dom.resultScreen.classList.remove('result-screen--perfect');
     dom.playingScreen.classList.remove('playing-screen--perfect');
-    showScreen(STATE.TITLE);
+    showScreen(STATE.TITLE, FX.centerOf(dom.btnBackToTitle));
   }
 
   // ============================================================
