@@ -232,20 +232,11 @@ section{ position:relative; padding:110px 24px 130px; }
 }
 .hero__inner{ position:relative; z-index:2; width:100%; max-width:1080px; }
 /* ロゴ画像：ふわふわ浮く＋マウスで少し傾く（3D）＋光が走る */
-.logo{
-  display:inline-block; position:relative;
-  perspective:900px;
-}
-.logo__tilt{
-  position:relative; display:block;
-  transform-style:preserve-3d;
-  transform:rotateX(var(--lrx,0deg)) rotateY(var(--lry,0deg));  /* マウスで少し傾くだけ。常時の浮遊はしない */
-  will-change:transform;
-}
-.logo__img, .logo__svg{
-  width:min(80vw, 560px); height:auto; display:block;
-  filter:drop-shadow(0 6px 0 rgba(0,0,0,.16)) drop-shadow(0 14px 24px rgba(0,40,90,.18));
-}
+/* ロゴは素のSVGのまま置く（3D変形・影・will-change を付けるとブラウザがビットマップに焼いてぼやける／
+   スクロールで層が作り直された時に中身が消えることがあった） */
+.logo{ display:inline-block; position:relative; }
+.logo__tilt{ position:relative; display:block; }
+.logo__img, .logo__svg{ width:min(80vw, 560px); height:auto; display:block; }
 .logo__svg{ overflow:visible; }
 /* 1文字ずつ順番に飛び込んでくる（最初の1回だけ。JSが logo.svg を読み込んで文字ごとに --i を振る）
    ローディングの星が開いた合図（body.revealed）で始まる */
@@ -1025,20 +1016,6 @@ if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
   }).catch(err=>console.warn('ロゴSVGの読み込みに失敗', err));
 }
 
-// ===== ヒーロー：ロゴがマウスの位置で少し傾く（PCのみ） =====
-if(matchMedia('(hover:hover) and (pointer:fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches){
-  const lt=document.getElementById('logoTilt');
-  let lx=0, ly=0, tx=0, ty=0;
-  addEventListener('mousemove',e=>{
-    tx=(e.clientY/innerHeight-.5)*-14; ty=(e.clientX/innerWidth-.5)*18;
-  },{passive:true});
-  (function loop(){
-    lx+=(tx-lx)*.06; ly+=(ty-ly)*.06;
-    lt.style.setProperty('--lrx', lx.toFixed(2)+'deg'); lt.style.setProperty('--lry', ly.toFixed(2)+'deg');
-    requestAnimationFrame(loop);
-  })();
-}
-
 // ブロブ・月も遠近パララックスに参加（data-depth：大きい＝手前＝よく動く）
 document.querySelectorAll('.bg [data-depth]').forEach(el=>{
   parts.push({el, depth:+el.dataset.depth});
@@ -1111,7 +1088,9 @@ document.getElementById('marquee').addEventListener('touchstart',function(){
 const themeIO=new IntersectionObserver(es=>{
   es.forEach(en=>{
     if(en.isIntersecting){
-      document.body.className=en.target.dataset.theme;
+      // className を丸ごと書き換えると revealed 等の別クラスまで消える（ロゴが消えるバグの原因だった）ので足し引きで
+      document.body.classList.remove('theme-blue','theme-teal','theme-green','theme-purple','theme-orange','theme-pink');
+      document.body.classList.add(en.target.dataset.theme);
       document.body.dataset.fx=en.target.dataset.fx||'sparkle';   // 背景エフェクトの種類（bgfx.js が見る）
     }
   });
@@ -1296,10 +1275,12 @@ else{
     sio.disconnect();
     let E; try{ E=await getEngine(); }catch(err){ console.warn('3Dカードの読み込みに失敗', err); stages.forEach(showFallback); return; }
     if(!E.webglOk()){ stages.forEach(showFallback); return; }
+    // 2枚を同時に作らず順番に（1枚ぶんの画像デコードとシェーダー準備が終わってから次へ）。スクロール中の固まりを避ける
     for(const stage of stages){
       const spec=E.FULLART.find(c=>c.id===stage.dataset.card);
       const m=E.mountCard(stage.querySelector('canvas'),{fill:.88});
-      m.load(spec).catch(err=>{ console.warn(err); m.dispose(); showFallback(stage); });
+      try{ await m.load(spec); }catch(err){ console.warn(err); m.dispose(); showFallback(stage); }
+      await new Promise(r=>setTimeout(r, 350));
     }
     const gb=document.getElementById('gyroBtn');
     if(E.gyroAvailable){
@@ -1308,8 +1289,11 @@ else{
         if(await E.enableGyro()){ gb.classList.add('active'); gb.textContent='かたむきセンサー ON'; }
       });
     }
-  },{rootMargin:'600px 0px'});
+  },{rootMargin:'900px 0px'});
   stages.forEach(s=>sio.observe(s));
+  // Three.js 本体とカードのコードは、ページ表示後の暇な時間に先に取りに行っておく（700KB の読み込み・解析をスクロール中にしない）
+  const prefetch=()=>{ getEngine().catch(()=>{}); };
+  if('requestIdleCallback' in window) requestIdleCallback(prefetch,{timeout:6000}); else setTimeout(prefetch, 3000);
 }
 
 // --- 背景の粒子エフェクト（セクションの色ごとに種類が変わる）。ページの表示が終わってから読み込む ---

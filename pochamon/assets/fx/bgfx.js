@@ -115,13 +115,14 @@ void main(){
 }`;
 
 export function startBgFx(container, opts = {}) {
+  performance.mark('bgfx:start');
   const COUNT = opts.count ?? 150;   // 実際に見える数は KEEP（種類ごとの割合）でさらに絞られる
   const canvas = document.createElement('canvas');
   canvas.className = 'bgfx';
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;';
   container.appendChild(canvas);
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: 'low-power' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));   // 全画面キャンバスなので上限1.5（4Kで重くしない）
   renderer.setClearColor(0x000000, 0);
   const scene = new THREE.Scene();
   const camera = new THREE.Camera();
@@ -196,7 +197,7 @@ export function startBgFx(container, opts = {}) {
       if (u.uMix.value >= 1) { u.uModeA.value = u.uModeB.value; u.uColA.value.copy(u.uColB.value); u.uKeepA.value = u.uKeepB.value; u.uMix.value = 0; mixing = false; }
     }
     renderer.render(scene, camera);
-    canvas.dataset.ready = '1';
+    if (!canvas.dataset.ready) { canvas.dataset.ready = '1'; performance.mark('bgfx:first-frame'); }
   }
   raf = requestAnimationFrame(tick);
 

@@ -59,7 +59,7 @@ export function webglOk() {
 export function mountCard(canvas, opts = {}) {
   const fill = opts.fill ?? 0.86;     // canvas の高さに対するカードの高さ
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, stencil: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));   // 4K・高DPIで描画量が膨らみすぎないよう上限1.5
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.setClearColor(0x000000, 0);
 
@@ -101,7 +101,27 @@ export function mountCard(canvas, opts = {}) {
   async function load(spec) {
     const seq = ++loadSeq;
     await resolveAutoFit(spec);
+    performance.mark(`card:${spec.id}:create-start`);
     const next = await createCard(spec, renderer);
+    performance.mark(`card:${spec.id}:create-end`);
+    if (seq !== loadSeq || disposed) { next.dispose(); return; }
+    // シェーダーのコンパイルを先に非同期で済ませる（最初の描画で一斉にコンパイルすると画面が数百ms〜数秒止まる）
+    scene.add(next.group);
+    try { if (renderer.compileAsync) await renderer.compileAsync(scene, camera); } catch (e) { console.warn('compileAsync', e); }
+    performance.mark(`card:${spec.id}:compile-end`);
+    // 絵（テクスチャ）のGPUへの転送も先に1枚ずつ済ませる（放っておくと最初の描画で一気に送られ、画面が0.5秒ほど止まる）
+    const texs = new Set();
+    next.group.traverse(o => {
+      const m = o.material; if (!m) return;
+      if (m.map && m.map.isTexture) texs.add(m.map);
+      if (m.uniforms) for (const k in m.uniforms) { const v = m.uniforms[k].value; if (v && v.isTexture) texs.add(v); }
+    });
+    for (const t of texs) {
+      try { renderer.initTexture(t); } catch (e) { /* 古い three では無い */ }
+      await new Promise(r => setTimeout(r, 0));
+    }
+    performance.mark(`card:${spec.id}:upload-end`);
+    scene.remove(next.group);
     if (seq !== loadSeq || disposed) { next.dispose(); return; }
     if (card) { scene.remove(card.group); card.dispose(); }
     card = next; scene.add(card.group);

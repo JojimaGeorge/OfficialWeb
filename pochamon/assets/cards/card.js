@@ -45,7 +45,12 @@ function texFromCanvas(c, renderer) {
   return t;
 }
 function loadImage(src) {
-  return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+  // decode() で画像の展開を先に非同期で済ませる（drawImage の瞬間に同期デコードが走って画面が止まるのを防ぐ）
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => { if (im.decode) im.decode().then(() => res(im), () => res(im)); else res(im); };
+    im.onerror = rej; im.src = src;
+  });
 }
 
 // 画像 → 切り出し(crop) → 縁を引き伸ばして余白を作る(extend) → 上端フェード(fade) → キャンバス
@@ -360,9 +365,11 @@ export async function createCard(spec, renderer) {
   frame.renderOrder = 10;
   group.add(frame); foils.push(frameMat); disposables.push(frameTex, frameMat, frame.geometry);
 
-  // 層
+  // 層（1層ごとに一呼吸おいて、長い処理1回で画面を止めないようにする）
+  const breathe = () => new Promise(r => setTimeout(r, 0));
   const sprite = texFromCanvas(makeSpriteCanvas(), renderer); disposables.push(sprite);
   for (const L of spec.layers) {
+    await breathe();
     if (L.kind === 'particles') {
       const n = L.count, pos = new Float32Array(n * 3), ph = new Float32Array(n), sz = new Float32Array(n);
       const rnd = seeded(99);
