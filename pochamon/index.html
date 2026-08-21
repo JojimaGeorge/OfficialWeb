@@ -563,14 +563,25 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 1.4s 1 both; }
 }
 .goods-note{ color:rgba(255,255,255,.94); font-weight:700; text-align:center; margin-top:26px; font-size:clamp(13px,2.2vw,15px); }
 
-.giftGrid{ display:grid; grid-template-columns:repeat(2,1fr); gap:22px; max-width:640px; margin:0 auto; }
+/* おみやげ（無料かべがみ）：縦長2枚。サムネは軽いWebP、ダウンロードは原寸PNG */
+.giftGrid{ display:grid; grid-template-columns:repeat(2,1fr); gap:26px; max-width:620px; margin:0 auto; }
 .giftCard{
-  background:rgba(255,255,255,.55); border:3px dashed rgba(255,255,255,.9);
-  border-radius:26px; padding:34px 20px; text-align:center;
-  color:#fff; font-weight:700;
+  background:#fff; border-radius:22px; padding:12px 12px 16px;
+  box-shadow:0 6px 0 rgba(0,0,0,.16); text-align:center;
 }
-.giftCard .big{ font-family:var(--font-logo); font-size:17px; text-shadow:0 2px 0 rgba(0,0,0,.12); }
-.giftCard .small{ font-size:12px; margin-top:8px; opacity:.9; }
+.giftCard img{ width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:14px; display:block; background:#eef6ff; }
+.giftCard .name{ font-weight:700; font-size:14px; margin-top:12px; color:var(--ink); }
+.giftCard .size{ font-size:11.5px; color:#888; font-weight:700; margin-top:2px; }
+.dlBtn{
+  display:inline-block; margin-top:12px;
+  background:#ffb03a; color:#fff; font-weight:700; font-size:14px;
+  text-decoration:none; padding:11px 26px; border-radius:999px;
+  box-shadow:0 4px 0 rgba(0,0,0,.16);
+  transition:transform .18s var(--ease-puni);
+}
+.dlBtn:hover{ transform:translateY(-3px) scale(1.05); }
+.dlBtn:active{ transform:translateY(1px) scale(.97); }
+.gift-note{ color:rgba(255,255,255,.94); font-weight:700; text-align:center; margin-top:26px; font-size:clamp(12.5px,2.2vw,14px); line-height:1.9; }
 
 /* ライトボックス */
 .lightbox{
@@ -883,16 +894,27 @@ footer{
 <section id="gift" data-theme="theme-blue" data-fx="bubble">
   <div class="inner">
     <h2 class="sec-title reveal">おみやげ</h2>
-    <p class="sec-lead reveal">むりょうの かべがみ、じゅんびちゅう。</p>
+    <p class="sec-lead reveal">むりょうの かべがみ。ダウンロードして つかってね。</p>
     <div class="giftGrid">
-      <div class="giftCard reveal"><div class="big">スマホかべがみ</div><div class="small">じゅんびちゅう…🐾</div></div>
-      <div class="giftCard reveal"><div class="big">PCかべがみ</div><div class="small">じゅんびちゅう…🐾</div></div>
+      <div class="giftCard reveal">
+        <img src="assets/wallpaper/thumb-01.webp" alt="りんごにくっついて食べているぽちゃもんの壁紙" loading="lazy" width="640" height="853">
+        <div class="name">おしょくじちゅう</div>
+        <div class="size">2480 × 3307 px・PNG</div>
+        <a class="dlBtn" href="assets/wallpaper/pochamon-wallpaper-01.png" download="pochamon-wallpaper-01.png">ダウンロード</a>
+      </div>
+      <div class="giftCard reveal">
+        <img src="assets/wallpaper/thumb-02.webp" alt="りんごを取ろうとして落ちるぽちゃもんの3コマ漫画の壁紙" loading="lazy" width="640" height="853">
+        <div class="name">りんご とれなかった</div>
+        <div class="size">2480 × 3307 px・PNG</div>
+        <a class="dlBtn" href="assets/wallpaper/pochamon-wallpaper-02.png" download="pochamon-wallpaper-02.png">ダウンロード</a>
+      </div>
     </div>
+    <p class="gift-note reveal">むりょうで ダウンロードして、こじんの はんいで たのしんでね🐾<br>（さいはいふ・はんばい・かこうしての こうかいは ごえんりょください）<br><span style="opacity:.8;font-size:.92em">iPhone は ひらいた がぞうを ながおし → 「"しゃしん"に ほぞん」</span></p>
   </div>
 </section>
 
 <footer>
-  © ぽちゃもん / じょじを
+  © ぽちゃもん / 城島ジョージ
 </footer>
 
 <!-- ライトボックス -->

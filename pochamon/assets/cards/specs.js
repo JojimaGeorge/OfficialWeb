@@ -10,7 +10,7 @@ export const FULLART = [
     id: 'amayadori', style: 'fullart', name: 'ぽちゃもん', sub: 'あまやどり', hp: 110, type: 'みず',
     colors: { main: '#a9b8f0', dark: '#5d6fc9', light: '#eef1ff' },
     attack: { cost: 2, name: 'しとしとレイン', power: 40, text: 'つぎの相手の番、相手のバトルぽちゃもんはにげられない。' },
-    weakness: 'かみなり', retreat: 1, no: '004/151', illus: 'じょじを',
+    weakness: 'かみなり', retreat: 1, no: '004/151', illus: '城島ジョージ',
     sparkColor: '#eaf2ff', bandRGB: '58,64,124', strokeRGB: '52,58,116',
     layers: [
       { kind: 'image', src: IMG + 'rain-sky.jpg', fit: { w: CARD_W, h: CARD_H, cx: 0, cy: 0 }, extend: 0.32, z: -0.8, masked: true,
@@ -43,7 +43,7 @@ export const FULLART = [
     id: 'ukiwa', style: 'fullart', name: 'ぽちゃもん', sub: 'うきわぎゅうぎゅう', hp: 120, type: 'みず',
     colors: { main: '#7fc4ff', dark: '#2d6fb8', light: '#e6f4ff' },
     attack: { cost: 2, name: 'ぎゅうぎゅうスプラッシュ', power: 50, text: 'コインを1回投げオモテなら、相手のベンチのぽちゃもん1匹にも20ダメージ。' },
-    weakness: 'かみなり', retreat: 2, no: '003/151', illus: 'じょじを',
+    weakness: 'かみなり', retreat: 2, no: '003/151', illus: '城島ジョージ',
     sparkColor: '#dff4ff',
     layers: [
       { kind: 'image', src: IMG + 'ukiwa-bg.jpg', crop: { x: 0, y: 0.112, w: 1, h: 0.7875 },
@@ -86,7 +86,7 @@ export function stickerCard(st, i) {
     id: 'st-' + st.img, style: 'window', name: 'ぽちゃもん', sub: st.name, hp: 90 + (i % 4) * 10, type: p.type,
     colors: p.colors,
     attack: { cost: 1 + (i % 2), name: st.name, power: 20 + (i % 3) * 10, text: st.cap },
-    weakness: p.weakness, retreat: 1, no, illus: 'じょじを',
+    weakness: p.weakness, retreat: 1, no, illus: '城島ジョージ',
     sparkColor: p.spark,
     layers: [
       { kind: 'image', src: IMG + 'bg-sky.jpg', crop: { x: 0, y: 0.05 + (i % 3) * 0.04, w: 1, h: 0.723 },
