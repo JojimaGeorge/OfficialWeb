@@ -268,11 +268,12 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
 @keyframes sheen{ 0%{ background-position:120% 0; } 100%{ background-position:-40% 0; } }
 
 .hero__copy{
+  font-family:var(--font-logo);  /* 日記の帯と同じ丸文字 */
   color:#fff; font-weight:700;
   font-size:clamp(16px,3vw,22px);
   margin:20px 0 6px; text-shadow:0 2px 0 rgba(0,0,0,.12);
 }
-.hero__sub{ color:rgba(255,255,255,.85); font-size:clamp(11px,2vw,13px); letter-spacing:.28em; }
+.hero__sub{ font-family:var(--font-logo); color:rgba(255,255,255,.85); font-size:clamp(12px,2vw,14px); letter-spacing:.22em; }
 
 /* キャラステージ：本体＋まわりに浮かぶなかま */
 .stage{
@@ -306,8 +307,8 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
 /* まわる円形バッジ */
 .orbitBadge{
   position:absolute; z-index:3;
-  width:clamp(84px,13vw,128px); height:clamp(84px,13vw,128px);
-  right:4%; bottom:-6%;
+  width:clamp(84px,10vw,124px); height:clamp(84px,10vw,124px);
+  left:18px; top:14px;            /* 画面の左上（じょじを指定） */
   pointer-events:none;
 }
 .orbitBadge svg{ width:100%; height:100%; animation:spin 16s linear infinite; }
@@ -533,7 +534,7 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
   background:#fff; border-radius:22px; padding:12px 12px 14px;
   box-shadow:0 6px 0 rgba(0,0,0,.16); text-align:center;
 }
-.movCard video{ width:100%; border-radius:14px; display:block; background:#f4f2ee; }
+.movCard video{ width:100%; aspect-ratio:9/16; object-fit:cover; border-radius:14px; display:block; background:#f4f2ee; }  /* 縦横比の違う動画も同じ高さに揃える */
 .movCard .name{ font-weight:700; font-size:13.5px; margin-top:10px; }
 .theater-note{ text-align:center; margin-top:26px; }
 .theater-note a{
@@ -639,7 +640,7 @@ footer{
   .menuCard:nth-child(n){ rotate:0deg; translate:0 0; }
   .profile li{ grid-template-columns:96px 1fr; }
   .marquee{ bottom:22px; }
-  .orbitBadge{ right:-2%; bottom:-4%; }
+  .orbitBadge{ left:10px; top:10px; width:76px; height:76px; }
   .theater{ grid-template-columns:1fr; max-width:340px; margin:0 auto; }
   .goodsGrid{ grid-template-columns:repeat(2,1fr); gap:14px; }
   .giftGrid{ grid-template-columns:1fr; max-width:340px; }
@@ -744,6 +745,12 @@ footer{
 <!-- ========== 1. ヒーロー ========== -->
 <section class="hero" id="top" data-theme="theme-blue" data-fx="sparkle">
   <div class="floaters" id="floaters" aria-hidden="true"></div>
+  <!-- まわる円形バッジ（画面の左上） -->
+  <span class="orbitBadge"><svg viewBox="0 0 100 100">
+    <defs><path id="circlePath" d="M50,50 m-36,0 a36,36 0 1,1 72,0 a36,36 0 1,1 -72,0"/></defs>
+    <circle cx="50" cy="50" r="46"/>
+    <text><textPath href="#circlePath">POCHAMON・OFFICIAL・POCHAMON・</textPath></text>
+  </svg><img class="badgeImg" src="assets/img/metallic-biroon.webp" alt=""></span>
   <div class="hero__inner">
     <h1 class="logo" aria-label="ぽちゃもん">
       <span class="logo__tilt" id="logoTilt">
@@ -756,11 +763,6 @@ footer{
 
     <div class="stage">
       <img class="hero__char" id="heroChar" src="assets/img/pochamon-normal.webp" alt="ぽちゃもん" width="560" height="550" fetchpriority="high">
-      <span class="orbitBadge"><svg viewBox="0 0 100 100">
-        <defs><path id="circlePath" d="M50,50 m-36,0 a36,36 0 1,1 72,0 a36,36 0 1,1 -72,0"/></defs>
-        <circle cx="50" cy="50" r="46"/>
-        <text><textPath href="#circlePath">POCHAMON・OFFICIAL・POCHAMON・</textPath></text>
-      </svg><img class="badgeImg" src="assets/img/metallic-biroon.webp" alt=""></span>
     </div>
 
     <p class="hero__hint">ぽちゃもんを タップしてみてね！</p>
@@ -864,7 +866,7 @@ footer{
     <p class="sec-lead reveal">てがきアニメで きょうも うごく。</p>
     <div class="theater">
       <div class="movCard reveal"><video src="assets/mov/dengurigaeshi.mp4" muted autoplay loop playsinline preload="metadata"></video><div class="name">でんぐりがえし</div></div>
-      <div class="movCard reveal"><video src="assets/mov/kinkan.mp4" muted autoplay loop playsinline preload="metadata"></video><div class="name">きんかん</div></div>
+      <div class="movCard reveal"><video src="assets/mov/ufo-catcher.mp4" muted autoplay loop playsinline preload="metadata"></video><div class="name">UFOキャッチャー</div></div>
       <div class="movCard reveal"><video src="assets/mov/zabuton.mp4" muted autoplay loop playsinline preload="metadata"></video><div class="name">ざぶとん</div></div>
     </div>
     <div class="theater-note reveal">
@@ -997,12 +999,12 @@ if(matchMedia('(min-width:900px)').matches){
   // 横位置は「中央から何px」（side=左右・off=中央からの距離）。%だと横長の画面で端に張り付くため
   // 画面が狭い時は端から最低 2% は空ける。depth が大きいほど手前＝大きく・マウスでよく動く
   const FLOATERS=[
-    {img:'ringo',     side:'left',  off:540, y:12, w:120, rot:-10, depth:30, dur:5.2, delay:0},
+    {img:'ringo',     side:'left',  off:520, y:14, w:78, rot:-10, depth:30, dur:5.2, delay:0},
     {img:'softcream', side:'left',  off:470, y:46, w:110, rot:8,   depth:18, dur:6.1, delay:.8},
     {img:'koinobori', side:'left',  off:590, y:70, w:120, rot:-6,  depth:40, dur:5.6, delay:1.6},
-    {img:'banana',    side:'right', off:470, y:10, w:118, rot:10,  depth:26, dur:5.9, delay:.4},
+    {img:'banana',    side:'right', off:450, y:12, w:80, rot:10,  depth:26, dur:5.9, delay:.4},
     {img:'umbrella',  side:'right', off:400, y:42, w:132, rot:-8,  depth:16, dur:6.6, delay:1.2},
-    {img:'happa',     side:'right', off:520, y:70, w:112, rot:6,   depth:36, dur:5.4, delay:2.0},
+    {img:'happa',     side:'right', off:500, y:72, w:72, rot:6,   depth:36, dur:5.4, delay:2.0},
   ];
   const fl=document.getElementById('floaters');
   FLOATERS.forEach(f=>{
