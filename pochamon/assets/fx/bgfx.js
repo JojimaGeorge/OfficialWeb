@@ -116,7 +116,8 @@ void main(){
 
 export function startBgFx(container, opts = {}) {
   performance.mark('bgfx:start');
-  const COUNT = opts.count ?? 150;   // 実際に見える数は KEEP（種類ごとの割合）でさらに絞られる
+  // 実際に見える数は KEEP（種類ごとの割合）でさらに絞られる。スマホ幅は3割減
+  const COUNT = opts.count ?? (matchMedia('(max-width: 760px)').matches ? 105 : 150);
   const canvas = document.createElement('canvas');
   canvas.className = 'bgfx';
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;';

@@ -589,7 +589,10 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 1.4s 1 both; }
 .lightbox__card img{ width:min(60vw,280px); margin:0 auto; }
 .lightbox__card.wide img{ width:min(80vw,360px); max-height:70vh; object-fit:contain; border-radius:12px; }
 .lightbox__name{ font-family:var(--font-logo); font-size:22px; margin-top:12px; }
-.lightbox__caption{ font-weight:700; color:#666; margin-top:6px; font-size:14px; }
+.lightbox__caption{
+  font-weight:700; color:#666; margin:10px auto 0; font-size:clamp(13px,3.4vw,14px);
+  white-space:pre-line; line-height:1.9; text-align:left; max-width:330px;  /* 4行のおはなしを読みやすく */
+}
 .lightbox__close{
   margin-top:18px; font-family:var(--font-body); font-weight:700;
   background:var(--ink); color:#fff; border:none;
@@ -617,6 +620,11 @@ footer{
   .about__figure img{ width:min(52vw,240px); }
   .gallery{ grid-template-columns:repeat(2, 1fr); gap:14px; }
   .cardsGrid{ grid-template-columns:1fr; max-width:320px; gap:18px; }
+  /* おしらせ：左に「日付／タブ」を2段で重ね、右に本文を広く */
+  .newsItem{ display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:14px; row-gap:6px; align-items:center; padding:14px 16px; }
+  .newsItem .date{ grid-area:1 / 1; }
+  .newsItem .tag{ grid-area:2 / 1; justify-self:start; }
+  .newsItem > span:last-child{ grid-area:1 / 2 / 3 / 3; line-height:1.7; }
   .menuFan__cards{ justify-content:flex-start; overflow-x:auto; gap:14px; padding:10px 6px 18px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; }
   .menuCard{ width:min(64vw,240px); scroll-snap-align:center; }
   .menuCard:nth-child(n){ rotate:0deg; translate:0 0; }
@@ -803,7 +811,9 @@ footer{
         <ul class="profile">
           <li><span class="k">なまえ</span><span class="v">ぽちゃもん</span></li>
           <li><span class="k">しゅるい</span><span class="v">モモンガ（ぽちゃっと多め）</span></li>
+          <!-- たんじょうびは日付を変える予定のため一旦非表示（2026-08-21 じょじを指示）。決まったらコメントを外す
           <li><span class="k">たんじょうび</span><span class="v">8月8日（いちばんまるい数字がならぶ日）</span></li>
+          -->
           <li><span class="k">すきなもの</span><span class="v">はっぱ・ソフトクリーム・あったかい湯船</span></li>
           <li><span class="k">ちょっとにがて</span><span class="v">ダイエット・げきからラーメン（なのに挑戦しちゃう）</span></li>
           <li><span class="k">とくぎ</span><span class="v">びろーん（おもったよりのびる）</span></li>
@@ -1179,19 +1189,32 @@ hero.addEventListener('pointerdown',e=>{
 });
 
 // ===== ステッカーギャラリー =====
+// 説明文は TikTok 投稿と同じ「ぽちゃもんの一人称・4行・期待を上げてから可愛い理由で落とす」型（改行は \n）
 const STICKERS=[
-  {img:'biroon',   name:'びろーん',           cap:'びろーん。'},
-  {img:'softcream',name:'ソフトクリーム',      cap:'ぜんぶひとりでたべる。'},
-  {img:'ice',      name:'アイス',             cap:'あたまキーンってなった。'},
-  {img:'jelly',    name:'ゼリー',             cap:'ぷるぷるは なかま。'},
-  {img:'ramen-guardian',name:'らーめんガーディアン', cap:'らーめんは まもる。'},
-  {img:'gekikara', name:'げきからラーメン',    cap:'にがて。でも たべる。'},
-  {img:'mirror',   name:'かがみ',             cap:'かがみのなかにも ぽちゃもん。'},
-  {img:'robot',    name:'ロボット',           cap:'ウィーン（きぶん）。'},
-  {img:'koinobori',name:'こいのぼり',         cap:'およいでるつもり。'},
-  {img:'umbrella', name:'かさ',               cap:'あめのひも まるい。'},
-  {img:'fishing',  name:'つり',               cap:'なにか つれそう。'},
-  {img:'umeboshi', name:'うめぼし',           cap:'すっぱいのは じけん。'},
+  {img:'biroon',   name:'びろーん',
+    cap:'きょうは おもいっきり のびる日って きめたの。\nゆうべ いっぱい ねたから、ぜったい とべる。\nそしたら からだが びろーんって なって、\nはっぱが おなかに のったまま もどらない。'},
+  {img:'softcream',name:'ソフトクリーム',
+    cap:'ソフトクリームは うえから たべる はずだったの。\nいちばん おいしいとこ、さいごまで とっといて。\nでも おてて みじかくて、とどかなくて、\nさきに クリームのほうが おちてった。'},
+  {img:'ice',      name:'アイス',
+    cap:'あたりぼう でたら もういっぽん もらえるって きいたの。\nだから ふたくちで たべた。\nあたま キーンってなって、なみだ でて、\nぼうには「はずれ」って かいてあった。'},
+  {img:'jelly',    name:'ゼリー',
+    cap:'ゼリーは ぷるぷるだから なかまだと おもったの。\nだから あたまに のせて いっしょに おひるね。\nおきたら ゼリー、ぼくの かたちに なってて、\nもう どっちが ゼリーか わかんない。'},
+  {img:'ramen-guardian',name:'らーめんガーディアン',
+    cap:'らーめんは さめるまえに たべるものって きいたの。\nだから ぼくが まもってる。\nからだを ひろげて、風も ゆげも ぜんぶ とめて、\nきづいたら のびてたのは らーめんのほう。'},
+  {img:'gekikara', name:'げきからラーメン',
+    cap:'げきから、ことしこそ いけると おもったの。\nきょねんより ぼく、おおきくなったし。\nひとくちめで なみだ でて、ふたくちめで おはな でて、\nでも おはし、まだ とまってない。'},
+  {img:'mirror',   name:'かがみ',
+    cap:'かがみの なかの ぽちゃもん、ちょっと ほそいの。\nたぶん あっちが ほんとの ぼく。\nだから こっちの おなかは かがみの せいで、\nきょうも あんしんして おやつ たべる。'},
+  {img:'robot',    name:'ロボット',
+    cap:'きょうから ぼくは ロボットなの。\nウィーンって うごいて、ぜったい ころばない。\nでも おなかが すいたら とまる しくみで、\nさっきから ずっと とまってる。'},
+  {img:'koinobori',name:'こいのぼり',
+    cap:'こいのぼり、空を およいでて かっこよかったの。\nだから ぼくも いっしょに つかまった。\n風が きたら とべるって おもってたのに、\nぼくだけ ぜんぜん なびかない。'},
+  {img:'umbrella', name:'かさ',
+    cap:'あめの日は かさが あると むてきなの。\nどこまでも いける きがする。\nでも かさ おもくて、おててが ぷるぷるして、\nげんかんから まだ うごいてない。'},
+  {img:'fishing',  name:'つり',
+    cap:'きょうは おさかな つるって きめたの。\nおおきいの つれたら みんなに みせる。\nずっと まってたら みずたまりが かわいてきて、\nつれたのは ぼくの かげだけ。'},
+  {img:'umeboshi', name:'うめぼし',
+    cap:'うめぼし、ひとくちなら へいきだと おもったの。\nおにぎりの なかのは たべられるし。\nくちに いれた しゅんかん、からだが ぴーんって なって、\nいま おなかの うえで うめぼしが ひなたぼっこしてる。'},
 ];
 const gallery=document.getElementById('gallery');
 // ===== tilt：マウス／指の位置でカードが立体的に傾く＋光が走る =====
@@ -1292,8 +1315,10 @@ else{
     const gb=document.getElementById('gyroBtn');
     if(E.gyroAvailable){
       gb.classList.add('show');
+      let gyroOn=false;
       gb.addEventListener('click',async()=>{
-        if(await E.enableGyro()){ gb.classList.add('active'); gb.textContent='かたむきセンサー ON'; }
+        if(gyroOn){ E.disableGyro(); gyroOn=false; gb.classList.remove('active'); gb.textContent='スマホの かたむきで うごかす'; return; }
+        if(await E.enableGyro()){ gyroOn=true; gb.classList.add('active'); gb.textContent='かたむきセンサー ON（もういちど押すと OFF）'; }
       });
     }
   },{rootMargin:'900px 0px'});

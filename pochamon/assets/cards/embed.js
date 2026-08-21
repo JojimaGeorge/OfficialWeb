@@ -50,6 +50,10 @@ export async function enableGyro() {
   window.addEventListener('deviceorientation', onOrient);
   return true;
 }
+export function disableGyro() {
+  window.removeEventListener('deviceorientation', onOrient);
+  gyroState.on = false; gyroState.x = gyroState.y = gyroState.lx = gyroState.ly = 0;   // 傾きを元に戻す（各カードはバネで0へ）
+}
 
 export function webglOk() {
   try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; }
