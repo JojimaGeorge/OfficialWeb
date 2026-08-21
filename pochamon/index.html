@@ -997,12 +997,12 @@ if(matchMedia('(min-width:900px)').matches){
   // 横位置は「中央から何px」（side=左右・off=中央からの距離）。%だと横長の画面で端に張り付くため
   // 画面が狭い時は端から最低 2% は空ける。depth が大きいほど手前＝大きく・マウスでよく動く
   const FLOATERS=[
-    {img:'biroon',    side:'left',  off:560, y:12, w:150, rot:-10, depth:30, dur:5.2, delay:0},
+    {img:'ringo',     side:'left',  off:540, y:12, w:120, rot:-10, depth:30, dur:5.2, delay:0},
     {img:'softcream', side:'left',  off:470, y:46, w:110, rot:8,   depth:18, dur:6.1, delay:.8},
     {img:'koinobori', side:'left',  off:590, y:70, w:120, rot:-6,  depth:40, dur:5.6, delay:1.6},
-    {img:'ice',       side:'right', off:470, y:10, w:118, rot:10,  depth:26, dur:5.9, delay:.4},
+    {img:'banana',    side:'right', off:470, y:10, w:118, rot:10,  depth:26, dur:5.9, delay:.4},
     {img:'umbrella',  side:'right', off:400, y:42, w:132, rot:-8,  depth:16, dur:6.6, delay:1.2},
-    {img:'fishing',   side:'right', off:520, y:70, w:112, rot:6,   depth:36, dur:5.4, delay:2.0},
+    {img:'happa',     side:'right', off:520, y:70, w:112, rot:6,   depth:36, dur:5.4, delay:2.0},
   ];
   const fl=document.getElementById('floaters');
   FLOATERS.forEach(f=>{
