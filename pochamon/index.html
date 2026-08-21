@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ぽちゃもん OFFICIAL</title>
+<meta name="description" content="ぽちゃっとまるいモモンガ「ぽちゃもん」の公式サイト。ステッカー・アニメ・ゲームで、がんばらない日もちゃんとかわいい。">
+<link rel="icon" type="image/png" href="favicon.png">
+<!-- 3Dカード用 Three.js（実際に読み込まれるのはカードが必要になった時だけ。importmap は対応表のみ） -->
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.min.js" } }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- ロゴ用フォントはサブセット配信（かな全部+英数+使用漢字のみ）。マーキー日記等に新しい漢字を足したらtext=再生成が必要（未収録字はZen Maru Gothicにフォールバック） -->
+<link href="https://fonts.googleapis.com/css2?family=Hachi+Maru+Pop&amp;text=%21%22%23%24%25%26%27%28%29%2A%2B%2C-./0123456789%3A%3B%3C%3D%3E%3F%40ABCDEFGHIJKLMNOPQRSTUVWXYZ%5B%5C%5D%5E_%60abcdefghijklmnopqrstuvwxyz%7B%7C%7D~%E2%80%A6%E3%80%81%E3%80%82%E3%80%8C%E3%80%8D%E3%81%81%E3%81%82%E3%81%83%E3%81%84%E3%81%85%E3%81%86%E3%81%87%E3%81%88%E3%81%89%E3%81%8A%E3%81%8B%E3%81%8C%E3%81%8D%E3%81%8E%E3%81%8F%E3%81%90%E3%81%91%E3%81%92%E3%81%93%E3%81%94%E3%81%95%E3%81%96%E3%81%97%E3%81%98%E3%81%99%E3%81%9A%E3%81%9B%E3%81%9C%E3%81%9D%E3%81%9E%E3%81%9F%E3%81%A0%E3%81%A1%E3%81%A2%E3%81%A3%E3%81%A4%E3%81%A5%E3%81%A6%E3%81%A7%E3%81%A8%E3%81%A9%E3%81%AA%E3%81%AB%E3%81%AC%E3%81%AD%E3%81%AE%E3%81%AF%E3%81%B0%E3%81%B1%E3%81%B2%E3%81%B3%E3%81%B4%E3%81%B5%E3%81%B6%E3%81%B7%E3%81%B8%E3%81%B9%E3%81%BA%E3%81%BB%E3%81%BC%E3%81%BD%E3%81%BE%E3%81%BF%E3%82%80%E3%82%81%E3%82%82%E3%82%83%E3%82%84%E3%82%85%E3%82%86%E3%82%87%E3%82%88%E3%82%89%E3%82%8A%E3%82%8B%E3%82%8C%E3%82%8D%E3%82%8E%E3%82%8F%E3%82%90%E3%82%91%E3%82%92%E3%82%93%E3%82%94%E3%82%95%E3%82%96%E3%82%A1%E3%82%A2%E3%82%A3%E3%82%A4%E3%82%A5%E3%82%A6%E3%82%A7%E3%82%A8%E3%82%A9%E3%82%AA%E3%82%AB%E3%82%AC%E3%82%AD%E3%82%AE%E3%82%AF%E3%82%B0%E3%82%B1%E3%82%B2%E3%82%B3%E3%82%B4%E3%82%B5%E3%82%B6%E3%82%B7%E3%82%B8%E3%82%B9%E3%82%BA%E3%82%BB%E3%82%BC%E3%82%BD%E3%82%BE%E3%82%BF%E3%83%80%E3%83%81%E3%83%82%E3%83%83%E3%83%84%E3%83%85%E3%83%86%E3%83%87%E3%83%88%E3%83%89%E3%83%8A%E3%83%8B%E3%83%8C%E3%83%8D%E3%83%8E%E3%83%8F%E3%83%90%E3%83%91%E3%83%92%E3%83%93%E3%83%94%E3%83%95%E3%83%96%E3%83%97%E3%83%98%E3%83%99%E3%83%9A%E3%83%9B%E3%83%9C%E3%83%9D%E3%83%9E%E3%83%9F%E3%83%A0%E3%83%A1%E3%83%A2%E3%83%A3%E3%83%A4%E3%83%A5%E3%83%A6%E3%83%A7%E3%83%A8%E3%83%A9%E3%83%AA%E3%83%AB%E3%83%AC%E3%83%AD%E3%83%AE%E3%83%AF%E3%83%B0%E3%83%B1%E3%83%B2%E3%83%B3%E3%83%B4%E3%83%B5%E3%83%B6%E3%83%B7%E3%83%B8%E3%83%B9%E3%83%BA%E3%83%BB%E3%83%BC%E4%B8%80%E5%90%91%E6%97%A5%E6%9C%A8%E6%B9%AF%E8%88%B9%E8%A8%98%E9%A2%A8%EF%BC%81%EF%BC%88%EF%BC%89%EF%BC%9F&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  --font-logo:'Hachi Maru Pop', 'Zen Maru Gothic', sans-serif;
+  --font-body:'Zen Maru Gothic', sans-serif;
+  --ink:#2b2b33;
+  --ease-puni:cubic-bezier(.34,1.56,.64,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth; background:#1e9bf0;}
+body{
+  font-family:var(--font-body);
+  color:var(--ink);
+  overflow-x:hidden;
+}
+img{max-width:100%;height:auto;display:block;}
+
+/* ============================================================
+   固定背景レイヤー：模様は途切れず、スクロールで色だけ変わる
+   ============================================================ */
+.bg{
+  position:fixed; inset:0; z-index:-1;
+  overflow:hidden;
+  transition:background-color 1.4s ease;
+}
+/* アメーバ形のブロブ（パッケージ実物のうねうね形状をSVG clipPathで再現）
+   ぼかしは外側ラッパーに掛ける：clip-pathはfilterの後に適用されるため、
+   同じ要素に掛けるとボケた縁がクリップで切られて見えなくなる */
+.blobWrap{
+  position:absolute;
+  animation:blobdrift 26s ease-in-out infinite;
+}
+.bg .blob{
+  width:100%; height:100%;
+  transition:background-color 1.4s ease;
+}
+@keyframes blobdrift{
+  0%,100%{ transform:translate(0,0) rotate(0deg) scale(1); }
+  33%   { transform:translate(1.4%,2%) rotate(2deg) scale(1.03); }
+  66%   { transform:translate(-1.5%,-1.5%) rotate(-2deg) scale(.98); }
+}
+/* 縦横比は丸寄り。全体に段階的な遠近ボケ（ピントはキャラ＝画面中央） */
+/* 奥行きは重なり順に一致させる：cはbの上に乗る＝手前、bは下敷き＝奥 */
+.wrap--a{ width:46vw; height:42vw; min-width:340px; min-height:310px; top:-18vw; left:-16vw; animation-delay:0s;  filter:blur(1.2px); }
+.wrap--b{ width:50vw; height:46vw; min-width:370px; min-height:340px; bottom:-22vw; right:-18vw; animation-delay:-9s; filter:blur(3px); }
+.wrap--c{ width:24vw; height:22vw; min-width:185px; min-height:170px; top:24%; right:-9vw; animation-delay:-17s; filter:blur(.8px); }
+.wrap--d{ width:30vw; height:28vw; min-width:230px; min-height:212px; bottom:-9vw; left:-9vw;  animation-delay:-5s; filter:blur(3.5px); }
+.blob--a{ clip-path:url(#amoeba1); }
+.blob--b{ clip-path:url(#amoeba2); }
+.blob--c{ clip-path:url(#amoeba2); }
+.blob--d{ clip-path:url(#amoeba1); }
+.moonWrap{
+  position:absolute; width:150px; height:136px;
+  top:6%; right:24%;
+  animation:moondrift 40s ease-in-out infinite;
+  filter:blur(5px); /* いちばん奥 */
+}
+.bg .moon{
+  width:100%; height:100%;
+  clip-path:url(#amoeba2); /* 正円ではなくアメーバ形に */
+  transition:background-color 1.4s ease;
+}
+@keyframes moondrift{
+  0%,100%{transform:translate(0,0);}
+  50%{transform:translate(-26px,20px);}
+}
+
+/* テーマ配色（bodyのクラスで切替：模様は同じまま色だけ遷移） */
+body.theme-blue   .bg{ background-color:#1e9bf0; }
+body.theme-blue   .blob--a{ background-color:#0f7fd6; }
+body.theme-blue   .blob--b{ background-color:#b9bd6f; }
+body.theme-blue   .blob--c{ background-color:#0f7fd6; }
+body.theme-blue   .blob--d{ background-color:#5cb9f7; }
+body.theme-blue   .moon{ background-color:#1266b8; }
+
+body.theme-teal   .bg{ background-color:#12a3a0; }
+body.theme-teal   .blob--a{ background-color:#0b8886; }
+body.theme-teal   .blob--b{ background-color:#4fb6d9; }
+body.theme-teal   .blob--c{ background-color:#0b8886; }
+body.theme-teal   .blob--d{ background-color:#3dc0bd; }
+body.theme-teal   .moon{ background-color:#076c6b; }
+
+body.theme-green  .bg{ background-color:#55a656; }
+body.theme-green  .blob--a{ background-color:#3f8c40; }
+body.theme-green  .blob--b{ background-color:#b9bd6f; }
+body.theme-green  .blob--c{ background-color:#3f8c40; }
+body.theme-green  .blob--d{ background-color:#79bd79; }
+body.theme-green  .moon{ background-color:#2e6b30; }
+
+body.theme-purple .bg{ background-color:#6f3f9e; }
+body.theme-purple .blob--a{ background-color:#59307f; }
+body.theme-purple .blob--b{ background-color:#4f7fae; }
+body.theme-purple .blob--c{ background-color:#59307f; }
+body.theme-purple .blob--d{ background-color:#8a58bd; }
+body.theme-purple .moon{ background-color:#432561; }
+
+body.theme-orange .bg{ background-color:#ee8b3d; }
+body.theme-orange .blob--a{ background-color:#d0722b; }
+body.theme-orange .blob--b{ background-color:#f4c05a; }
+body.theme-orange .blob--c{ background-color:#d0722b; }
+body.theme-orange .blob--d{ background-color:#f4a866; }
+body.theme-orange .moon{ background-color:#b55e1d; }
+
+body.theme-pink   .bg{ background-color:#e8628c; }
+body.theme-pink   .blob--a{ background-color:#cc4a74; }
+body.theme-pink   .blob--b{ background-color:#f4a2bd; }
+body.theme-pink   .blob--c{ background-color:#cc4a74; }
+body.theme-pink   .blob--d{ background-color:#f088a8; }
+body.theme-pink   .moon{ background-color:#a83c5e; }
+
+/* ============================================================
+   スパークル（キラキラ）：大小メリハリ＋発光＋明滅
+   ============================================================ */
+.sparkle{
+  position:absolute;
+  pointer-events:none;
+  animation:sparkle var(--dur,3s) ease-in-out infinite;
+  animation-delay:var(--delay,0s);
+  opacity:0;
+}
+.sparkle svg{ width:100%; height:100%; fill:#fff; }
+@keyframes sparkle{
+  0%,100%{ opacity:0; transform:scale(.1) rotate(0deg); }
+  45%    { opacity:.95; transform:scale(1) rotate(30deg); }
+  60%    { opacity:.8;  transform:scale(.88) rotate(40deg); }
+}
+.twinkdot{
+  position:absolute; border-radius:50%;
+  background:#fff; pointer-events:none;
+  animation:dotpulse var(--dur,4s) ease-in-out infinite;
+  animation-delay:var(--delay,0s);
+  opacity:0;
+}
+@keyframes dotpulse{
+  0%,100%{ opacity:0; transform:scale(.3); }
+  50%    { opacity:.85; transform:scale(1); }
+}
+
+/* ============================================================
+   ローディング画面：ぽちゃもんが跳ねる → 星型の穴が広がってページが見える
+   穴は mask の2層（全面の黒 − 星）で作り、星の mask-size を 0 → 320vmax に伸ばす
+   ============================================================ */
+.loader{
+  position:fixed; inset:0; z-index:1000;
+  background:#1e9bf0;
+  display:flex; align-items:center; justify-content:center;
+  -webkit-mask-image:linear-gradient(#000,#000), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon fill='%23000' points='50,0 62.34,33.01 97.55,34.55 69.97,56.49 79.39,90.45 50,71 20.61,90.45 30.03,56.49 2.45,34.55 37.66,33.01'/%3E%3C/svg%3E");
+          mask-image:linear-gradient(#000,#000), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon fill='%23000' points='50,0 62.34,33.01 97.55,34.55 69.97,56.49 79.39,90.45 50,71 20.61,90.45 30.03,56.49 2.45,34.55 37.66,33.01'/%3E%3C/svg%3E");
+  -webkit-mask-size:100% 100%, 0px 0px; mask-size:100% 100%, 0px 0px;
+  -webkit-mask-position:center, center; mask-position:center, center;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  -webkit-mask-composite:xor; mask-composite:exclude;
+  /* 星の大きさは JS が毎フレーム mask-size を更新して広げる（CSS transition は mask-size に効かなかった） */
+}
+.loader.reveal{ pointer-events:none; }
+.loader__inner{ text-align:center; color:#fff; }
+.loader__char{ width:140px; height:auto; margin:0 auto 14px; transform-origin:50% 100%; animation:loaderBounce .75s cubic-bezier(.4,0,.6,1) infinite; }
+@keyframes loaderBounce{
+  0%,100%{ transform:translateY(0) scale(1.12,.88); }
+  40%    { transform:translateY(-34px) scale(.94,1.08); }
+  60%    { transform:translateY(-30px) scale(1,1); }
+}
+.loader__text{ font-family:var(--font-logo); font-size:15px; letter-spacing:.12em; text-shadow:0 2px 0 rgba(0,0,0,.14); }
+.loader__dots i{ display:inline-block; width:6px; height:6px; border-radius:50%; background:#fff; margin-left:5px; animation:dotBlink 1.2s ease-in-out infinite; }
+.loader__dots i:nth-child(2){ animation-delay:.2s; } .loader__dots i:nth-child(3){ animation-delay:.4s; }
+@keyframes dotBlink{ 0%,80%,100%{ opacity:.25; transform:translateY(0);} 40%{ opacity:1; transform:translateY(-4px);} }
+
+/* ============================================================
+   ヘッダー
+   ============================================================ */
+header{
+  position:fixed; top:14px; left:0; right:0; z-index:20;
+  display:flex; justify-content:flex-end; align-items:center;  /* 左上のロゴボタンは撤去（2026-08-21 じょじを指示）。ナビだけ右に */
+  padding:0 18px; pointer-events:none;
+}
+.gnav{
+  pointer-events:auto;
+  display:flex; gap:8px;
+  background:rgba(255,255,255,.92);
+  padding:7px; border-radius:999px;
+  box-shadow:0 4px 0 rgba(0,0,0,.15);
+}
+.gnav a{
+  font-weight:700; font-size:13px; color:var(--ink);
+  text-decoration:none; padding:7px 14px; border-radius:999px;
+  transition:background .2s, transform .2s var(--ease-puni);
+}
+.gnav a:hover{ background:#ffe9a8; transform:scale(1.06); }
+
+/* ============================================================
+   セクション共通（背景は持たない＝透過で bg レイヤーが見える）
+   ============================================================ */
+section{ position:relative; padding:110px 24px 130px; }
+.inner{ position:relative; z-index:2; max-width:980px; margin:0 auto; }
+.sec-title{
+  font-family:var(--font-logo);
+  font-size:clamp(26px, 4.6vw, 40px);
+  color:#fff; text-align:center;
+  margin-bottom:14px; letter-spacing:.06em;
+  text-shadow:0 3px 0 rgba(0,0,0,.14);
+}
+.sec-lead{
+  color:rgba(255,255,255,.94); text-align:center;
+  font-size:clamp(14px,2.4vw,17px); font-weight:700;
+  margin-bottom:46px;
+}
+
+/* ============================================================
+   1. ヒーロー
+   ============================================================ */
+.hero{
+  min-height:100vh; min-height:100svh;
+  display:flex; align-items:center; justify-content:center;
+  padding:96px 20px 120px;
+  text-align:center;
+}
+.hero__inner{ position:relative; z-index:2; width:100%; max-width:1080px; }
+/* ロゴ画像：ふわふわ浮く＋マウスで少し傾く（3D）＋光が走る */
+.logo{
+  display:inline-block; position:relative;
+  perspective:900px;
+}
+.logo__tilt{
+  position:relative; display:block;
+  transform-style:preserve-3d;
+  transform:rotateX(var(--lrx,0deg)) rotateY(var(--lry,0deg));  /* マウスで少し傾くだけ。常時の浮遊はしない */
+  will-change:transform;
+}
+.logo__img, .logo__svg{
+  width:min(80vw, 560px); height:auto; display:block;
+  filter:drop-shadow(0 6px 0 rgba(0,0,0,.16)) drop-shadow(0 14px 24px rgba(0,40,90,.18));
+}
+.logo__svg{ overflow:visible; }
+/* 1文字ずつ順番に飛び込んでくる（最初の1回だけ。JSが logo.svg を読み込んで文字ごとに --i を振る）
+   ローディングの星が開いた合図（body.revealed）で始まる */
+.logo__g{ transform-box:fill-box; transform-origin:50% 100%; opacity:0; }
+body.revealed .logo__g{
+  animation:letterPop .85s cubic-bezier(.34,1.56,.64,1) both;
+  animation-delay:calc(.15s + var(--i,0) * .12s);
+}
+body.no-loader .logo__g{ opacity:1; }   /* ローディング無し（アニメ停止設定など）の時は即表示 */
+@keyframes letterPop{
+  0%  { opacity:0; transform:translateY(46px) scale(.55) rotate(-8deg); }
+  60% { opacity:1; transform:translateY(-10px) scale(1.06) rotate(2deg); }
+  100%{ opacity:1; transform:translateY(0) scale(1) rotate(0deg); }
+}
+/* 光の帯：ロゴの形でマスクしたグラデーションを流す */
+.logo__sheen{
+  position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(112deg, rgba(255,255,255,0) 38%, rgba(255,246,190,.95) 47%, rgba(190,236,255,.9) 53%, rgba(255,255,255,0) 62%);
+  background-size:260% 100%;
+  -webkit-mask:url(assets/img/logo.svg) center / contain no-repeat; mask:url(assets/img/logo.svg) center / contain no-repeat;
+  background-position:120% 0;
+  opacity:.9;
+}
+/* ↑この光の帯は <img> のロゴ用（JSがSVGを埋め込めなかった時のフォールバック）。埋め込めた時は文字の塗りの中で光が走る */
+body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 1.4s 1 both; }
+@keyframes sheen{ 0%{ background-position:120% 0; } 100%{ background-position:-40% 0; } }
+
+.hero__copy{
+  color:#fff; font-weight:700;
+  font-size:clamp(16px,3vw,22px);
+  margin:20px 0 6px; text-shadow:0 2px 0 rgba(0,0,0,.12);
+}
+.hero__sub{ color:rgba(255,255,255,.85); font-size:clamp(11px,2vw,13px); letter-spacing:.28em; }
+
+/* キャラステージ：本体＋まわりに浮かぶなかま */
+.stage{
+  position:relative;
+  width:min(92vw, 660px);
+  margin:26px auto 0;
+}
+.hero__char{
+  width:min(72vw, 450px);
+  margin:0 auto;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none; -webkit-user-drag:none;
+  transition:transform .18s var(--ease-puni);
+  position:relative; z-index:2;
+}
+.hero__char:hover{ transform:scale(1.03); }
+
+/* まわりに浮かぶステッカー（PCのみ。ヒーロー全面に散らす・奥行き違いで漂う・マウスで視差） */
+.floaters{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+.floater{
+  position:absolute; width:var(--w,110px); height:auto;
+  translate:0 0;  /* 視差はJSが translate で動かす */
+  animation:floaty var(--dur,5s) ease-in-out infinite; animation-delay:var(--delay,0s);
+  filter:drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 10px 14px rgba(0,0,0,.18));
+  opacity:var(--op,1);
+}
+@keyframes floaty{ 0%,100%{ transform:translateY(0) rotate(var(--rot,0deg)); } 50%{ transform:translateY(-14px) rotate(calc(var(--rot,0deg) + 3deg)); } }
+@media (max-width:899px){ .floaters{ display:none; } }
+
+/* まわる円形バッジ */
+.orbitBadge{
+  position:absolute; z-index:3;
+  width:clamp(84px,13vw,128px); height:clamp(84px,13vw,128px);
+  right:4%; bottom:-6%;
+  pointer-events:none;
+}
+.orbitBadge svg{ width:100%; height:100%; animation:spin 16s linear infinite; }
+.orbitBadge text{
+  font-family:var(--font-logo); font-size:10px; letter-spacing:.1em;
+  fill:#fff;
+}
+.orbitBadge circle{ fill:rgba(255,255,255,.16); }
+.orbitBadge .badgeImg{
+  position:absolute; inset:20%; width:60%; height:60%;
+  object-fit:contain;
+}
+@keyframes spin{ to{ transform:rotate(360deg);} }
+
+/* 「タップしてみてね」：白いふきだし風のピルが上下に跳ねて目を引く */
+.hero__hint{
+  display:inline-block; position:relative; margin-top:22px;
+  background:#fff; color:#e8628c; font-weight:700; font-size:clamp(14px,2.2vw,16px);
+  padding:11px 24px; border-radius:999px;
+  box-shadow:0 5px 0 rgba(0,0,0,.16), 0 10px 20px rgba(0,40,90,.14);
+  animation:hintBob 1.1s ease-in-out infinite;
+}
+.hero__hint::before{ /* ふきだしのしっぽ（上向き＝ぽちゃもんを指す） */
+  content:''; position:absolute; left:50%; top:-9px; translate:-50% 0;
+  border:9px solid transparent; border-top:none; border-bottom-color:#fff;
+}
+@keyframes hintBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-7px); } }
+
+/* SNSアイコン（design_c1.html と同素材） */
+.sns{ display:flex; gap:14px; justify-content:center; margin-top:22px; flex-wrap:wrap; }
+.sns a{
+  display:inline-block;
+  transition:transform .18s var(--ease-puni);
+}
+.sns a img, .sns a.icon-tiktok{ width:50px; height:50px; display:block; }
+.sns a.icon-tiktok{
+  background:#000; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+}
+.sns a.icon-tiktok svg{ width:30px; height:30px; }
+.sns a:hover{ transform:translateY(-4px) scale(1.08); }
+.sns a:active{ transform:translateY(1px) scale(.95); }
+
+/* 流れるマーキー帯 */
+.marquee{
+  position:absolute; left:-4vw; right:-4vw; bottom:34px; z-index:3; /* 浮かぶステッカー(z1)より手前 */
+  rotate:-1.6deg;
+  background:rgba(255,255,255,.16);
+  overflow:hidden; white-space:nowrap;
+  padding:10px 0;
+  backdrop-filter:blur(2px);
+  cursor:default;
+}
+/* さわると帯がとまる（ぽちゃもんが みられてることに気づく） */
+.marquee:hover .marquee__track, .marquee.paused .marquee__track{ animation-play-state:paused; }
+.marquee__track{
+  display:inline-block;
+  animation:marquee 40s linear infinite; /* 日記は文が長いので読める速度に */
+}
+.marquee__track span{
+  font-family:var(--font-logo);
+  color:#fff; font-size:20px; letter-spacing:.14em;
+  padding-right:16px;
+  text-shadow:0 2px 0 rgba(0,0,0,.1);
+}
+@keyframes marquee{ to{ transform:translateX(-50%);} }
+
+/* パーティクル */
+.particle{
+  position:fixed; pointer-events:none; z-index:50;
+  font-size:22px;
+  animation:fly .9s ease-out forwards;
+}
+@keyframes fly{
+  0%{opacity:1; transform:translate(0,0) scale(.6) rotate(0deg);}
+  100%{opacity:0; transform:translate(var(--dx), var(--dy)) scale(1.25) rotate(var(--rot));}
+}
+
+/* ============================================================
+   2. おしらせ
+   ============================================================ */
+.newsList{ display:grid; gap:14px; max-width:640px; margin:0 auto; }
+.newsItem{
+  display:flex; align-items:center; gap:14px;
+  background:rgba(255,255,255,.94);
+  border-radius:18px; padding:16px 20px;
+  box-shadow:0 5px 0 rgba(0,0,0,.13);
+  font-size:clamp(13px,2.2vw,14.5px); font-weight:700;
+  text-align:left;
+}
+.newsItem .date{ color:#888; font-size:12px; white-space:nowrap; }
+.newsItem .tag{
+  font-family:var(--font-logo); font-size:11px; color:#fff;
+  background:#ff8fb2; border-radius:999px; padding:3px 11px; white-space:nowrap;
+}
+.newsItem .tag--event{ background:#ffb03a; }
+.newsItem--hot{ background:#fffbe8; box-shadow:0 5px 0 rgba(0,0,0,.13), 0 0 0 3px #ffe07a inset; }
+.newsItem b{ color:#e8628c; }
+
+/* お品書き：3枚を扇形に。さわると傾く（tilt）・タップで拡大 */
+.menuFan{ margin-top:44px; text-align:center; }
+.menuFan__title{ color:#fff; font-family:var(--font-logo); font-size:clamp(17px,2.6vw,22px); text-shadow:0 2px 0 rgba(0,0,0,.12); margin-bottom:22px; }
+.menuFan__cards{ display:flex; justify-content:center; align-items:flex-end; gap:0; }
+.menuCard{
+  appearance:none; border:none; padding:8px; background:#fff; border-radius:16px; cursor:pointer;
+  width:min(30vw,250px); aspect-ratio:4/5; flex:0 0 auto;
+  box-shadow:0 8px 0 rgba(0,0,0,.15), 0 16px 30px rgba(0,40,80,.18);
+  position:relative;
+  transition:box-shadow .25s, translate .35s var(--ease-puni), rotate .35s var(--ease-puni);
+}
+.menuCard img{
+  width:100%; height:100%; object-fit:cover; border-radius:10px; display:block; position:relative; z-index:1;
+  transform:translate(calc(var(--sx,0px) * .5), calc(var(--sy,0px) * .5)); transition:transform .35s var(--ease-puni);
+}
+.menuCard .glare{ z-index:2; }
+.menuCard:nth-child(1){ rotate:-8deg; translate:26px 12px; z-index:1; }
+.menuCard:nth-child(2){ z-index:2; translate:0 -10px; }
+.menuCard:nth-child(3){ rotate:8deg; translate:-26px 12px; z-index:1; }
+.menuCard:hover{ z-index:3; rotate:0deg; translate:0 -22px; box-shadow:0 14px 0 rgba(0,0,0,.15), 0 26px 40px rgba(0,40,80,.24); }
+.menuFan__link{
+  display:inline-block; margin-top:30px; background:#1c2340; color:#fff; text-decoration:none; font-weight:700; font-size:14px;
+  padding:12px 28px; border-radius:999px; box-shadow:0 4px 0 rgba(0,0,0,.18);
+  transition:transform .18s var(--ease-puni);
+}
+.menuFan__link:hover{ transform:translateY(-3px) scale(1.05); }
+
+/* tilt：マウス／指の位置で立体的に傾く＋ホロっぽい光（.sticker と .menuCard 共通） */
+.tilt{ will-change:transform; }
+.tilt .glare{
+  position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:
+    radial-gradient(circle at var(--gx,50%) var(--gy,50%), rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 38%),
+    linear-gradient(115deg, rgba(255,130,200,.45) 0%, rgba(120,225,255,.45) 45%, rgba(255,235,120,.45) 100%);
+  background-size:100% 100%, 220% 220%;
+  background-position:0 0, var(--gx,50%) var(--gy,50%);
+  mix-blend-mode:multiply;
+  opacity:var(--go,0); transition:opacity .35s;
+}
+
+/* ============================================================
+   3. ぽちゃもんって？
+   ============================================================ */
+.about__grid{ display:grid; grid-template-columns:1fr 1.2fr; gap:36px; align-items:center; }
+.about__figure img{
+  width:min(60vw,300px); margin:0 auto;
+  filter:
+    drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff)
+    drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff)
+    drop-shadow(0 8px 14px rgba(0,0,0,.2));
+  animation:floaty 4s ease-in-out infinite;
+}
+@keyframes floaty{
+  0%,100%{ transform:translateY(0) rotate(-2deg); }
+  50%    { transform:translateY(-12px) rotate(2deg); }
+}
+.about__text{
+  background:rgba(255,255,255,.94);
+  border-radius:26px;
+  padding:30px 30px 24px;
+  box-shadow:0 8px 0 rgba(0,0,0,.12);
+}
+.about__text p{
+  font-size:clamp(14px,2.4vw,16px);
+  font-weight:700; line-height:2.05; margin-bottom:18px;
+}
+.profile{ list-style:none; display:grid; gap:8px; }
+.profile li{
+  display:grid; grid-template-columns:110px 1fr; gap:10px;
+  font-size:clamp(12.5px,2.2vw,14px); line-height:1.7; align-items:baseline;
+}
+.profile .k{
+  font-family:var(--font-logo); color:#3f8c40; font-size:12.5px;
+  background:#eaf5e4; border-radius:999px; text-align:center; padding:3px 6px;
+}
+.profile .v{ font-weight:700; }
+
+/* ============================================================
+   3. いろんなぽちゃもん
+   ============================================================ */
+.gallery{ display:grid; grid-template-columns:repeat(4, 1fr); gap:20px; }
+.sticker{
+  background:#fff; border-radius:22px;
+  padding:16px 12px 12px; text-align:center; cursor:pointer;
+  box-shadow:0 6px 0 rgba(0,0,0,.16);
+  transition:transform .2s var(--ease-puni), box-shadow .2s;
+  border:none; font-family:var(--font-body);
+}
+.sticker{ position:relative; }
+.sticker.tilt{ transition:box-shadow .25s; } /* transform はJSが毎フレーム入れるので transition から外す */
+.sticker:hover{ box-shadow:0 14px 0 rgba(0,0,0,.14), 0 22px 30px rgba(0,0,0,.16); }
+.sticker:active{ box-shadow:0 3px 0 rgba(0,0,0,.16); }
+/* 画像の「浮き」は translateZ でなく2Dのずらし（--sx/--sy はJSが傾きの逆方向に入れる）。
+   3D空間（preserve-3d）に子を置くと、傾きが戻る途中で描画順が揺れて画像が一瞬消えるため */
+.sticker img{
+  aspect-ratio:1/1; object-fit:contain; position:relative; z-index:1;
+  transform:translate(var(--sx,0px), var(--sy,0px)) scale(var(--ss,1));
+  transition:transform .35s var(--ease-puni);
+}
+.sticker:hover img{ --ss:1.07; filter:drop-shadow(0 10px 10px rgba(0,0,0,.18)); }
+.sticker .glare{ z-index:2; }
+.sticker .name{ position:relative; z-index:3; }
+.sticker .name{ font-weight:700; font-size:13px; margin-top:8px; color:var(--ink); display:block;}
+
+/* ============================================================
+   4. ぽちゃもんカード（3D・Three.js）
+   ============================================================ */
+.cardsGrid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:28px; max-width:760px; margin:0 auto; }
+.cardStage{ position:relative; aspect-ratio:5/6.4; }
+.cardStage canvas{ width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
+.cardStage canvas.dragging{ cursor:grabbing; }
+.cardStage .fallback{ width:min(60vw,260px); margin:0 auto; }
+.gyroBtn{
+  display:none; margin:18px auto 0; font-family:var(--font-body); font-weight:700;
+  background:#fff; color:var(--ink); border:none; padding:10px 24px; border-radius:999px;
+  cursor:pointer; font-size:13.5px; box-shadow:0 4px 0 rgba(0,0,0,.14);
+}
+.gyroBtn.show{ display:block; }
+.gyroBtn.active{ background:#ffb03a; color:#fff; }
+
+/* ============================================================
+   うごくぽちゃもん／あそぶ／グッズ／おみやげ
+   ============================================================ */
+.theater{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.movCard{
+  background:#fff; border-radius:22px; padding:12px 12px 14px;
+  box-shadow:0 6px 0 rgba(0,0,0,.16); text-align:center;
+}
+.movCard video{ width:100%; border-radius:14px; display:block; background:#f4f2ee; }
+.movCard .name{ font-weight:700; font-size:13.5px; margin-top:10px; }
+.theater-note{ text-align:center; margin-top:26px; }
+.theater-note a{
+  display:inline-block; background:#fff; color:var(--ink);
+  font-weight:700; font-size:14px; text-decoration:none;
+  padding:11px 26px; border-radius:999px;
+  box-shadow:0 4px 0 rgba(0,0,0,.14);
+  transition:transform .18s var(--ease-puni);
+}
+.theater-note a:hover{ transform:translateY(-3px) scale(1.05); }
+
+.goodsGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.goodsCard{
+  background:#fff; border-radius:22px; padding:16px 14px 14px;
+  box-shadow:0 6px 0 rgba(0,0,0,.16); text-align:center; position:relative;
+}
+.goodsCard img{ aspect-ratio:1/1; object-fit:contain; }
+.goodsCard .name{ font-weight:700; font-size:13.5px; margin-top:8px; }
+.goodsCard .price{ font-family:var(--font-logo); font-size:14px; color:#e8628c; margin-top:2px; }
+.goodsCard .limited{
+  position:absolute; top:-9px; right:-6px;
+  font-family:var(--font-logo); font-size:10.5px; color:#fff;
+  background:#e8628c; border-radius:999px; padding:4px 12px;
+  box-shadow:0 3px 0 rgba(0,0,0,.15); rotate:6deg;
+}
+.goods-note{ color:rgba(255,255,255,.94); font-weight:700; text-align:center; margin-top:26px; font-size:clamp(13px,2.2vw,15px); }
+
+.giftGrid{ display:grid; grid-template-columns:repeat(2,1fr); gap:22px; max-width:640px; margin:0 auto; }
+.giftCard{
+  background:rgba(255,255,255,.55); border:3px dashed rgba(255,255,255,.9);
+  border-radius:26px; padding:34px 20px; text-align:center;
+  color:#fff; font-weight:700;
+}
+.giftCard .big{ font-family:var(--font-logo); font-size:17px; text-shadow:0 2px 0 rgba(0,0,0,.12); }
+.giftCard .small{ font-size:12px; margin-top:8px; opacity:.9; }
+
+/* ライトボックス */
+.lightbox{
+  position:fixed; inset:0; z-index:100;
+  background:rgba(20,16,40,.72);
+  display:none; align-items:center; justify-content:center; padding:24px;
+}
+.lightbox.open{ display:flex; }
+.lightbox__card{
+  background:#fff; border-radius:30px;
+  padding:34px 30px 26px; text-align:center;
+  max-width:420px; width:100%;
+  animation:pop .35s var(--ease-puni);
+}
+@keyframes pop{ 0%{transform:scale(.6); opacity:0;} 100%{transform:scale(1); opacity:1;} }
+.lightbox__card img{ width:min(60vw,280px); margin:0 auto; }
+.lightbox__card.wide img{ width:min(80vw,360px); max-height:70vh; object-fit:contain; border-radius:12px; }
+.lightbox__name{ font-family:var(--font-logo); font-size:22px; margin-top:12px; }
+.lightbox__caption{ font-weight:700; color:#666; margin-top:6px; font-size:14px; }
+.lightbox__close{
+  margin-top:18px; font-family:var(--font-body); font-weight:700;
+  background:var(--ink); color:#fff; border:none;
+  padding:10px 30px; border-radius:999px; cursor:pointer; font-size:14px;
+}
+
+footer{
+  background:#1c2340; color:rgba(255,255,255,.85);
+  text-align:center; padding:34px 20px 42px;
+  font-size:12.5px; font-weight:700;
+  position:relative; z-index:2;
+}
+
+/* 出現アニメ */
+.reveal{ opacity:0; translate:0 36px; transition:opacity .7s ease, translate .7s cubic-bezier(.22,1,.36,1); }
+.reveal.shown{ opacity:1; translate:0 0; }
+
+/* ============================================================
+   レスポンシブ
+   ============================================================ */
+@media (max-width:760px){
+  section{ padding:84px 18px 100px; }
+  .gnav{ display:none; }
+  .about__grid{ grid-template-columns:1fr; gap:20px; }
+  .about__figure img{ width:min(52vw,240px); }
+  .gallery{ grid-template-columns:repeat(2, 1fr); gap:14px; }
+  .cardsGrid{ grid-template-columns:1fr; max-width:320px; gap:18px; }
+  .menuFan__cards{ justify-content:flex-start; overflow-x:auto; gap:14px; padding:10px 6px 18px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; }
+  .menuCard{ width:min(64vw,240px); scroll-snap-align:center; }
+  .menuCard:nth-child(n){ rotate:0deg; translate:0 0; }
+  .profile li{ grid-template-columns:96px 1fr; }
+  .marquee{ bottom:22px; }
+  .orbitBadge{ right:-2%; bottom:-4%; }
+  .theater{ grid-template-columns:1fr; max-width:340px; margin:0 auto; }
+  .goodsGrid{ grid-template-columns:repeat(2,1fr); gap:14px; }
+  .giftGrid{ grid-template-columns:1fr; max-width:340px; }
+}
+
+/* アニメ停止設定の尊重 */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{ animation:none !important; transition:none !important; }
+  html{scroll-behavior:auto;}
+  .logo__g{ opacity:1 !important; }
+  .reveal{opacity:1; translate:0 0;}
+  .sparkle,.twinkdot{opacity:.5;}
+}
+</style>
+</head>
+<body class="theme-blue">
+<!-- ローディング画面（読み込み完了 or 最低1.5秒 → 星型に開く。最長4.5秒で強制的に開く） -->
+<div class="loader" id="loader" aria-hidden="true">
+  <div class="loader__inner">
+    <img class="loader__char" src="assets/img/pochamon-main.webp" alt="" width="140" height="138" fetchpriority="high">
+    <div class="loader__text">よみこみちゅう<span class="loader__dots"><i></i><i></i><i></i></span></div>
+  </div>
+</div>
+<script>
+(function(){
+  const ld=document.getElementById('loader');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const t0=performance.now(), MIN=1500, MAX=4500;
+  let done=false;
+  function go(){
+    if(done) return; done=true;
+    document.body.classList.add('revealed');                     // ロゴの文字アニメ・光の合図
+    document.dispatchEvent(new Event('pochamon:reveal'));
+    if(reduce){ ld.remove(); return; }
+    ld.classList.add('reveal');
+    // 星型の穴を 0 → 画面の3.2倍まで 1秒で広げる（ゆっくり始まり一気に開く）
+    const DUR=1000, full=Math.max(innerWidth, innerHeight)*3.2, start=performance.now();
+    (function grow(now){
+      const p=Math.min(1, (now-start)/DUR);
+      const e=p<.5 ? 4*p*p*p : 1-Math.pow(-2*p+2,3)/2;   // easeInOutCubic
+      const s=Math.round(full*e)+'px';
+      ld.style.webkitMaskSize=`100% 100%, ${s} ${s}`; ld.style.maskSize=`100% 100%, ${s} ${s}`;
+      if(p<1) requestAnimationFrame(grow); else ld.remove();
+    })(start);
+  }
+  if(reduce){ document.body.classList.add('no-loader'); ld.remove(); done=true; document.body.classList.add('revealed'); return; }
+  const ready=()=>setTimeout(go, Math.max(0, MIN-(performance.now()-t0)));
+  if(document.readyState==='complete') ready(); else addEventListener('load', ready, {once:true});
+  setTimeout(go, MAX);
+})();
+</script>
+
+<!-- アメーバ形クリップパス定義（パッケージのうねうねブロブ形状） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <clipPath id="amoeba1" clipPathUnits="objectBoundingBox">
+      <path d="M.07,.42 C.02,.24 .13,.06 .3,.05 C.42,.04 .5,.12 .62,.08 C.76,.03 .93,.1 .96,.26 C.99,.38 .9,.46 .92,.56 C.95,.7 .86,.85 .7,.86 C.58,.87 .52,.78 .4,.82 C.26,.88 .08,.82 .06,.66 C.04,.56 .1,.5 .07,.42 Z">
+        <animate attributeName="d" dur="13s" repeatCount="indefinite" calcMode="spline"
+          keyTimes="0;.33;.66;1" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1"
+          values="M.07,.42 C.02,.24 .13,.06 .3,.05 C.42,.04 .5,.12 .62,.08 C.76,.03 .93,.1 .96,.26 C.99,.38 .9,.46 .92,.56 C.95,.7 .86,.85 .7,.86 C.58,.87 .52,.78 .4,.82 C.26,.88 .08,.82 .06,.66 C.04,.56 .1,.5 .07,.42 Z;
+                  M.05,.45 C.01,.28 .16,.09 .32,.07 C.44,.05 .48,.15 .6,.12 C.74,.08 .95,.06 .97,.22 C.99,.34 .87,.44 .9,.54 C.93,.68 .88,.88 .72,.88 C.6,.88 .5,.76 .38,.8 C.24,.85 .1,.86 .07,.7 C.05,.6 .08,.53 .05,.45 Z;
+                  M.09,.4 C.05,.22 .11,.04 .28,.04 C.4,.04 .52,.1 .64,.06 C.78,.02 .91,.12 .95,.28 C.98,.4 .92,.48 .94,.58 C.97,.72 .84,.83 .68,.84 C.56,.85 .54,.8 .42,.84 C.28,.9 .06,.8 .05,.64 C.04,.54 .12,.48 .09,.4 Z;
+                  M.07,.42 C.02,.24 .13,.06 .3,.05 C.42,.04 .5,.12 .62,.08 C.76,.03 .93,.1 .96,.26 C.99,.38 .9,.46 .92,.56 C.95,.7 .86,.85 .7,.86 C.58,.87 .52,.78 .4,.82 C.26,.88 .08,.82 .06,.66 C.04,.56 .1,.5 .07,.42 Z"/>
+      </path>
+    </clipPath>
+    <clipPath id="amoeba2" clipPathUnits="objectBoundingBox">
+      <path d="M.5,.03 C.66,0 .8,.1 .82,.24 C.84,.34 .76,.42 .82,.5 C.9,.6 .88,.76 .74,.84 C.6,.92 .48,.84 .36,.9 C.22,.96 .06,.88 .04,.72 C.02,.6 .12,.52 .08,.4 C.03,.24 .16,.08 .32,.06 C.38,.05 .44,.04 .5,.03 Z">
+        <animate attributeName="d" dur="17s" repeatCount="indefinite" calcMode="spline"
+          keyTimes="0;.33;.66;1" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1; 0.4 0 0.6 1"
+          values="M.5,.03 C.66,0 .8,.1 .82,.24 C.84,.34 .76,.42 .82,.5 C.9,.6 .88,.76 .74,.84 C.6,.92 .48,.84 .36,.9 C.22,.96 .06,.88 .04,.72 C.02,.6 .12,.52 .08,.4 C.03,.24 .16,.08 .32,.06 C.38,.05 .44,.04 .5,.03 Z;
+                  M.52,.05 C.68,.02 .84,.08 .84,.22 C.84,.32 .74,.44 .8,.52 C.88,.62 .9,.78 .76,.86 C.62,.94 .5,.82 .38,.88 C.24,.94 .04,.9 .03,.74 C.02,.62 .1,.5 .06,.38 C.02,.22 .14,.1 .3,.08 C.37,.07 .45,.07 .52,.05 Z;
+                  M.48,.02 C.64,-.01 .78,.12 .81,.26 C.83,.36 .78,.4 .84,.48 C.92,.58 .86,.74 .72,.82 C.58,.9 .46,.86 .34,.92 C.2,.98 .08,.86 .05,.7 C.03,.58 .14,.54 .1,.42 C.05,.26 .18,.06 .34,.04 C.4,.03 .42,.03 .48,.02 Z;
+                  M.5,.03 C.66,0 .8,.1 .82,.24 C.84,.34 .76,.42 .82,.5 C.9,.6 .88,.76 .74,.84 C.6,.92 .48,.84 .36,.9 C.22,.96 .06,.88 .04,.72 C.02,.6 .12,.52 .08,.4 C.03,.24 .16,.08 .32,.06 C.38,.05 .44,.04 .5,.03 Z"/>
+      </path>
+    </clipPath>
+  </defs>
+</svg>
+
+<!-- 固定背景：模様はひとつながり、色だけがスクロールで変わる -->
+<div class="bg" aria-hidden="true">
+  <div class="blobWrap wrap--a" data-depth="26"><div class="blob blob--a"></div></div>
+  <div class="blobWrap wrap--b" data-depth="12"><div class="blob blob--b"></div></div>
+  <div class="blobWrap wrap--c" data-depth="28"><div class="blob blob--c"></div></div>
+  <div class="blobWrap wrap--d" data-depth="9"><div class="blob blob--d"></div></div>
+  <div class="moonWrap" data-depth="5"><div class="moon"></div></div>
+  <div id="skyLayer"></div>
+</div>
+
+<header>
+  <nav class="gnav" aria-label="サイト内リンク">
+    <a href="#news">おしらせ</a>
+    <a href="#about">ぽちゃもんって？</a>
+    <a href="#stickers">いろんなぽちゃもん</a>
+    <a href="#cards">カード</a>
+    <a href="#animes">うごく</a>
+    <a href="#goods">グッズ</a>
+  </nav>
+</header>
+
+<!-- ========== 1. ヒーロー ========== -->
+<section class="hero" id="top" data-theme="theme-blue" data-fx="sparkle">
+  <div class="floaters" id="floaters" aria-hidden="true"></div>
+  <div class="hero__inner">
+    <h1 class="logo" aria-label="ぽちゃもん">
+      <span class="logo__tilt" id="logoTilt">
+        <img class="logo__img" src="assets/img/logo.svg" alt="ぽちゃもん" width="449" height="121" fetchpriority="high">
+        <span class="logo__sheen" aria-hidden="true"></span>
+      </span>
+    </h1>
+    <p class="hero__copy">まるくて、のびーる。ぽちゃっとモモンガ。</p>
+    <p class="hero__sub">POCHAMON OFFICIAL SITE</p>
+
+    <div class="stage">
+      <img class="hero__char" id="heroChar" src="assets/img/pochamon-normal.webp" alt="ぽちゃもん" width="560" height="550" fetchpriority="high">
+      <span class="orbitBadge"><svg viewBox="0 0 100 100">
+        <defs><path id="circlePath" d="M50,50 m-36,0 a36,36 0 1,1 72,0 a36,36 0 1,1 -72,0"/></defs>
+        <circle cx="50" cy="50" r="46"/>
+        <text><textPath href="#circlePath">POCHAMON・OFFICIAL・POCHAMON・</textPath></text>
+      </svg><img class="badgeImg" src="assets/img/metallic-biroon.webp" alt=""></span>
+    </div>
+
+    <p class="hero__hint">👆 ぽちゃもんを タップしてみてね！</p>
+    <nav class="sns" aria-label="SNSリンク">
+      <a href="https://twitter.com/jojima_george" target="_blank" rel="noopener noreferrer">
+        <img src="assets/img/X_logo.webp" alt="X">
+      </a>
+      <a href="https://www.instagram.com/pochamon_jp/" target="_blank" rel="noopener noreferrer">
+        <img src="assets/img/instagram_logo.webp" alt="Instagram">
+      </a>
+      <a href="https://www.tiktok.com/@pochamon_jp" target="_blank" rel="noopener noreferrer" class="icon-tiktok" aria-label="TikTok">
+        <svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V9.33a8.16 8.16 0 004.76 1.52v-3.4a4.85 4.85 0 01-1-.76z"/>
+        </svg>
+      </a>
+    </nav>
+  </div>
+
+  <div class="marquee" id="marquee"><div class="marquee__track" id="marqueeTrack"></div></div>
+</section>
+
+<!-- ========== 2. おしらせ ========== -->
+<section id="news" data-theme="theme-teal" data-fx="bubble">
+  <div class="inner">
+    <h2 class="sec-title reveal">おしらせ</h2>
+    <p class="sec-lead reveal">ぽちゃもんのさいしんじょうほう。</p>
+    <div class="newsList">
+      <div class="newsItem newsItem--hot reveal"><span class="date">2026.08.23</span><span class="tag tag--event">イベント</span><span><b>COMITIA157</b> に しゅってん！ 東京ビッグサイト 西4ホール <b>【し08a】</b>／ 8月23日(日) 11:00〜16:00</span></div>
+      <div class="newsItem reveal"><span class="date">2026.07.07</span><span class="tag">サイト</span><span>ぽちゃもん公式サイトをつくりはじめました🐾</span></div>
+    </div>
+
+    <div class="menuFan reveal" id="menuFan">
+      <p class="menuFan__title">COMITIA157 の おしながき</p>
+      <div class="menuFan__cards">
+        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-1.webp" data-name="おしながき ①" data-cap="防水ステッカー・うきわもっきゅ NEW"><img src="assets/img/oshinagaki-1.webp" alt="お品書き1：防水ステッカー" loading="lazy" width="1200" height="1500"></button>
+        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-2.webp" data-name="おしながき ②" data-cap="フレークシール付きミニゲーム・箔押しフォトプリント"><img src="assets/img/oshinagaki-2.webp" alt="お品書き2：ミニゲーム・フォトプリント" loading="lazy" width="1200" height="1500"></button>
+        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-3.webp" data-name="おしながき ③" data-cap="キャンディバッグ・マグネットステッカー"><img src="assets/img/oshinagaki-3.webp" alt="お品書き3：キャンディバッグ・マグネットステッカー" loading="lazy" width="1200" height="1500"></button>
+      </div>
+      <a class="menuFan__link" href="https://x.com/jojima_george/status/2090412858463101305" target="_blank" rel="noopener noreferrer">X で おしながきを見る</a>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 3. ぽちゃもんって？ ========== -->
+<section id="about" data-theme="theme-green" data-fx="leaf">
+  <div class="inner">
+    <h2 class="sec-title reveal">ぽちゃもんって？</h2>
+    <p class="sec-lead reveal">がんばらない日も、ちゃんとかわいい。</p>
+    <div class="about__grid">
+      <div class="about__figure reveal">
+        <img src="assets/img/softcream.webp" alt="ソフトクリームを食べるぽちゃもん" loading="lazy">
+      </div>
+      <div class="about__text reveal">
+        <p>
+          ぽちゃっとまるいモモンガ、ぽちゃもん。<br>
+          飛びたい気持ちはあるけど、<br>
+          きょうも食べて、のびて、ねむい。
+        </p>
+        <ul class="profile">
+          <li><span class="k">なまえ</span><span class="v">ぽちゃもん</span></li>
+          <li><span class="k">しゅるい</span><span class="v">モモンガ（ぽちゃっと多め）</span></li>
+          <li><span class="k">たんじょうび</span><span class="v">8月8日（いちばんまるい数字がならぶ日）</span></li>
+          <li><span class="k">すきなもの</span><span class="v">はっぱ・ソフトクリーム・あったかい湯船</span></li>
+          <li><span class="k">ちょっとにがて</span><span class="v">ダイエット・げきからラーメン（なのに挑戦しちゃう）</span></li>
+          <li><span class="k">とくぎ</span><span class="v">びろーん（おもったよりのびる）</span></li>
+          <li><span class="k">ゆめ</span><span class="v">かっこよく滑空すること（いまはまだ落ちてるだけ）</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 3. いろんなぽちゃもん ========== -->
+<section id="stickers" data-theme="theme-purple" data-fx="stardust">
+  <div class="inner">
+    <h2 class="sec-title reveal">いろんなぽちゃもん</h2>
+    <p class="sec-lead reveal">ステッカーになったぽちゃもんたち。タップでよってみてね。</p>
+    <div class="gallery" id="gallery"></div>
+  </div>
+</section>
+
+<!-- ========== 4. ぽちゃもんカード（3D） ========== -->
+<section id="cards" data-theme="theme-blue" data-fx="bubble">
+  <div class="inner">
+    <h2 class="sec-title reveal">ぽちゃもんカード</h2>
+    <p class="sec-lead reveal">さわると かたむく。ながおしで カードのなかへ。</p>
+    <div class="cardsGrid">
+      <div class="cardStage reveal" data-card="amayadori"><canvas aria-label="あまやどり の3Dカード"></canvas></div>
+      <div class="cardStage reveal" data-card="ukiwa"><canvas aria-label="うきわぎゅうぎゅう の3Dカード"></canvas></div>
+    </div>
+    <button class="gyroBtn" id="gyroBtn" type="button">スマホの かたむきで うごかす</button>
+  </div>
+</section>
+
+<!-- ========== 5. うごくぽちゃもん ========== -->
+<section id="animes" data-theme="theme-orange" data-fx="firefly">
+  <div class="inner">
+    <h2 class="sec-title reveal">うごくぽちゃもん</h2>
+    <p class="sec-lead reveal">てがきアニメで きょうも うごく。</p>
+    <div class="theater">
+      <div class="movCard reveal"><video src="assets/mov/dengurigaeshi.mp4" muted autoplay loop playsinline preload="metadata"></video><div class="name">でんぐりがえし</div></div>
+      <div class="movCard reveal"><video src="assets/mov/kinkan.mp4" muted autoplay loop playsinline preload="metadata"></video><div class="name">きんかん</div></div>
+      <div class="movCard reveal"><video src="assets/mov/zabuton.mp4" muted autoplay loop playsinline preload="metadata"></video><div class="name">ざぶとん</div></div>
+    </div>
+    <div class="theater-note reveal">
+      <a href="https://www.tiktok.com/@pochamon_jp" target="_blank" rel="noopener noreferrer">あたらしいアニメは TikTokで こうかいちゅう →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 7. グッズ ========== -->
+<section id="goods" data-theme="theme-teal" data-fx="sparkle">
+  <div class="inner">
+    <h2 class="sec-title reveal">グッズ</h2>
+    <p class="sec-lead reveal">ぽちゃもんを つれてかえろう。</p>
+    <div class="goodsGrid">
+      <div class="goodsCard reveal"><span class="limited">イベントげんてい</span><img src="assets/img/umeboshi.webp" alt="" loading="lazy"><div class="name">ダイカットステッカー（全12しゅ）</div><div class="price">400えん</div></div>
+      <div class="goodsCard reveal"><span class="limited">ゲームのけいひん</span><img src="assets/img/metallic-biroon.webp" alt="" loading="lazy"><div class="name">メタリックフレークシール</div><div class="price">ひばいひん</div></div>
+      <div class="goodsCard reveal"><span class="limited">イベントげんてい</span><img src="assets/img/koinobori.webp" alt="" loading="lazy"><div class="name">しおり（全3しゅ）</div><div class="price">300えん</div></div>
+      <div class="goodsCard reveal"><span class="limited">イベントげんてい</span><img src="assets/img/robot.webp" alt="" loading="lazy"><div class="name">マグネットステッカー</div><div class="price">500えん</div></div>
+      <div class="goodsCard reveal"><span class="limited">イベントげんてい</span><img src="assets/img/mirror.webp" alt="" loading="lazy"><div class="name">はくおし フォトプリント</div><div class="price">1,000えん</div></div>
+      <div class="goodsCard reveal"><span class="limited">てづくり</span><img src="assets/img/softcream.webp" alt="" loading="lazy"><div class="name">ねんどフィギュア入り キャンディバッグ</div><div class="price">1,000えん</div></div>
+    </div>
+    <p class="goods-note reveal">グッズは デザフェス・コミティアの ブースで はんばいしてるよ🐾<br>つぎの しゅってんは <b>COMITIA157</b>（8/23・西4ホール し08a）。おしながきは「おしらせ」を みてね。</p>
+  </div>
+</section>
+
+<!-- ========== 8. おみやげ ========== -->
+<section id="gift" data-theme="theme-blue" data-fx="bubble">
+  <div class="inner">
+    <h2 class="sec-title reveal">おみやげ</h2>
+    <p class="sec-lead reveal">むりょうの かべがみ、じゅんびちゅう。</p>
+    <div class="giftGrid">
+      <div class="giftCard reveal"><div class="big">スマホかべがみ</div><div class="small">じゅんびちゅう…🐾</div></div>
+      <div class="giftCard reveal"><div class="big">PCかべがみ</div><div class="small">じゅんびちゅう…🐾</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  © ぽちゃもん / じょじを
+</footer>
+
+<!-- ライトボックス -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+  <div class="lightbox__card">
+    <img id="lbImg" alt="">
+    <div class="lightbox__name" id="lbName"></div>
+    <div class="lightbox__caption" id="lbCap"></div>
+    <button class="lightbox__close" id="lbClose">とじる</button>
+  </div>
+</div>
+
+<script>
+// ===== スパークル生成（大中小のメリハリ＋発光） =====
+const SPARK_SVG='<svg viewBox="0 0 24 24"><path d="M12 0 C13.2 7 17 10.8 24 12 C17 13.2 13.2 17 12 24 C10.8 17 7 13.2 0 12 C7 10.8 10.8 7 12 0 Z"/></svg>';
+const sky=document.getElementById('skyLayer');
+const SIZES=[
+  {n:3, min:30, max:46},   // 大：主役キラ
+  {n:6, min:16, max:24},   // 中
+  {n:9, min:8,  max:13},   // 小
+];
+const parts=[]; // 視差用 {el, depth}
+// 背景エフェクトを Three.js で出せるか（出せる時は旧キラキラを作らない）
+const USE_FX=(()=>{
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+  try{ const c=document.createElement('canvas'); return !!(c.getContext('webgl2')||c.getContext('webgl')); }catch(e){ return false; }
+})();
+window.__USE_FX=USE_FX;
+
+// 画面を格子に分けて1マス1個ずつ配置（偏りなくまんべんなく散らす）
+const COLS=6, ROWS=5, cells=[];
+for(let x=0;x<COLS;x++)for(let y=0;y<ROWS;y++)cells.push([x,y]);
+for(let i=cells.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cells[i],cells[j]]=[cells[j],cells[i]];}
+let ci=0;
+function nextPos(){
+  const [x,y]=cells[ci++ % cells.length];
+  return [ (x+.15+Math.random()*.7)/COLS*100, (y+.15+Math.random()*.7)/ROWS*100 ];
+}
+
+if(!USE_FX){ // 旧キラキラ（WebGLが無い時の代わり）
+SIZES.forEach(g=>{
+  for(let i=0;i<g.n;i++){
+    const s=document.createElement('span');
+    s.className='sparkle';
+    const size=g.min+Math.random()*(g.max-g.min);
+    const [px,py]=nextPos();
+    s.style.width=s.style.height=size+'px';
+    s.style.left=px+'%';
+    s.style.top=py+'%';
+    s.style.setProperty('--dur',(2.4+Math.random()*2.6)+'s');
+    s.style.setProperty('--delay',(Math.random()*4)+'s');
+    s.innerHTML=SPARK_SVG;
+    if(size<14){ s.style.filter='blur(1.5px)'; }        // 小さい＝遠い＝ピンボケ
+    else if(size<24){ s.style.filter='blur(.6px)'; }
+    sky.appendChild(s);
+    parts.push({el:s, depth:size*0.9}); // 大きいほど手前＝よく動く
+  }
+});
+for(let i=0;i<10;i++){
+  const d=document.createElement('span');
+  d.className='twinkdot';
+  const size=3+Math.random()*4;
+  const [px,py]=nextPos();
+  d.style.width=d.style.height=size+'px';
+  d.style.left=px+'%';
+  d.style.top=py+'%';
+  d.style.setProperty('--dur',(3+Math.random()*3)+'s');
+  d.style.setProperty('--delay',(Math.random()*5)+'s');
+  sky.appendChild(d);
+  parts.push({el:d, depth:4+Math.random()*8});
+}
+} // !USE_FX
+
+// ===== ヒーロー：まわりに浮かぶステッカー（PCだけ。画像もPCの時しか読まない） =====
+if(matchMedia('(min-width:900px)').matches){
+  // 横位置は「中央から何px」（side=左右・off=中央からの距離）。%だと横長の画面で端に張り付くため
+  // 画面が狭い時は端から最低 2% は空ける。depth が大きいほど手前＝大きく・マウスでよく動く
+  const FLOATERS=[
+    {img:'biroon',    side:'left',  off:560, y:12, w:150, rot:-10, depth:30, dur:5.2, delay:0},
+    {img:'softcream', side:'left',  off:470, y:46, w:110, rot:8,   depth:18, dur:6.1, delay:.8},
+    {img:'koinobori', side:'left',  off:590, y:70, w:120, rot:-6,  depth:40, dur:5.6, delay:1.6},
+    {img:'ice',       side:'right', off:470, y:10, w:118, rot:10,  depth:26, dur:5.9, delay:.4},
+    {img:'umbrella',  side:'right', off:400, y:42, w:132, rot:-8,  depth:16, dur:6.6, delay:1.2},
+    {img:'fishing',   side:'right', off:520, y:70, w:112, rot:6,   depth:36, dur:5.4, delay:2.0},
+  ];
+  const fl=document.getElementById('floaters');
+  FLOATERS.forEach(f=>{
+    const im=document.createElement('img');
+    im.className='floater'; im.src=`assets/img/${f.img}.webp`; im.alt=''; im.decoding='async';
+    im.style[f.side]=`max(2%, calc(50% - ${f.off}px))`; im.style.top=f.y+'%';
+    im.style.setProperty('--w', f.w+'px'); im.style.setProperty('--rot', f.rot+'deg');
+    im.style.setProperty('--dur', f.dur+'s'); im.style.setProperty('--delay', f.delay+'s');
+    im.style.setProperty('--op', f.depth>30 ? '1' : '.92');
+    fl.appendChild(im);
+    parts.push({el:im, depth:f.depth*1.6}); // 手前（depth大）ほどマウスで大きく動く
+  });
+}
+
+// ===== ヒーロー：ロゴを1文字ずつ動かす（logo.svg を読み込んでページに直接埋め、文字ごとに番号を振る） =====
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+  fetch('assets/img/logo.svg').then(r=>r.text()).then(txt=>{
+    const doc=new DOMParser().parseFromString(txt,'image/svg+xml');
+    const src=doc.documentElement;
+    if(!src||src.nodeName!=='svg') return;
+    const svg=document.importNode(src,true);
+    svg.removeAttribute('id'); svg.setAttribute('class','logo__svg'); svg.setAttribute('role','img'); svg.setAttribute('aria-label','ぽちゃもん');
+    const img=document.querySelector('.logo__img');
+    img.replaceWith(svg);
+    document.querySelector('.logo__sheen')?.remove();   // 画像用の光の帯は外す（文字の塗りの中で光らせる）
+    // 左から順に番号を振る。横に重なる線（゜や点など）は前の文字と同じ番号
+    const ps=[...svg.querySelectorAll('path')].map(p=>({p,b:p.getBBox()})).sort((a,b)=>a.b.x-b.b.x);
+    let i=-1, prevEnd=-1e9;
+    ps.forEach(o=>{ if(o.b.x > prevEnd - o.b.width*0.35) i++; prevEnd=Math.max(prevEnd, o.b.x+o.b.width); o.p.classList.add('logo__g'); o.p.style.setProperty('--i', i); });
+    // 光の帯：文字の塗りをグラデーションにして、帯の位置だけ動かす（文字が動いても必ず文字に沿う）
+    const NS='http://www.w3.org/2000/svg';
+    const vb=svg.viewBox.baseVal, W=vb.width||449;
+    const defs=document.createElementNS(NS,'defs');
+    const grad=document.createElementNS(NS,'linearGradient');
+    grad.setAttribute('id','logoSheen'); grad.setAttribute('gradientUnits','userSpaceOnUse');
+    grad.setAttribute('x1','0'); grad.setAttribute('y1','0'); grad.setAttribute('x2',String(W)); grad.setAttribute('y2','0');
+    [['0','#e3ecf4'],['0.40','#e3ecf4'],['0.47','#fff6be'],['0.53','#bfecff'],['0.60','#e3ecf4'],['1','#e3ecf4']].forEach(([o,c])=>{
+      const s=document.createElementNS(NS,'stop'); s.setAttribute('offset',o); s.setAttribute('stop-color',c); grad.appendChild(s);
+    });
+    const an=document.createElementNS(NS,'animateTransform');
+    an.setAttribute('attributeName','gradientTransform'); an.setAttribute('type','translate');
+    an.setAttribute('from',`${-W*1.3} 0`); an.setAttribute('to',`${W*1.3} 0`);
+    an.setAttribute('dur','1.6s'); an.setAttribute('begin','indefinite'); an.setAttribute('fill','freeze');
+    grad.appendChild(an); defs.appendChild(grad); svg.insertBefore(defs, svg.firstChild);
+    grad.setAttribute('gradientTransform',`translate(${-W*1.3} 0)`);
+    ps.forEach(o=>{ o.p.style.fill='url(#logoSheen)'; });
+    // 文字が出そろった後に1回だけ光らせる（ローディングが開いた合図から 1.4秒後）
+    const shine=()=>setTimeout(()=>{ try{ an.beginElement(); }catch(e){} }, 1400);
+    if(document.body.classList.contains('revealed')) shine(); else document.addEventListener('pochamon:reveal', shine, {once:true});
+  }).catch(err=>console.warn('ロゴSVGの読み込みに失敗', err));
+}
+
+// ===== ヒーロー：ロゴがマウスの位置で少し傾く（PCのみ） =====
+if(matchMedia('(hover:hover) and (pointer:fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+  const lt=document.getElementById('logoTilt');
+  let lx=0, ly=0, tx=0, ty=0;
+  addEventListener('mousemove',e=>{
+    tx=(e.clientY/innerHeight-.5)*-14; ty=(e.clientX/innerWidth-.5)*18;
+  },{passive:true});
+  (function loop(){
+    lx+=(tx-lx)*.06; ly+=(ty-ly)*.06;
+    lt.style.setProperty('--lrx', lx.toFixed(2)+'deg'); lt.style.setProperty('--lry', ly.toFixed(2)+'deg');
+    requestAnimationFrame(loop);
+  })();
+}
+
+// ブロブ・月も遠近パララックスに参加（data-depth：大きい＝手前＝よく動く）
+document.querySelectorAll('.bg [data-depth]').forEach(el=>{
+  parts.push({el, depth:+el.dataset.depth});
+});
+
+// ===== 背景の視差：マウス（PC）／スクロール・スワイプ（スマホ） =====
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+  let tx=0, ty=0, cx=0, cy=0;
+  if(matchMedia('(hover:hover) and (pointer:fine)').matches){
+    addEventListener('mousemove',e=>{
+      tx=(e.clientX/innerWidth - .5);
+      ty=(e.clientY/innerHeight - .5);
+    },{passive:true});
+  }
+  addEventListener('scroll',()=>{
+    // スクロール量をsin波で -0.5〜0.5 のゆらゆら成分に（不連続ジャンプなし）
+    ty=Math.sin(scrollY/600)*.5;
+  },{passive:true});
+  (function loop(){
+    cx+=(tx-cx)*.05; cy+=(ty-cy)*.05;
+    parts.forEach(p=>{
+      p.el.style.translate=`${(-cx*p.depth).toFixed(1)}px ${(-cy*p.depth).toFixed(1)}px`;
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+
+// ===== マーキー：ぽちゃもん日記（曜日ごとに2種からランダム・さわると止まる） =====
+const DIARY=[
+  [ // にちようび
+    'モモンガです。とびません（いまは）。きょうは おふとんと いったいかして すごしました',
+    'にちようびは のびる日。あさから ばんまで びろーんって してたら 一日 おわってました',
+  ],
+  [ // げつようび
+    'げつようびって きこえただけで おなかが すきます。とりあえず はっぱを たべて おちつきました',
+    'きょうから がんばるって きめました。てはじめに ひるねから ぜんりょくで がんばります',
+  ],
+  [ // かようび
+    'ちょっとだけ はしってみました。まるいから ころがったほうが はやいって きづきました',
+    'げきからラーメンに ちょうせんしました。まけました。でも らいしゅうも いきます',
+  ],
+  [ // すいようび
+    'すいようびは おふろの日。湯船で ふやけて いつもより さらに まるく なりました',
+    'あめだったので かさを かぶりました。かさも まるいので なかまだと おもっています',
+  ],
+  [ // もくようび
+    '木から とんでみようと おもったけど、きょうは 風が つよいので やめました（いつもの）',
+    'そろそろ しゅうまつの けはいが します。うれしくて ちょっとだけ のびました',
+  ],
+  [ // きんようび
+    'きんようび！ ごほうびに ソフトクリームを たべました。ぜんぶ ひとりでです',
+    'あしたから おやすみ。うれしすぎて でんぐりがえしの れんしゅうを しました',
+  ],
+  [ // どようび
+    'どようびは けんきゅうの日。じぶんの ステッカーを ながめて にやにやしました',
+    'たっぷり ねて たっぷり たべました。かんぺきな どようびだったと おもいます',
+  ],
+];
+const DAYS=['にちようび','げつようび','かようび','すいようび','もくようび','きんようび','どようび'];
+const today=new Date().getDay();
+const entry=DIARY[today][Math.floor(Math.random()*DIARY[today].length)];
+const M='ぽちゃもん日記 ⭐ '+DAYS[today]+' 🐾 '+entry+' ⭐ ';
+document.getElementById('marqueeTrack').innerHTML=('<span>'+M+'</span>').repeat(6);
+// スマホ：タップで停止/再開をトグル
+document.getElementById('marquee').addEventListener('touchstart',function(){
+  this.classList.toggle('paused');
+},{passive:true});
+
+// ===== スクロールで背景テーマ切替（模様はそのまま色だけ遷移） =====
+const themeIO=new IntersectionObserver(es=>{
+  es.forEach(en=>{
+    if(en.isIntersecting){
+      document.body.className=en.target.dataset.theme;
+      document.body.dataset.fx=en.target.dataset.fx||'sparkle';   // 背景エフェクトの種類（bgfx.js が見る）
+    }
+  });
+},{rootMargin:'-42% 0px -42% 0px'});
+document.querySelectorAll('[data-theme]').forEach(s=>themeIO.observe(s));
+
+// ===== ヒーロー：GIF切替プレイヤー =====
+// 待機=normalループ / タップ=いまのループを再生し切ってからbiroonを1回→normalへ復帰
+// 連打対策：シーケンス完了まで次のタップ無効
+const hero=document.getElementById('heroChar');
+const ANIM={
+  normal:{src:'assets/img/pochamon-normal.webp', dur:920,  blob:null},
+  biroon:{src:'assets/img/pochamon-biroon.webp', dur:1320, blob:null},
+};
+let gifState='loading';  // loading → idle → waitLoopEnd → biroon → idle
+let normalStart=0;       // 現在のnormal再生開始時刻
+
+// 切替は「新srcのloadが完了して再生が始まった瞬間」を起点に計時する
+// （即タイマー開始だとデコード待ちのぶん早く切り替わり、biroonの尻が切れる）
+function showAnim(a, onStarted){
+  const url=URL.createObjectURL(a.blob);
+  const old=hero.src;
+  hero.onload=()=>{
+    hero.onload=null;
+    if(old.startsWith('blob:')) URL.revokeObjectURL(old);
+    if(onStarted) onStarted();
+  };
+  hero.src=url;
+}
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){
+  hero.src='assets/img/pochamon-main.webp'; // アニメ停止設定時は静止画
+  // SMILのアメーバモーフも停止（CSSでは止められないためanimate要素ごと除去）
+  document.querySelectorAll('clipPath animate').forEach(a=>a.remove());
+}else{
+  Promise.all(Object.values(ANIM).map(a=>
+    fetch(a.src).then(r=>r.blob()).then(b=>{a.blob=b;})
+  )).then(()=>{
+    showAnim(ANIM.normal, ()=>{
+      normalStart=performance.now();
+      gifState='idle';
+    });
+  });
+}
+function playBiroon(){
+  if(gifState!=='idle') return;
+  gifState='waitLoopEnd';
+  const remain=ANIM.normal.dur - ((performance.now()-normalStart) % ANIM.normal.dur);
+  setTimeout(()=>{
+    showAnim(ANIM.biroon, ()=>{
+      gifState='biroon';
+      setTimeout(()=>{
+        showAnim(ANIM.normal, ()=>{
+          normalStart=performance.now();
+          gifState='idle';
+        });
+      }, ANIM.biroon.dur + 80); // 最終コマまで見せる保険バッファ
+    });
+  }, remain);
+}
+
+const EMO=['⭐','💛','🐾','✨'];
+function burst(x,y){
+  for(let i=0;i<7;i++){
+    const p=document.createElement('span');
+    p.className='particle';
+    p.textContent=EMO[Math.floor(Math.random()*EMO.length)];
+    const ang=Math.random()*Math.PI*2, dist=60+Math.random()*90;
+    p.style.setProperty('--dx', Math.cos(ang)*dist+'px');
+    p.style.setProperty('--dy', (Math.sin(ang)*dist-40)+'px');
+    p.style.setProperty('--rot', (Math.random()*160-80)+'deg');
+    p.style.left=x+'px'; p.style.top=y+'px';
+    document.body.appendChild(p);
+    p.addEventListener('animationend',()=>p.remove());
+  }
+}
+hero.addEventListener('pointerdown',e=>{
+  if(gifState==='idle') burst(e.clientX,e.clientY); // 受付時だけキラッ
+  playBiroon();
+});
+
+// ===== ステッカーギャラリー =====
+const STICKERS=[
+  {img:'biroon',   name:'びろーん',           cap:'びろーん。'},
+  {img:'softcream',name:'ソフトクリーム',      cap:'ぜんぶひとりでたべる。'},
+  {img:'ice',      name:'アイス',             cap:'あたまキーンってなった。'},
+  {img:'jelly',    name:'ゼリー',             cap:'ぷるぷるは なかま。'},
+  {img:'ramen-guardian',name:'らーめんガーディアン', cap:'らーめんは まもる。'},
+  {img:'gekikara', name:'げきからラーメン',    cap:'にがて。でも たべる。'},
+  {img:'mirror',   name:'かがみ',             cap:'かがみのなかにも ぽちゃもん。'},
+  {img:'robot',    name:'ロボット',           cap:'ウィーン（きぶん）。'},
+  {img:'koinobori',name:'こいのぼり',         cap:'およいでるつもり。'},
+  {img:'umbrella', name:'かさ',               cap:'あめのひも まるい。'},
+  {img:'fishing',  name:'つり',               cap:'なにか つれそう。'},
+  {img:'umeboshi', name:'うめぼし',           cap:'すっぱいのは じけん。'},
+];
+const gallery=document.getElementById('gallery');
+// ===== tilt：マウス／指の位置でカードが立体的に傾く＋光が走る =====
+function tilt3d(el, max){
+  max=max||12;
+  el.classList.add('tilt');
+  const glare=document.createElement('span'); glare.className='glare'; el.appendChild(glare);
+  let raf=0, rx=0, ry=0, tx=0, ty=0;
+  function apply(){
+    raf=0;
+    rx+=(tx-rx)*.3; ry+=(ty-ry)*.3;
+    el.style.transform=`perspective(760px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
+    if(Math.abs(tx-rx)>.05||Math.abs(ty-ry)>.05) raf=requestAnimationFrame(apply);
+  }
+  el.addEventListener('pointermove',e=>{
+    const r=el.getBoundingClientRect();
+    const px=(e.clientX-r.left)/r.width, py=(e.clientY-r.top)/r.height;
+    tx=(.5-py)*max*2; ty=(px-.5)*max*2;
+    el.style.setProperty('--gx',(px*100).toFixed(1)+'%'); el.style.setProperty('--gy',(py*100).toFixed(1)+'%'); el.style.setProperty('--go','.7');
+    // 画像は持ち上がった側（カーソルの反対）へ少しずれて「浮いて見える」
+    el.style.setProperty('--sx',((.5-px)*16).toFixed(1)+'px'); el.style.setProperty('--sy',((.5-py)*16).toFixed(1)+'px');
+    if(!raf) raf=requestAnimationFrame(apply);
+  });
+  const reset=()=>{ tx=0; ty=0; el.style.setProperty('--go','0'); el.style.setProperty('--sx','0px'); el.style.setProperty('--sy','0px'); if(!raf) raf=requestAnimationFrame(apply); };
+  el.addEventListener('pointerleave',reset);
+  el.addEventListener('pointercancel',reset);
+}
+const CAN_TILT=!matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+STICKERS.forEach((st,i)=>{
+  const b=document.createElement('button');
+  b.className='sticker reveal';
+  b.innerHTML=`<img src="assets/img/${st.img}.webp" alt="${st.name}" loading="lazy"><span class="name">${st.name}</span>`;
+  b.addEventListener('click',()=>openLb(st));
+  if(CAN_TILT) tilt3d(b, 13);
+  gallery.appendChild(b);
+});
+
+// おしながき（扇形の3枚）：傾く＋タップで拡大
+document.querySelectorAll('.menuCard').forEach(el=>{
+  if(CAN_TILT) tilt3d(el, 9);
+  el.addEventListener('click',()=>openImage(el.dataset.src, el.dataset.name, el.dataset.cap, true));
+});
+
+// ===== ライトボックス =====
+const lb=document.getElementById('lightbox');
+function openImage(src,name,cap,wide){
+  const card=lb.querySelector('.lightbox__card');
+  card.classList.toggle('wide', !!wide);
+  document.getElementById('lbImg').src=src;
+  document.getElementById('lbImg').alt=name;
+  document.getElementById('lbName').textContent=name;
+  document.getElementById('lbCap').textContent=cap||'';
+  lb.classList.add('open');
+}
+function openLb(st){ openImage(`assets/img/${st.img}.webp`, st.name, st.cap, false); }
+document.getElementById('lbClose').addEventListener('click',()=>lb.classList.remove('open'));
+lb.addEventListener('click',e=>{ if(e.target===lb) lb.classList.remove('open'); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') lb.classList.remove('open'); });
+
+// ===== 出現アニメ =====
+const io=new IntersectionObserver(es=>{
+  es.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('shown'); io.unobserve(en.target);} });
+},{threshold:.15});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+
+<!-- ===== 3Dカード（Three.js は「ぽちゃもんカード」が近づくか、ステッカーをタップした時に初めて読み込む） ===== -->
+<script type="module">
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let enginePromise=null;
+function getEngine(){
+  if(!enginePromise){
+    enginePromise=Promise.all([import('./assets/cards/embed.js'), import('./assets/cards/specs.js')])
+      .then(([e,s])=>({...e, ...s}));
+  }
+  return enginePromise;
+}
+
+// --- 「ぽちゃもんカード」セクション：画面に近づいたら読み込んで2枚載せる ---
+const stages=[...document.querySelectorAll('.cardStage')];
+const FALLBACK={amayadori:'assets/img/umbrella.webp', ukiwa:'assets/img/pochamon-main.webp'};
+function showFallback(stage){ stage.innerHTML=`<img class="fallback" src="${FALLBACK[stage.dataset.card]}" alt="" loading="lazy">`; }
+if(reduce){ stages.forEach(showFallback); }
+else{
+  const sio=new IntersectionObserver(async es=>{
+    if(!es.some(e=>e.isIntersecting)) return;
+    sio.disconnect();
+    let E; try{ E=await getEngine(); }catch(err){ console.warn('3Dカードの読み込みに失敗', err); stages.forEach(showFallback); return; }
+    if(!E.webglOk()){ stages.forEach(showFallback); return; }
+    for(const stage of stages){
+      const spec=E.FULLART.find(c=>c.id===stage.dataset.card);
+      const m=E.mountCard(stage.querySelector('canvas'),{fill:.88});
+      m.load(spec).catch(err=>{ console.warn(err); m.dispose(); showFallback(stage); });
+    }
+    const gb=document.getElementById('gyroBtn');
+    if(E.gyroAvailable){
+      gb.classList.add('show');
+      gb.addEventListener('click',async()=>{
+        if(await E.enableGyro()){ gb.classList.add('active'); gb.textContent='かたむきセンサー ON'; }
+      });
+    }
+  },{rootMargin:'600px 0px'});
+  stages.forEach(s=>sio.observe(s));
+}
+
+// --- 背景の粒子エフェクト（セクションの色ごとに種類が変わる）。ページの表示が終わってから読み込む ---
+if(window.__USE_FX){
+  const start=()=>import('./assets/fx/bgfx.js')
+    .then(m=>{ window.__bgfx=m.startBgFx(document.querySelector('.bg')); })
+    .catch(err=>console.warn('背景エフェクトの読み込みに失敗', err));
+  if(document.readyState==='complete') start(); else addEventListener('load', start, {once:true});
+}
+</script>
+</body>
+</html>
