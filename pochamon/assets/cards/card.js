@@ -250,7 +250,7 @@ function drawBottomRow(ctx, spec, y, color) {
 function drawFooter(ctx, spec, y, color) {
   ctx.font = '22px ' + FONT; ctx.fillStyle = color; ctx.textBaseline = 'middle';
   ctx.textAlign = 'left'; ctx.fillText('Illus. ' + spec.illus, 72, y);
-  ctx.textAlign = 'center'; ctx.fillText('© mahoroba works · POCHA CARD LAB', TEX_W / 2, y);
+  ctx.textAlign = 'center'; ctx.fillText('© Jojima George · Pochamon', TEX_W / 2, y);
   ctx.textAlign = 'right'; ctx.fillText(spec.no + ' ★', TEX_W - 72, y);
 }
 
