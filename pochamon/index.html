@@ -267,6 +267,11 @@ body.no-loader .logo__g{ opacity:1; }   /* ローディング無し（アニメ�
 body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
 @keyframes sheen{ 0%{ background-position:120% 0; } 100%{ background-position:-40% 0; } }
 
+/* びろーんが当たった時に持ち上がる（.hero__inner.lifted をJSが付け外し） */
+.logo, .hero__copy, .hero__sub{ transition:transform .32s cubic-bezier(.34,1.56,.64,1); }
+.hero__inner.lifted .logo{ transform:translateY(-22px) rotate(-1.2deg); }
+.hero__inner.lifted .hero__copy{ transform:translateY(-30px); }
+.hero__inner.lifted .hero__sub{ transform:translateY(-34px); }
 .hero__copy{
   font-family:var(--font-logo);  /* 日記の帯と同じ丸文字 */
   color:#fff; font-weight:700;
@@ -279,10 +284,12 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
 .stage{
   position:relative;
   width:min(92vw, 660px);
-  margin:26px auto 0;
+  /* 画像の上約40%は透明（びろーんが伸びる余白）。その7割ぶん上に重ねて、待機ポーズと文字の隙間を詰める。
+     伸びた時は文字の位置まで届くので「当たって跳ねる」仕掛けが成立する */
+  margin:calc(min(80vw, 520px) * -0.29) auto 0;
 }
 .hero__char{
-  width:min(72vw, 450px);
+  width:min(80vw, 520px);
   margin:0 auto;
   cursor:pointer;
   -webkit-tap-highlight-color:transparent;
@@ -546,14 +553,20 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
 }
 .theater-note a:hover{ transform:translateY(-3px) scale(1.05); }
 
-.goodsGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.goodsGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; align-items:start; }  /* 高さは揃えない（写真の枚数が違うカードに空白が出ないように） */
 .goodsCard{
   background:#fff; border-radius:22px; padding:16px 14px 14px;
   box-shadow:0 6px 0 rgba(0,0,0,.16); text-align:center; position:relative;
 }
-.goodsCard img{ aspect-ratio:1/1; object-fit:contain; }
-.goodsCard .name{ font-weight:700; font-size:13.5px; margin-top:8px; }
-.goodsCard .price{ font-family:var(--font-logo); font-size:14px; color:#e8628c; margin-top:2px; }
+.goodsCard img{ width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:12px; display:block; background:#f4f2ee; }
+.goodsCard__imgs{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.goodsCard__imgs--2{ grid-template-columns:repeat(2,1fr); }
+.goodsCard__imgs img{ aspect-ratio:3/4; }
+.goodsCard .name{ font-weight:700; font-size:14px; margin-top:12px; }
+.goodsCard .price{ font-family:var(--font-logo); font-size:14px; color:#e8628c; margin-top:3px; }
+.goodsCard .desc{ font-size:12px; color:#777; font-weight:700; line-height:1.75; margin-top:6px; text-align:left; }
+.goodsCard .limited--hot{ background:#ffb03a; }
+.goodsCard .limited--few{ background:#7c5cd6; }
 .goodsCard .limited{
   position:absolute; top:-9px; right:-6px;
   font-family:var(--font-logo); font-size:10.5px; color:#fff;
@@ -867,7 +880,7 @@ footer{
     <div class="theater">
       <div class="movCard reveal"><video src="assets/mov/dengurigaeshi.mp4" muted autoplay loop playsinline preload="metadata"></video><div class="name">でんぐりがえし</div></div>
       <div class="movCard reveal"><video src="assets/mov/ufo-catcher.mp4" muted autoplay loop playsinline preload="metadata"></video><div class="name">UFOキャッチャー</div></div>
-      <div class="movCard reveal"><video src="assets/mov/zabuton.mp4" muted autoplay loop playsinline preload="metadata"></video><div class="name">ざぶとん</div></div>
+      <div class="movCard reveal"><video src="assets/mov/sakura-surfing.mp4" muted autoplay loop playsinline preload="metadata"></video><div class="name">さくらサーフィン</div></div>
     </div>
     <div class="theater-note reveal">
       <a href="https://www.tiktok.com/@pochamon_jp" target="_blank" rel="noopener noreferrer">あたらしいアニメは TikTokで こうかいちゅう →</a>
@@ -881,14 +894,41 @@ footer{
     <h2 class="sec-title reveal">グッズ</h2>
     <p class="sec-lead reveal">ぽちゃもんを つれてかえろう。</p>
     <div class="goodsGrid">
-      <div class="goodsCard reveal"><span class="limited">イベントげんてい</span><img src="assets/img/umeboshi.webp" alt="" loading="lazy"><div class="name">ダイカットステッカー（全12しゅ）</div><div class="price">400えん</div></div>
-      <div class="goodsCard reveal"><span class="limited">ゲームのけいひん</span><img src="assets/img/metallic-biroon.webp" alt="" loading="lazy"><div class="name">メタリックフレークシール</div><div class="price">ひばいひん</div></div>
-      <div class="goodsCard reveal"><span class="limited">イベントげんてい</span><img src="assets/img/koinobori.webp" alt="" loading="lazy"><div class="name">しおり（全3しゅ）</div><div class="price">300えん</div></div>
-      <div class="goodsCard reveal"><span class="limited">イベントげんてい</span><img src="assets/img/robot.webp" alt="" loading="lazy"><div class="name">マグネットステッカー</div><div class="price">500えん</div></div>
-      <div class="goodsCard reveal"><span class="limited">イベントげんてい</span><img src="assets/img/mirror.webp" alt="" loading="lazy"><div class="name">はくおし フォトプリント</div><div class="price">1,000えん</div></div>
-      <div class="goodsCard reveal"><span class="limited">てづくり</span><img src="assets/img/softcream.webp" alt="" loading="lazy"><div class="name">ねんどフィギュア入り キャンディバッグ</div><div class="price">1,000えん</div></div>
+      <div class="goodsCard reveal">
+        <span class="limited">ぜんぶで 12しゅるい</span>
+        <div class="goodsCard__imgs"><img src="assets/img/goods/g4.webp" alt="防水ステッカー あめさんぽ" loading="lazy"><img src="assets/img/goods/g3.webp" alt="防水ステッカー ゼリー" loading="lazy"><img src="assets/img/goods/g5.webp" alt="防水ステッカー らーめんガーディアン" loading="lazy"></div>
+        <div class="name">ぼうすい ステッカー</div>
+        <div class="price">1まい ¥400 ／ 3まい ¥1,000 ／ 5まい ¥1,500</div>
+        <div class="desc">みずに つよい「ぴたっとステッカー」。すきな ぽちゃもんを えらんでね。</div>
+      </div>
+      <div class="goodsCard reveal">
+        <span class="limited limited--hot">だいにんき</span>
+        <img src="assets/img/goods/g7.webp" alt="フレークシール付きミニゲーム あっちむいてホイ" loading="lazy">
+        <div class="name">フレークシールつき ミニゲーム</div>
+        <div class="price">¥200</div>
+        <div class="desc">ぽちゃもんと あっちむいてホイ！ ぜん6しゅの フレークシールが かならず 2まい、かったら 3まい もらえるよ。</div>
+      </div>
+      <div class="goodsCard reveal">
+        <img src="assets/img/goods/g6.webp" alt="箔押しフォトプリント メロンソーダ" loading="lazy">
+        <div class="name">はくおし フォトプリント</div>
+        <div class="price">¥1,000</div>
+        <div class="desc">L判サイズ・プチ額つき。ゴールド／シルバーの 箔 2しゅるい。</div>
+      </div>
+      <div class="goodsCard reveal">
+        <span class="limited limited--few">のこり わずか</span>
+        <img src="assets/img/goods/g10.webp" alt="キャンディバッグ コラボねんど入り" loading="lazy">
+        <div class="name">キャンディバッグ</div>
+        <div class="price">¥900</div>
+        <div class="desc">ギークガールぴょん コラボの ねんど ぽちゃもん入り。キラキラの ふくろに ぎゅっと。</div>
+      </div>
+      <div class="goodsCard reveal">
+        <div class="goodsCard__imgs goodsCard__imgs--2"><img src="assets/img/goods/g8.webp" alt="マグネットステッカー モモンガが休んでます" loading="lazy"><img src="assets/img/goods/g9.webp" alt="マグネットステッカー お食事中" loading="lazy"></div>
+        <div class="name">マグネット ステッカー</div>
+        <div class="price">¥500</div>
+        <div class="desc">「モモンガが休んでます」「お食事中」の 2しゅるい。れいぞうこに ぴたっ。</div>
+      </div>
     </div>
-    <p class="goods-note reveal">グッズは デザフェス・コミティアの ブースで はんばいしてるよ🐾<br>つぎの しゅってんは <b>COMITIA157</b>（8/23・西4ホール し08a）。おしながきは「おしらせ」を みてね。</p>
+    <p class="goods-note reveal">いまは デザフェス・コミティアの かいじょうだけで はんばいしてるよ🐾<br>つぎの しゅってんは <b>COMITIA157</b>（8/23・西4ホール し08a）。おしながきは「おしらせ」を みてね。<br><span style="opacity:.85;font-size:.92em">オンラインショップは まだ じゅんびちゅう。「ほしい！」の こえが あつまったら、はじめるかも。</span></p>
   </div>
 </section>
 
@@ -911,7 +951,7 @@ footer{
         <a class="dlBtn" href="assets/wallpaper/pochamon-wallpaper-02.png" download="pochamon-wallpaper-02.png">ダウンロード</a>
       </div>
     </div>
-    <p class="gift-note reveal">むりょうで ダウンロードして、こじんの はんいで たのしんでね🐾<br>（再配布・販売・加工しての公開はご遠慮ください）<br><span style="opacity:.8;font-size:.92em">iPhone は ひらいた がぞうを ながおし → 「"しゃしん"に ほぞん」</span></p>
+    <p class="gift-note reveal">むりょうで ダウンロードして、こじんの はんいで たのしんでね🐾<br><span style="opacity:.8;font-size:.92em">iPhone は ひらいた がぞうを ながおし → 「"しゃしん"に ほぞん」</span><br>（再配布・販売・加工しての公開はご遠慮ください）</p>
   </div>
 </section>
 
@@ -1182,6 +1222,10 @@ function playBiroon(){
   setTimeout(()=>{
     showAnim(ANIM.biroon, ()=>{
       gifState='biroon';
+      // 伸びた頭が文字に当たる → ロゴと説明文を持ち上げ、縮んだら戻す（GIF実測：伸び切り7コマ目=0.28秒、戻り32コマ目=1.28秒）
+      const inner=document.querySelector('.hero__inner');
+      setTimeout(()=>inner.classList.add('lifted'), 260);
+      setTimeout(()=>inner.classList.remove('lifted'), 1250);
       setTimeout(()=>{
         showAnim(ANIM.normal, ()=>{
           normalStart=performance.now();
