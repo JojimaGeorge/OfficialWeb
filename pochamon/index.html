@@ -1043,7 +1043,7 @@ footer{
         <div class="goodsCard__media"><img src="assets/img/goods/g14.webp" alt="ミニフォトプリント 木の額入り" loading="lazy"></div>
         <div class="name">ミニ フォトプリント</div>
         <div class="price">¥700</div>
-        <div class="desc">てのひらサイズの きの がくつき。もようの リボンは きんの はくで、ひかりに あたると きらっと ひかるよ。</div>
+        <div class="desc">てのひらサイズの きの がくつき。もようの ちょうちょは きんの はくで、ひかりに あたると きらっと ひかるよ。</div>
       </div>
     </div>
     <p class="goods-note reveal">いまは デザフェス・コミティアの かいじょうだけで はんばいしてるよ🐾<br>つぎの しゅってんは <b>COMITIA157</b>（8/23・西4ホール し08a）。おしながきは「おしらせ」を みてね。<br><span style="opacity:.85;font-size:.92em">オンラインショップは まだ じゅんびちゅう。「ほしい！」の こえが あつまったら、はじめるかも。</span></p>
@@ -1440,8 +1440,27 @@ function burst(x,y){
     p.addEventListener('animationend',()=>p.remove());
   }
 }
-hero.addEventListener('pointerdown',e=>{
-  if(gifState==='idle') burst(e.clientX,e.clientY); // 受付時だけキラッ
+// タップとスワイプを分ける。以前は「指が触れた瞬間（pointerdown）」で即びろーんが始まっていたので、
+// ぽちゃもんの上から下へスワイプしてページを送ろうとしても伸びてしまっていた（じょじを指摘）。
+// 「指が離れた時」に判定し、12px以上ずれていたら＝ページを送るスワイプとみなして何もしない。
+// スクロールが始まるとブラウザが pointercancel を出すので、そこでも取り消す
+const TAP_SLOP = 12;   // これ以上ずれたらスワイプ
+let tapFrom = null;
+const dist = (e) => Math.hypot(e.clientX - tapFrom.x, e.clientY - tapFrom.y);
+hero.addEventListener('pointerdown', e=>{ tapFrom = {x:e.clientX, y:e.clientY, id:e.pointerId}; });
+hero.addEventListener('pointermove', e=>{
+  if(!tapFrom || e.pointerId !== tapFrom.id) return;
+  if(dist(e) > TAP_SLOP) tapFrom = null;          // 動きはじめた時点でタップの権利を捨てる
+});
+const dropTap = ()=>{ tapFrom = null; };
+hero.addEventListener('pointercancel', dropTap);  // スクロールが始まるとここに来る
+hero.addEventListener('pointerleave', dropTap);
+hero.addEventListener('pointerup', e=>{
+  if(!tapFrom || e.pointerId !== tapFrom.id) return;
+  const moved = dist(e);
+  tapFrom = null;
+  if(moved > TAP_SLOP) return;                    // スワイプ：素直にページを送らせる
+  if(gifState==='idle') burst(e.clientX, e.clientY); // 受付時だけキラッ
   playBiroon();
 });
 
