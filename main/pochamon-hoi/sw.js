@@ -1,7 +1,7 @@
 // ぽちゃもんあっち向いてホイ Service Worker
 // 全アセットを precache してオフライン動作可能にする
 // 更新時は CACHE_NAME の version を bump する
-const CACHE_NAME = 'pochamon-hoi-v12';
+const CACHE_NAME = 'pochamon-hoi-v13';
 
 const ASSETS = [
   './',
@@ -33,7 +33,9 @@ const ASSETS = [
   './assets/mv/mv_06.mp4',
   './assets/mv/mv_07.mp4',
   './assets/mv/mv_08.mp4',
-  './assets/mv/mv_09.mp4'
+  './assets/mv/mv_09.mp4',
+  './assets/mv/mv_10.mp4',
+  './assets/mv/mv_11.mp4'
 ];
 
 self.addEventListener('install', (event) => {

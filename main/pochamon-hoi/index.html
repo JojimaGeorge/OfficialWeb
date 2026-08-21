@@ -160,14 +160,21 @@
       flex-direction: column;
       align-items: center;
       opacity: 0;
+      /* 2026-08-21: visibility も落とす。opacity:0 だけだと当たり判定が残り、
+         子孫が pointer-events:auto を持っていると（結果画面のシール選択グリッド／
+         結果ボタン）非アクティブでもタップを吸ってしまう＝リプレイ後にぴょーん／
+         びろーんが反応しなくなるバグの原因。visibility は継承するので子孫ごと外れる */
+      visibility: hidden;
       pointer-events: none;
-      transition: opacity 0.35s ease;
+      transition: opacity 0.35s ease, visibility 0s linear 0.35s;
       will-change: opacity;
     }
 
     .screen--active {
       opacity: 1;
+      visibility: visible;
       pointer-events: auto;
+      transition: opacity 0.35s ease, visibility 0s linear 0s;
     }
 
     /* ============================================================
@@ -499,45 +506,43 @@
     .title-screen__pochamon-wrap .pochamon__ear--right { top: -26px; right: 22px; width: 36px; height: 44px; }
     .title-screen__pochamon-wrap .pochamon__tail { bottom: -8px; right: -6px; width: 24px; height: 24px; }
 
+    /* あそびかた（タイトル画面の最下部）: 白の半透明で背景の動画が透ける。
+       2026-08-21 復活。中央のぽちゃもん動画に食い込まないよう、横に広い端末では
+       3項目を横並びにして高さを抑える */
     .title-screen__rules {
       position: relative;
       z-index: 1;
-      background: rgba(255,255,255,0.92);
+      background: rgba(255,255,255,0.62);
+      -webkit-backdrop-filter: blur(6px);
+              backdrop-filter: blur(6px);
       border: 3px solid var(--deep);
       border-radius: var(--radius-card);
-      padding: 16px 22px 18px;
-      margin: 0 24px 20px;
-      width: calc(100% - 48px);
-      max-width: 400px;
+      padding: 10px 16px 12px;
+      width: 100%;
+      max-width: 900px;
       box-shadow:
-        0 0 0 3px var(--sun),
-        0 6px 0 var(--deep),
-        0 10px 20px rgba(42,11,74,0.25);
+        0 4px 0 var(--deep),
+        0 8px 18px rgba(42,11,74,0.22);
     }
 
-    .title-screen__rules-title {
-      font-family: var(--font-pixel);
-      font-size: 12px;
-      font-weight: 400;
-      color: var(--shock-pink);
-      letter-spacing: 4px;
-      margin-bottom: 12px;
-      text-align: center;
-      text-shadow: 0 1px 0 var(--deep);
+    .title-screen__rule-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
     }
 
     .title-screen__rule-item {
       font-family: var(--font-main);
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: var(--deep);
-      line-height: 1.7;
+      line-height: 1.5;
       display: flex;
-      gap: 10px;
+      gap: 8px;
+      margin: 0;
     }
 
     .title-screen__rule-item + .title-screen__rule-item {
-      margin-top: 6px;
       padding-top: 6px;
       border-top: 2px dashed rgba(42,11,74,0.18);
     }
@@ -546,8 +551,29 @@
       color: var(--shock-pink);
       flex-shrink: 0;
       font-family: var(--font-display);
-      font-size: 18px;
+      font-size: 15px;
+      line-height: 1.4;
     }
+
+    /* スタートボタン: 「スタート」＋料金2種を1つのボタンにまとめる（2026-08-21） */
+    .btn--stack {
+      flex-direction: column;
+      gap: 2px;
+      line-height: 1.15;
+    }
+    .btn__main { font-size: 1.25em; }
+    .btn__price {
+      font-family: var(--font-main);
+      font-weight: 800;
+      font-size: 17px;
+      letter-spacing: 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2px 12px;
+      opacity: 0.88;
+    }
+    .btn__price > span { white-space: nowrap; }
 
     .title-screen__cta {
       position: relative;
@@ -614,7 +640,7 @@
       background: linear-gradient(180deg, #fff 0%, var(--sun) 100%);
       color: var(--deep);
       font-size: 26px;
-      padding: 18px 36px;
+      padding: 12px 36px;
       letter-spacing: 3px;
       box-shadow:
         0 0 0 3px var(--shock-pink),
@@ -1644,23 +1670,24 @@
       .title-screen__qr-label { font-size: 18px; letter-spacing: 6px; }
       .title-screen__qr-img { width: 140px; height: 140px; }
 
+      /* 横に広い端末は3項目を横並びに（縦に伸ばさない＝中央の動画に被らせない） */
       .title-screen__rules {
-        max-width: 560px;
-        padding: 22px 30px 24px;
-        margin-bottom: 28px;
+        max-width: none;
+        padding: 14px 22px 16px;
       }
-      .title-screen__rules-title {
-        font-size: 16px;
-        letter-spacing: 6px;
-        margin-bottom: 16px;
+      .title-screen__rule-list {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0 18px;
       }
       .title-screen__rule-item {
         font-size: 23px;
-        gap: 14px;
+        gap: 12px;
       }
       .title-screen__rule-item + .title-screen__rule-item {
-        margin-top: 10px;
-        padding-top: 10px;
+        padding-top: 0;
+        padding-left: 18px;
+        border-top: none;
+        border-left: 2px dashed rgba(42,11,74,0.2);
       }
       .title-screen__rule-icon {
         font-size: 25px;
@@ -1670,10 +1697,12 @@
         max-width: 560px;
       }
       .btn--primary {
-        font-size: 34px;
-        padding: 24px 48px;
+        font-size: 40px;
+        padding: 14px 48px;
         letter-spacing: 4px;
       }
+      .btn--stack { gap: 2px; }
+      .btn__price { font-size: 28px; gap: 4px 28px; }
 
       /* プレイ画面：要素を一回り大きく */
       .playing-screen__header {
@@ -1813,7 +1842,8 @@
     }
     .edge-fx--vignette {
       opacity: 1;
-      background: radial-gradient(ellipse at 50% 45%, rgba(42,11,74,0) 45%, rgba(42,11,74,0.5) 100%);
+      /* 2026-08-21: 暗すぎたので四隅だけ軽く締める程度に（0.5→0.22・透明域 45%→62%） */
+      background: radial-gradient(ellipse at 50% 45%, rgba(42,11,74,0) 62%, rgba(42,11,74,0.22) 100%);
     }
     .edge-fx--last {
       opacity: 1;
@@ -1955,30 +1985,7 @@
       60% { scale: 1.03; }
     }
 
-    /* アイリスワイプ中の新画面は最前面・フェード無し */
-    .screen--wiping {
-      z-index: 5;
-      transition: none !important;
-    }
-    /* ワイプ中だけ不透明な背景を敷く（画面は背景透明で body の空画像に頼っているため、
-       円の内側から下の画面が透けるのを防ぐ） */
-    .screen--wiping::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-      background: #FFE3F6 url('assets/bg.png') center center / cover no-repeat;
-    }
-    .result-screen.screen--wiping::before {
-      background:
-        linear-gradient(160deg, rgba(255,214,245,0.6) 0%, rgba(224,181,255,0.6) 50%, rgba(192,173,255,0.6) 100%),
-        #FFE3F6 url('assets/bg.png') center center / cover no-repeat;
-    }
-    .result-screen--perfect.screen--wiping::before {
-      background: linear-gradient(135deg, #ffecf4, #fff4ec, #fffae8, #eaf8ff, #f4eeff, #ffecf4);
-      background-size: 400% 400%;
-      animation: rainbow-bg 4s ease infinite;
-    }
+    /* アイリスワイプ用の .screen--wiping 指定は演出撤去に伴い削除（2026-08-21） */
 
     /* ---- 結果画面 ---- */
     .result-screen__title { opacity: 0; }
@@ -2101,11 +2108,10 @@
       76% { translate: 0 -12px; scale: 1.06; }
       86% { translate: 0 3px; scale: 0.97; }
     }
-    /* スタートボタン：シャイン＋たまに跳ねる */
+    /* スタートボタン：キラッと光が走るだけ（跳ね・傾き・拡大は 2026-08-22 に撤去） */
     .btn--attention {
       position: relative;
       overflow: hidden;
-      animation: btn-attention 3.2s ease-in-out infinite;
     }
     .btn--attention::after {
       content: '';
@@ -2117,15 +2123,6 @@
       transform: skewX(-20deg);
       pointer-events: none;
       animation: btn-shine 3.2s ease-in-out infinite;
-    }
-    @keyframes btn-attention {
-      0%, 100% { scale: 1; translate: 0 0; rotate: 0deg; }
-      10%  { scale: 1.04; }
-      20%  { scale: 1; }
-      70%  { translate: 0 0; rotate: 0deg; }
-      76%  { translate: 0 -12px; rotate: -2deg; }
-      82%  { translate: 0 0; rotate: 2deg; }
-      88%  { rotate: 0deg; }
     }
     @keyframes btn-shine {
       0%, 30%   { left: -40%; }
@@ -2189,16 +2186,27 @@
 
     <!-- 下部：QR + CTA（ルールセクションは削除：縦スペース確保） -->
     <div class="title-screen__bottom">
-      <!-- ホームページQR（名刺代替・タイトル画面のみ表示） -->
-      <div class="title-screen__qr">
+      <!-- ホームページQR（名刺代替）: 2026-08-21 本人指示で一旦非表示。戻す時は style を外す -->
+      <div class="title-screen__qr" style="display:none;">
         <div class="title-screen__qr-label">ホームページ</div>
         <img class="title-screen__qr-img" src="assets/qr-homepage.png" alt="ホームページのQRコード">
       </div>
 
       <div class="title-screen__cta">
-        <button class="btn btn--primary btn--attention" id="btn-start" aria-label="ゲームスタート 200円">
-          スタート ¥200
+        <button class="btn btn--primary btn--attention btn--stack" id="btn-start"
+                aria-label="スタート。ゲームのみ200円、耐水ステッカーセット500円（セット内容は店頭で案内）">
+          <span class="btn__main">スタート</span>
+          <span class="btn__price"><span>ゲームのみ ¥200</span><span>セット ¥500</span></span>
         </button>
+      </div>
+
+      <!-- あそびかた（最下部・白の半透明で背景動画が透ける） -->
+      <div class="title-screen__rules">
+        <div class="title-screen__rule-list">
+          <p class="title-screen__rule-item"><span class="title-screen__rule-icon">①</span>ぽちゃもんが「ぴょーん」か「びろーん」、どっちを出すか当てる二択のゲームです。</p>
+          <p class="title-screen__rule-item"><span class="title-screen__rule-icon">②</span>5回戦勝負。かならず フレークシールがランダムで2枚もらえます。</p>
+          <p class="title-screen__rule-item"><span class="title-screen__rule-icon">③</span>3回以上勝てたら、もう1枚すきなシールを選べます。</p>
+        </div>
       </div>
     </div>
 
@@ -2718,30 +2726,24 @@
   // ============================================================
   // 画面遷移
   // ============================================================
-  // origin={x,y} を渡すとその点から円が広がるアイリスワイプで切替（無ければ従来のフェード）
-  function showScreen(name, origin) {
-    const next = screens[name];
+  // 画面を降りた時に「出現済み」クラスを落とす。これが残ると非アクティブ画面の
+  // シール選択グリッド／結果ボタンが pointer-events:auto のままタップを吸う（2026-08-21）
+  function deactivate(el) {
+    const sel = el.querySelector('.sticker-selector');
+    if (sel) sel.classList.remove('sticker-selector--in');
+    const act = el.querySelector('.result-screen__actions');
+    if (act) act.classList.remove('result-screen__actions--in');
+  }
+
+  // 2026-08-21: 円が開くアイリスワイプは見た目に違和感があり挙動も不安定だったため撤去。
+  // 8/21のリッチ化より前と同じ、素直なクロスフェード（.screen の opacity 遷移）に戻す。
+  // 呼び出し側は第2引数（開始点）を渡したままでよい ― 使わないだけ。
+  function showScreen(name, _origin) {
     game.state = name;
-    const prevActive = Object.values(screens).filter(el => el !== next && el.classList.contains('screen--active'));
-    if (!origin || !next.animate || prevActive.length === 0) {
-      Object.entries(screens).forEach(([key, el]) => {
-        el.classList.toggle('screen--active', key === name);
-      });
-      return;
-    }
-    const x = origin.x, y = origin.y;
-    const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)) + 24;
-    next.classList.add('screen--wiping', 'screen--active');
-    const anim = next.animate([
-      { clipPath: 'circle(0px at ' + x + 'px ' + y + 'px)' },
-      { clipPath: 'circle(' + r + 'px at ' + x + 'px ' + y + 'px)' }
-    ], { duration: 600, easing: 'cubic-bezier(0.3,0.7,0.2,1)' });
-    const finish = () => {
-      next.classList.remove('screen--wiping');
-      prevActive.forEach(el => el.classList.remove('screen--active'));
-    };
-    anim.onfinish = finish;
-    anim.oncancel = finish;
+    Object.entries(screens).forEach(([key, el]) => {
+      el.classList.toggle('screen--active', key === name);
+      if (key !== name) deactivate(el);
+    });
   }
 
   // ============================================================
@@ -3394,7 +3396,13 @@
     const titleEl = dom.stickerSelector.querySelector('.sticker-selector__title');
     if (titleEl) titleEl.textContent = '好きなシールを1枚選んでね！';
 
-    const availableIds = getAvailableStickerIds();
+    // 2026-08-21: 抽選で確定済みの2枚は候補から外す。
+    // 外さないと同じ絵柄が確定枠に2つ並び「ダブって表示されている」ように見える
+    // （3枚もらえるのに絵柄は2種類にしかならない）。候補が尽きる時だけ従来通り全部出す。
+    const all = getAvailableStickerIds();
+    const drawn = game.randomStickerIds || [];
+    const narrowed = all.filter(id => drawn.indexOf(id) === -1);
+    const availableIds = narrowed.length > 0 ? narrowed : all;
     availableIds.forEach(id => {
       const item = document.createElement('div');
       item.className = 'sticker-selector__item';
@@ -3448,8 +3456,20 @@
       FX.pop(preview);
     };
     const fromEl = document.querySelector('.sticker-selector__item[data-id="' + id + '"] .sticker-selector__sticker');
-    if (fromEl && prevId !== id) FX.flyImage(fromEl, preview, stickerSrc(id), apply);
-    else apply();
+    if (fromEl && prevId !== id) {
+      // 飛んでくる間は枠を空（「選択中」）に戻す。選び直した時に前のシールが
+      // 枠に残ったままだと、飛来中のシールと合わせて2枚出ているように見える（2026-08-21）
+      preview.className = 'sticker';
+      preview.style.background = '#f0e0f8';
+      preview.innerHTML = '';
+      const ph = document.createElement('div');
+      ph.className = 'sticker__choice-label';
+      ph.textContent = '選択中';
+      preview.appendChild(ph);
+      FX.flyImage(fromEl, preview, stickerSrc(id), apply);
+    } else {
+      apply();
+    }
   }
 
   // ============================================================
@@ -3728,7 +3748,8 @@
     const files = [
       'mv_01.mp4','mv_02.mp4','mv_03.mp4',
       'mv_04.mp4','mv_05.mp4','mv_06.mp4',
-      'mv_07.mp4','mv_08.mp4','mv_09.mp4'
+      'mv_07.mp4','mv_08.mp4','mv_09.mp4',
+      'mv_10.mp4','mv_11.mp4'
     ];
 
     // プリロード中の表示（bg画像は body 側で見える）
