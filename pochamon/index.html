@@ -23,11 +23,12 @@
   --ease-puni:cubic-bezier(.34,1.56,.64,1);
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html{scroll-behavior:smooth; background:#1e9bf0;}
+/* 横のはみ出しは html から切る（body だけだとスマホでページ幅が広がり、右に隙間ができて横にスワイプできてしまう） */
+html{scroll-behavior:smooth; background:#1e9bf0; overflow-x:hidden; overflow-x:clip;}
 body{
   font-family:var(--font-body);
   color:var(--ink);
-  overflow-x:hidden;
+  overflow-x:hidden; overflow-x:clip;
 }
 img{max-width:100%;height:auto;display:block;}
 
@@ -229,6 +230,7 @@ section{ position:relative; padding:110px 24px 130px; }
   display:flex; align-items:center; justify-content:center;
   padding:96px 20px 120px;
   text-align:center;
+  overflow-x:clip;  /* 斜めのマーキー帯（左右 -4vw）がページ幅を広げないように */
 }
 .hero__inner{ position:relative; z-index:2; width:100%; max-width:1080px; }
 /* ロゴ画像：ふわふわ浮く＋マウスで少し傾く（3D）＋光が走る */
@@ -513,7 +515,8 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 1.4s 1 both; }
    ============================================================ */
 .cardsGrid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:28px; max-width:760px; margin:0 auto; }
 .cardStage{ position:relative; aspect-ratio:5/6.4; }
-.cardStage canvas{ width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
+/* touch-action:pan-y ＝ 縦の指の動きはページのスクロールに渡し、横の動き・長押しだけカードが受け取る（none だとカードの上で縦スクロールできない） */
+.cardStage canvas{ width:100%; height:100%; display:block; touch-action:pan-y; cursor:grab; }
 .cardStage canvas.dragging{ cursor:grabbing; }
 .cardStage .fallback{ width:min(60vw,260px); margin:0 auto; }
 .gyroBtn{
@@ -905,6 +908,10 @@ const parts=[]; // 視差用 {el, depth}
 // 背景エフェクトを Three.js で出せるか（出せる時は旧キラキラを作らない）
 const USE_FX=(()=>{
   if(matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+  // 弱い端末（CPUコア4以下／メモリ4GB以下／データセーバー）は旧キラキラ（CSS版）に戻す
+  const n=navigator;
+  const weak=(n.hardwareConcurrency && n.hardwareConcurrency<=4) || (n.deviceMemory && n.deviceMemory<=4) || (n.connection && n.connection.saveData);
+  if(weak) return false;
   try{ const c=document.createElement('canvas'); return !!(c.getContext('webgl2')||c.getContext('webgl')); }catch(e){ return false; }
 })();
 window.__USE_FX=USE_FX;
