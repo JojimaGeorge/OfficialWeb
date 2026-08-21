@@ -164,7 +164,15 @@ body.theme-pink   .moon{ background-color:#a83c5e; }
 /* 星の穴はこの「背景の板」だけに掛ける（絵や文字と同じ要素に掛けると、中身が別の層に分かれて穴の中に残る） */
 .loader__bg{
   position:absolute; inset:0;
-  background:#008987;  /* 緑（じょじを指定）。ページの空色と違う色なので星の穴がはっきり見える */
+  /* 緑（じょじを指定）。ページの空色と違う色なので星の穴がはっきり見える
+     ＋ 細かい水玉（直径10px・46px間隔の1層）を斜め下へ流す。動かすのは「板じしんの背景」で、子要素は作らない
+     （マスク付きの板の中に動く子を置くと、別の描画層に分かれて星の穴の中に残る＝実測済み） */
+  background-color:#008987;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.16) 0 5px, transparent 5.5px);
+  background-size:46px 46px;
+  background-position:0 0;
+  animation:dotDrift 6s linear infinite;
   -webkit-mask-image:linear-gradient(#000,#000), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon fill='%23000' points='50,0 62.34,33.01 97.55,34.55 69.97,56.49 79.39,90.45 50,71 20.61,90.45 30.03,56.49 2.45,34.55 37.66,33.01'/%3E%3C/svg%3E");
           mask-image:linear-gradient(#000,#000), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon fill='%23000' points='50,0 62.34,33.01 97.55,34.55 69.97,56.49 79.39,90.45 50,71 20.61,90.45 30.03,56.49 2.45,34.55 37.66,33.01'/%3E%3C/svg%3E");
   -webkit-mask-size:100% 100%, 0px 0px; mask-size:100% 100%, 0px 0px;
@@ -173,6 +181,8 @@ body.theme-pink   .moon{ background-color:#a83c5e; }
   -webkit-mask-composite:xor; mask-composite:exclude;
   /* 星の大きさは JS が毎フレーム mask-size を更新して広げる（CSS transition は mask-size に効かなかった） */
 }
+/* 間隔46pxの2周ぶん（92px）ぴったりずらすので、つなぎ目なく流れつづける */
+@keyframes dotDrift{ to{ background-position:92px 92px; } }
 .loader.is-open{ pointer-events:none; }  /* ※ .reveal はページの出現アニメ用クラスと衝突するので使わない */
 .loader__inner{ position:relative; text-align:center; color:#fff; }
 /* 開き始めたら中身は即座に消す。opacity/transform のアニメで消すと、隣の紺の板（マスク付き）ごと描画から落ちる（Chromeで実測） */
@@ -245,8 +255,10 @@ section{ position:relative; padding:110px 24px 130px; }
    ローディングの星が開いた合図（body.revealed）で始まる */
 .logo__g{ transform-box:fill-box; transform-origin:50% 100%; opacity:0; }
 body.revealed .logo__g{
-  animation:letterPop .85s cubic-bezier(.34,1.56,.64,1) both;
-  animation-delay:calc(1.2s + var(--i,0) * .12s);   /* 星が開き切る頃に始める（開くのは1.5秒） */
+  animation:letterPop .52s cubic-bezier(.34,1.56,.64,1) both;
+  /* 星が開き切る頃に始める（開くのは0.9秒）。1文字ぶんの間隔も詰めて、全部出そろうまで 0.7+0.07×4+0.52＝約1.5秒
+     （前は 1.2+0.12×4+0.85＝約2.5秒かかっていた） */
+  animation-delay:calc(.7s + var(--i,0) * .07s);
 }
 body.no-loader .logo__g{ opacity:1; }   /* ローディング無し（アニメ停止設定など）の時は即表示 */
 @keyframes letterPop{
@@ -267,11 +279,54 @@ body.no-loader .logo__g{ opacity:1; }   /* ローディング無し（アニメ�
 body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
 @keyframes sheen{ 0%{ background-position:120% 0; } 100%{ background-position:-40% 0; } }
 
-/* びろーんが当たった時に持ち上がる（.hero__inner.lifted をJSが付け外し） */
-.logo, .hero__copy, .hero__sub{ transition:transform .32s cubic-bezier(.34,1.56,.64,1); }
-.hero__inner.lifted .logo{ transform:translateY(-22px) rotate(-1.2deg); }
-.hero__inner.lifted .hero__copy{ transform:translateY(-30px); }
-.hero__inner.lifted .hero__sub{ transform:translateY(-34px); }
+/* びろーんが当たった時に持ち上がる（.hero__inner.lifted をJSが付け外し）
+   持ち上げ量は「キャラの表示幅 min(80vw,520px)」に対する比率で書く＝画面幅が変わっても比が保たれる。
+   GIFのコマを実測（キャラの黒い輪郭線だけを拾う。「びろ〜」の文字は白フチ付きの別物なので除外）した結果、
+   伸び切りの頭のてっぺんは画像の上から 13.3%＝PCで説明文の下端より 89px 上。文字がその上に逃げる量にしてある。
+   ぶつかる相手は「キャラの頭」ではなく、その上に描いてある「びろ〜」の文字（画像の上から1.8%〜15%の帯）。
+   文字ブロック（ロゴ＋説明文＋英字）は PC で 233px あり、「びろ〜」の上には 210px しか空いていないので、
+   伸びる瞬間だけキャラ側も 8.2%（PCで43px）下げて場所をあける。下げ幅は足元とふきだしの余裕(44px)が上限。
+   ロゴ→説明文→英字の順に持ち上げ量を増やし、当たった瞬間に文字の間隔が縮む（＝潰れて跳ねる）ようにする。
+
+   打ち上げと戻りで曲線を分ける。クラスが「付く」瞬間は .lifted 側の transition が、
+   「外れる」瞬間は素の側の transition が効くという性質を使う。
+   ・打ち上げ＝速い＋跳ね返りあり（蹴られた感じ）
+   ・戻り  ＝ゆっくり＋跳ね返りなし（ふわっと降りて着地。同じバネ曲線だと
+             元の位置より下に行き過ぎてから戻るので「カクン」と見える） */
+/* 持ち上げ量と着地の沈み込みを、要素ごとの変数に持たせる（打ち上げ・着地の両方から同じ値を使う） */
+/* ==キャラ（.stage）は動かさない==。以前は伸びる瞬間に43px下げて文字の逃げ場を作っていたが、
+   戻る時に「ぽちゃもんの位置が上に動く」と分かってしまうため取りやめ（じょじを指摘）。
+   そのぶん文字の跳ね上げ量も下げ、ねらいを「キャラの頭のてっぺんの上に乗る」に変えた
+   （伸び切りの頭＝画像の上から13.3%＝PCで y246.6。英字の下端がその少し上に来る量） */
+.logo      { --lift:calc(min(80vw, 520px) * -0.147); }
+.hero__copy{ --lift:calc(min(80vw, 520px) * -0.189); }
+.hero__sub { --lift:calc(min(80vw, 520px) * -0.195); }
+/* 打ち上げ＝速く、蹴られたように跳ね上がる */
+.hero__inner.lifted .logo,
+.hero__inner.lifted .hero__copy,
+.hero__inner.lifted .hero__sub{ transform:translateY(var(--lift)); transition:transform .34s cubic-bezier(.34,1.56,.64,1); }
+/* 着地＝重力。落ちている間はずっと加速し（cubic-bezier(.55,.055,.675,.19) ＝ 速度が increasing）、
+   着いた勢いで数px沈んでから戻る。等速や ease-in-out だと「浮いたまま降りてくる」感じになって重さが出ない */
+.hero__inner.landing .logo,
+.hero__inner.landing .hero__copy,
+.hero__inner.landing .hero__sub{ animation:dropBack .63s both; }
+/* ロゴのSVGを埋め込めた時だけ、ロゴ本体は動かさず「文字1つずつ」をJSが個別に落とす。
+   本体も一緒に動かすと、遅れて落ちる文字を持ち上げて待たせる必要があり、
+   その持ち上げが落下開始の瞬間に見えてしまう（1回やって指摘を受けた）。
+   transition も切る＝クラスが外れた瞬間にスッと0へ戻す（見た目は文字側が担当するので変化なし） */
+.hero__inner.landing .logo.logo--svg{ animation:none; transition:none; }
+/* 落ちて、コツンと硬く2回だけ跳ねて止まる。柔らかく潰れる動き（ポヨン）は入れない（じょじを指示）。
+   0〜66.7%＝加速しながら落下 ／ 77%＝5px 跳ね上がり ／ 93.7%＝1.6px の小さい2回目 */
+@keyframes dropBack{
+  0%    { transform:translateY(var(--lift)); animation-timing-function:cubic-bezier(.55,.055,.675,.19); }
+  66.7% { transform:translateY(0);           animation-timing-function:cubic-bezier(.2,.6,.35,1); }
+  77.0% { transform:translateY(-5px);        animation-timing-function:cubic-bezier(.6,0,.9,.5); }
+  87.3% { transform:translateY(0);           animation-timing-function:cubic-bezier(.2,.6,.35,1); }
+  93.7% { transform:translateY(-1.6px);      animation-timing-function:cubic-bezier(.6,0,.9,.5); }
+  100%  { transform:translateY(0); }
+}
+/* 保険：landing クラスが付かなかった時でも、瞬間移動にはならないように */
+.logo, .hero__copy, .hero__sub{ transition:transform .5s cubic-bezier(.42,0,.22,1); }
 .hero__copy{
   font-family:var(--font-logo);  /* 日記の帯と同じ丸文字 */
   color:#fff; font-weight:700;
@@ -286,7 +341,10 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
   width:min(92vw, 660px);
   /* 画像の上約40%は透明（びろーんが伸びる余白）。その7割ぶん上に重ねて、待機ポーズと文字の隙間を詰める。
      伸びた時は文字の位置まで届くので「当たって跳ねる」仕掛けが成立する */
-  margin:calc(min(80vw, 520px) * -0.29) auto 0;
+  /* 以前は -0.29 で目一杯上に詰め、伸びる瞬間だけ 0.082 ぶん下げて文字の逃げ場を作っていた。
+     戻る時に「ぽちゃもんが上へ動く」と分かってしまうため、その 0.082 を最初から引いた位置に固定した
+     （-0.29 + 0.082 = -0.208）。伸びている間の見た目は以前と同じで、動きだけが無くなる */
+  margin:calc(min(80vw, 520px) * -0.208) auto 0;
 }
 .hero__char{
   width:min(80vw, 520px);
@@ -332,13 +390,18 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
 
 /* 「タップしてみてね」：白いふきだし風のピル（影・動き無し） */
 .hero__hint{
-  display:inline-block; position:relative; margin-top:22px;
+  /* z-index はキャラ(.hero__char=2)より上。伸びた時に足元がふきだしに数px重なっても、ピルが上に出る */
+  display:inline-block; position:relative; z-index:3; margin-top:22px;
   background:#fff; color:#e8628c; font-weight:700; font-size:clamp(14px,2.2vw,16px);
   padding:11px 24px; border-radius:999px;
 }
-.hero__hint::before{ /* ふきだしのしっぽ（上向き＝ぽちゃもんを指す） */
-  content:''; position:absolute; left:50%; top:-9px; translate:-50% 0;
-  border:9px solid transparent; border-top:none; border-bottom-color:#fff;
+/* ふきだしのしっぽ（上向き＝ぽちゃもんを指す）
+   三角形をピルの「外」に置くと、境目に髪の毛1本ぶんの切れ目が出る。
+   白い正方形を45°まわして下半分をピルに埋めると、重なるので継ぎ目そのものが無くなる */
+.hero__hint::before{
+  content:''; position:absolute; left:50%; top:-5.3px;
+  width:18px; height:18px; background:#fff; border-radius:3px;
+  translate:-50% 0; rotate:45deg;
 }
 
 /* SNSアイコン（design_c1.html と同素材） */
@@ -456,13 +519,39 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
    3. ぽちゃもんって？
    ============================================================ */
 .about__grid{ display:grid; grid-template-columns:1fr 1.2fr; gap:36px; align-items:center; }
+/* 「ぽちゃもんって？」の絵：カードの枠や背景は付けず、==絵そのものを立体的にゆっくり傾ける==（じょじを指示）。
+   Three.js は使わない＝この節のために700KBを読み込まなくて済む。
+   3D空間（preserve-3d）に子を置くと傾きが戻る途中で描画順が揺れて画像が一瞬消えるので、
+   絵と光の帯はそれぞれ独立に同じ角度で回す（親には perspective だけ置く） */
+.about__figure .taedoki{ position:relative; width:min(60vw,300px); margin:0 auto; perspective:800px; }
 .about__figure img{
-  width:min(60vw,300px); margin:0 auto;
+  width:100%; margin:0;
   filter:
     drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff)
     drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff)
     drop-shadow(0 8px 14px rgba(0,0,0,.2));
-  animation:floaty 4s ease-in-out infinite;
+  transform-origin:50% 62%;
+  animation:taedokiTilt 9s ease-in-out infinite;
+}
+/* 横 ±13度・縦 ±4.5度。±7度では動きが分かりにくかったので倍近くに上げた。
+   カードの時（横±19度・「グリグリしすぎ」と指摘）よりは控えめの範囲 */
+@keyframes taedokiTilt{
+  0%,100%{ transform:rotateY(-13deg) rotateX(4.5deg) translateY(0); }
+  50%    { transform:rotateY(13deg)  rotateX(-4.5deg) translateY(-8px); }
+}
+/* キラッ：絵の形で切り抜いた光の帯を、傾きに合わせて流す */
+.about__figure .taedoki__sheen{
+  position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(108deg, rgba(255,255,255,0) 40%, rgba(255,255,255,.8) 48%, rgba(190,236,255,.62) 54%, rgba(255,255,255,0) 62%);
+  background-size:280% 100%;
+  -webkit-mask:url(assets/img/taedoki.webp) center / contain no-repeat;
+          mask:url(assets/img/taedoki.webp) center / contain no-repeat;
+  transform-origin:50% 62%;
+  animation:taedokiTilt 9s ease-in-out infinite, taedokiSheen 9s ease-in-out infinite;
+}
+@keyframes taedokiSheen{
+  0%,100%{ background-position:135% 0; }
+  50%    { background-position:-35% 0; }
 }
 @keyframes floaty{
   0%,100%{ transform:translateY(0) rotate(-2deg); }
@@ -553,17 +642,25 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
 }
 .theater-note a:hover{ transform:translateY(-3px) scale(1.05); }
 
-.goodsGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; align-items:start; }  /* 高さは揃えない（写真の枚数が違うカードに空白が出ないように） */
+/* カードの高さは全部そろえる。grid-auto-rows:1fr で「どの行も一番高い行に合わせる」＝
+   説明文の長さがカードごとに違っても段差が出ない。
+   写真の枚数（6枚・2枚・1枚）の違いは、写真置き場 .goodsCard__media を
+   固定の縦横比の箱にして、その中に収める側で吸収する */
+.goodsGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; align-items:stretch; grid-auto-rows:1fr; }
 .goodsCard{
   background:#fff; border-radius:22px; padding:16px 14px 14px;
   box-shadow:0 6px 0 rgba(0,0,0,.16); text-align:center; position:relative;
 }
-.goodsCard img{ width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:12px; display:block; background:#f4f2ee; }
-.goodsCard__imgs{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
-.goodsCard__imgs--2{ grid-template-columns:repeat(2,1fr); }
-.goodsCard__imgs img{ aspect-ratio:3/4; }
+/* 写真置き場：どのカードも同じ縦横比（9:8）の箱。中身は箱に収まるまで縮む＝はみ出しも切れもしない。
+   9:8 は「ステッカー6枚を3列×2段に置くとちょうど埋まる比」から決めた（1枚が縦3:4なので2段で横幅の約0.89倍） */
+.goodsCard__media{ aspect-ratio:9/8; display:flex; align-items:center; justify-content:center; }
+.goodsCard__media img{ width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; border-radius:12px; display:block; }
+.goodsCard__media--g6{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(2,1fr); gap:6px; }
+.goodsCard__media--g2{ display:grid; grid-template-columns:repeat(2,1fr); grid-template-rows:1fr; gap:8px; }
+.goodsCard__media--g6 img, .goodsCard__media--g2 img{ width:100%; height:100%; max-width:none; max-height:none; border-radius:8px; }
 .goodsCard .name{ font-weight:700; font-size:14px; margin-top:12px; }
-.goodsCard .price{ font-family:var(--font-logo); font-size:14px; color:#e8628c; margin-top:3px; }
+/* 値段は Hachi Maru Pop（丸文字）だと数字の線が細くて読みにくかった → 本文と同じ Zen Maru Gothic の太字に */
+.goodsCard .price{ font-family:var(--font-body); font-weight:700; font-size:13.5px; letter-spacing:.01em; color:#e8628c; margin-top:5px; }
 .goodsCard .desc{ font-size:12px; color:#777; font-weight:700; line-height:1.75; margin-top:6px; text-align:left; }
 .goodsCard .limited--hot{ background:#ffb03a; }
 .goodsCard .limited--few{ background:#7c5cd6; }
@@ -641,12 +738,24 @@ footer{
   .gnav{ display:none; }
   .about__grid{ grid-template-columns:1fr; gap:20px; }
   .about__figure img{ width:min(52vw,240px); }
+  .about__figure .taedoki{ width:min(52vw,240px); }
   .gallery{ grid-template-columns:repeat(2, 1fr); gap:14px; }
   .cardsGrid{ grid-template-columns:1fr; max-width:320px; gap:18px; }
-  /* おしらせ：左に「日付／タブ」を2段で重ね、右に本文を広く */
-  .newsItem{ display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:14px; row-gap:6px; align-items:center; padding:14px 16px; }
-  .newsItem .date{ grid-area:1 / 1; }
-  .newsItem .tag{ grid-area:2 / 1; justify-self:start; }
+  /* 背景の模様：px の下限（min-width/min-height）が効いて、スマホでも大きいまま文字に乗っていた。
+     下限を外して画面幅に比例させ、さらに「ロゴ〜英字」の帯（おおよそ y150〜320px）の外へ逃がす。
+     模様はアメーバ形に切り抜かれているので、実際に見える形は下の四角よりひとまわり小さい */
+  .wrap--a{ width:74vw; height:68vw; min-width:0; min-height:0; top:-40vw; left:-26vw; }
+  .wrap--b{ width:82vw; height:74vw; min-width:0; min-height:0; bottom:-26vw; right:-26vw; }
+  .wrap--c{ width:38vw; height:35vw; min-width:0; min-height:0; top:46%;    right:-16vw; }
+  .wrap--d{ width:50vw; height:45vw; min-width:0; min-height:0; bottom:-14vw; left:-22vw; }
+  .moonWrap{ width:26vw; height:24vw; top:1%; right:6%; }
+
+  /* おしらせ：左に「日付／タブ」を2段で重ね、右に本文を広く。2つは列の中で中央にそろえる。
+     縦は上そろえ。行を「auto 1fr」にして余った高さを2行目にまとめ、両方 align-self:start で上へ寄せる
+     ＝本文が何行になっても日付とタブの間隔は変わらない（本文1行のカードと同じ間隔になる） */
+  .newsItem{ display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto 1fr; column-gap:14px; row-gap:6px; align-items:start; padding:14px 16px; }
+  .newsItem .date{ grid-area:1 / 1; justify-self:center; align-self:start; text-align:center; }
+  .newsItem .tag{ grid-area:2 / 1; justify-self:center; align-self:start; }
   .newsItem > span:last-child{ grid-area:1 / 2 / 3 / 3; line-height:1.7; }
   .menuFan__cards{ justify-content:flex-start; overflow-x:auto; gap:14px; padding:10px 6px 18px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; }
   .menuCard{ width:min(64vw,240px); scroll-snap-align:center; }
@@ -691,8 +800,8 @@ footer{
     document.dispatchEvent(new Event('pochamon:reveal'));
     if(reduce){ ld.remove(); return; }
     ld.classList.add('is-open');
-    // 星型の穴を 0 → 画面の3.2倍まで 1.5秒で広げる。最初からスーッと、ゆっくり始まって加速し続ける一本の動き
-    const DUR=1500, full=Math.max(innerWidth, innerHeight)*3.2, start=performance.now();
+    // 星型の穴を 0 → 画面の3.2倍まで 0.9秒で広げる。最初からスーッと、ゆっくり始まって加速し続ける一本の動き
+    const DUR=900, full=Math.max(innerWidth, innerHeight)*3.2, start=performance.now();
     (function grow(now){
       const p=Math.min(1, (now-start)/DUR);
       const px=full*Math.pow(p, 2.6);                                     // 加速だけ（減速しない）
@@ -826,7 +935,10 @@ footer{
     <p class="sec-lead reveal">がんばらない日も、ちゃんとかわいい。</p>
     <div class="about__grid">
       <div class="about__figure reveal">
-        <img src="assets/img/softcream.webp" alt="ソフトクリームを食べるぽちゃもん" loading="lazy">
+        <div class="taedoki">
+          <img src="assets/img/taedoki.webp" alt="おかしを まえに して がまんしている ぽちゃもん" width="306" height="319" loading="lazy">
+          <span class="taedoki__sheen" aria-hidden="true"></span>
+        </div>
       </div>
       <div class="about__text reveal">
         <p>
@@ -836,7 +948,7 @@ footer{
         </p>
         <ul class="profile">
           <li><span class="k">なまえ</span><span class="v">ぽちゃもん</span></li>
-          <li><span class="k">しゅるい</span><span class="v">モモンガ（ぽちゃっと多め）</span></li>
+          <li><span class="k">しゅるい</span><span class="v">エゾモモンガ（ぽちゃっと多め）</span></li>
           <!-- たんじょうびは日付を変える予定のため一旦非表示（2026-08-21 じょじを指示）。決まったらコメントを外す
           <li><span class="k">たんじょうび</span><span class="v">8月8日（いちばんまるい数字がならぶ日）</span></li>
           -->
@@ -895,37 +1007,43 @@ footer{
     <p class="sec-lead reveal">ぽちゃもんを つれてかえろう。</p>
     <div class="goodsGrid">
       <div class="goodsCard reveal">
-        <span class="limited">ぜんぶで 12しゅるい</span>
-        <div class="goodsCard__imgs"><img src="assets/img/goods/g4.webp" alt="防水ステッカー あめさんぽ" loading="lazy"><img src="assets/img/goods/g3.webp" alt="防水ステッカー ゼリー" loading="lazy"><img src="assets/img/goods/g5.webp" alt="防水ステッカー らーめんガーディアン" loading="lazy"></div>
+        <span class="limited">20しゅるい いじょう</span>
+        <div class="goodsCard__media goodsCard__media--g6"><img src="assets/img/goods/g4.webp" alt="防水ステッカー あめさんぽ" loading="lazy"><img src="assets/img/goods/g3.webp" alt="防水ステッカー ゼリー" loading="lazy"><img src="assets/img/goods/g5.webp" alt="防水ステッカー らーめんガーディアン" loading="lazy"><img src="assets/img/goods/g11.webp" alt="防水ステッカー ソフトクリーム" loading="lazy"><img src="assets/img/goods/g12.webp" alt="防水ステッカー アイス" loading="lazy"><img src="assets/img/goods/g13.webp" alt="防水ステッカー つり" loading="lazy"></div>
         <div class="name">ぼうすい ステッカー</div>
         <div class="price">1まい ¥400 ／ 3まい ¥1,000 ／ 5まい ¥1,500</div>
         <div class="desc">みずに つよい「ぴたっとステッカー」。すきな ぽちゃもんを えらんでね。</div>
       </div>
       <div class="goodsCard reveal">
         <span class="limited limited--hot">だいにんき</span>
-        <img src="assets/img/goods/g7.webp" alt="フレークシール付きミニゲーム あっちむいてホイ" loading="lazy">
+        <div class="goodsCard__media"><img src="assets/img/goods/g7.webp" alt="フレークシール付きミニゲーム あっちむいてホイ" loading="lazy"></div>
         <div class="name">フレークシールつき ミニゲーム</div>
         <div class="price">¥200</div>
         <div class="desc">ぽちゃもんと あっちむいてホイ！ ぜん6しゅの フレークシールが かならず 2まい、かったら 3まい もらえるよ。</div>
       </div>
       <div class="goodsCard reveal">
-        <img src="assets/img/goods/g6.webp" alt="箔押しフォトプリント メロンソーダ" loading="lazy">
+        <div class="goodsCard__media"><img src="assets/img/goods/g6.webp" alt="箔押しフォトプリント メロンソーダ" loading="lazy"></div>
         <div class="name">はくおし フォトプリント</div>
         <div class="price">¥1,000</div>
         <div class="desc">L判サイズ・プチ額つき。ゴールド／シルバーの 箔 2しゅるい。</div>
       </div>
       <div class="goodsCard reveal">
         <span class="limited limited--few">のこり わずか</span>
-        <img src="assets/img/goods/g10.webp" alt="キャンディバッグ コラボねんど入り" loading="lazy">
+        <div class="goodsCard__media"><img src="assets/img/goods/g10.webp" alt="キャンディバッグ コラボねんど入り" loading="lazy"></div>
         <div class="name">キャンディバッグ</div>
         <div class="price">¥900</div>
         <div class="desc">ギークガールぴょん コラボの ねんど ぽちゃもん入り。キラキラの ふくろに ぎゅっと。</div>
       </div>
       <div class="goodsCard reveal">
-        <div class="goodsCard__imgs goodsCard__imgs--2"><img src="assets/img/goods/g8.webp" alt="マグネットステッカー モモンガが休んでます" loading="lazy"><img src="assets/img/goods/g9.webp" alt="マグネットステッカー お食事中" loading="lazy"></div>
+        <div class="goodsCard__media goodsCard__media--g2"><img src="assets/img/goods/g8.webp" alt="マグネットステッカー モモンガが休んでます" loading="lazy"><img src="assets/img/goods/g9.webp" alt="マグネットステッカー お食事中" loading="lazy"></div>
         <div class="name">マグネット ステッカー</div>
         <div class="price">¥500</div>
-        <div class="desc">「モモンガが休んでます」「お食事中」の 2しゅるい。れいぞうこに ぴたっ。</div>
+        <div class="desc">「モモンガが やすんでます」「おしょくじちゅう」の 2しゅるい。れいぞうこに ぴたっ。</div>
+      </div>
+      <div class="goodsCard reveal">
+        <div class="goodsCard__media"><img src="assets/img/goods/g14.webp" alt="ミニフォトプリント 木の額入り" loading="lazy"></div>
+        <div class="name">ミニ フォトプリント</div>
+        <div class="price">¥700</div>
+        <div class="desc">てのひらサイズの きの がくつき。もようの リボンは きんの はくで、ひかりに あたると きらっと ひかるよ。</div>
       </div>
     </div>
     <p class="goods-note reveal">いまは デザフェス・コミティアの かいじょうだけで はんばいしてるよ🐾<br>つぎの しゅってんは <b>COMITIA157</b>（8/23・西4ホール し08a）。おしながきは「おしらせ」を みてね。<br><span style="opacity:.85;font-size:.92em">オンラインショップは まだ じゅんびちゅう。「ほしい！」の こえが あつまったら、はじめるかも。</span></p>
@@ -1069,6 +1187,7 @@ if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
     svg.removeAttribute('id'); svg.setAttribute('class','logo__svg'); svg.setAttribute('role','img'); svg.setAttribute('aria-label','ぽちゃもん');
     const img=document.querySelector('.logo__img');
     img.replaceWith(svg);
+    document.querySelector('.logo')?.classList.add('logo--svg');  // 着地を「文字ごと」に切り替える印
     document.querySelector('.logo__sheen')?.remove();   // 画像用の光の帯は外す（文字の塗りの中で光らせる）
     // 左から順に番号を振る。横に重なる線（゜や点など）は前の文字と同じ番号
     const ps=[...svg.querySelectorAll('path')].map(p=>({p,b:p.getBBox()})).sort((a,b)=>a.b.x-b.b.x);
@@ -1087,12 +1206,15 @@ if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
     const an=document.createElementNS(NS,'animateTransform');
     an.setAttribute('attributeName','gradientTransform'); an.setAttribute('type','translate');
     an.setAttribute('from',`${-W*1.3} 0`); an.setAttribute('to',`${W*1.3} 0`);
-    an.setAttribute('dur','1.6s'); an.setAttribute('begin','indefinite'); an.setAttribute('fill','freeze');
+    // 1.6秒だと光がロゴを横切りきるまでが長く、タップした時に「遅れて光った」ように見えた（じょじを指摘）
+    an.setAttribute('dur','0.8s'); an.setAttribute('begin','indefinite'); an.setAttribute('fill','freeze');
     grad.appendChild(an); defs.appendChild(grad); svg.insertBefore(defs, svg.firstChild);
     grad.setAttribute('gradientTransform',`translate(${-W*1.3} 0)`);
     ps.forEach(o=>{ o.p.style.fill='url(#logoSheen)'; });
-    // 文字が出そろった後に1回だけ光らせる（ローディングが開いた合図から 2.7秒後＝文字は1.2秒後から約1.3秒で出そろう）
-    const shine=()=>setTimeout(()=>{ try{ an.beginElement(); }catch(e){} }, 2700);
+    // 文字が出そろった後に1回だけ光らせる（ローディングが開いた合図から 1.55秒後＝文字は0.7秒後から約0.8秒で出そろう）
+    // 同じ光を「ぽちゃもんをタップした時」にも使うので、外から呼べるようにしておく
+    window.__logoShine=()=>{ try{ an.beginElement(); }catch(err){} };
+    const shine=()=>setTimeout(()=>{ try{ an.beginElement(); }catch(e){} }, 1550);
     if(document.body.classList.contains('revealed')) shine(); else document.addEventListener('pochamon:reveal', shine, {once:true});
   }).catch(err=>console.warn('ロゴSVGの読み込みに失敗', err));
 }
@@ -1215,6 +1337,58 @@ if(matchMedia('(prefers-reduced-motion: reduce)').matches){
     });
   });
 }
+// ロゴの文字を1つずつ跳ねさせる。土台の持ち上げ（.lifted の transform）に
+// composite:'add'＝「足し算」で重ねるので、登場アニメ letterPop と喧嘩しない
+// （同じ transform を上書きすると、クラスを外した時に登場アニメが再生し直されて文字が消える）
+// ※ SVGの中の transform の px は viewBox の座標なので、表示倍率で割って画面上のpxに直す
+function bounceLogoLetters(){
+  const svg=document.querySelector('.logo__svg');
+  if(!svg||!svg.animate) return;              // SVGを埋め込めていない時は土台の持ち上げだけで動く
+  const paths=svg.querySelectorAll('.logo__g');
+  if(!paths.length) return;
+  const vb=svg.viewBox.baseVal;
+  const scale=(svg.getBoundingClientRect().width||1)/((vb&&vb.width)||449);
+  // 画面上で12px ぶん、文字ごとに追加で跳ねる（土台の持ち上げに上乗せ）。
+  // 土台の持ち上げでロゴ上端が画面から約20pxまで上がる幅（900〜1280px）があるので、
+  // ここを大きくしすぎると跳ねた文字が画面の外に出る
+  const H=12/scale;
+  paths.forEach(p=>{
+    const i=+(p.style.getPropertyValue('--i')||0);
+    // 山を越えたあとは下がる一方にする（途中で下に行き過ぎてから戻ると、
+    // その戻りが「落ちる直前にロゴが少し上がった」ように見えるため）。
+    // 最後の文字でも 280+260+720=1260ms で終わり、落下開始(1280ms)に食い込まない
+    p.animate([
+      {transform:'translateY(0)'},
+      {transform:'translateY('+(-H)+'px)',    offset:.26},
+      {transform:'translateY('+(-H*.55)+'px)', offset:.62},
+      {transform:'translateY(0)'}
+    ], {duration:720, delay:i*65, easing:'cubic-bezier(.34,1.56,.64,1)', composite:'add'});
+  });
+}
+// 着地：文字を1つずつ、45msずつ遅らせて落とす。
+// ロゴ本体（.logo）は landing の瞬間に0へ戻り、各文字が「持ち上がった位置から」自力で落ちる。
+// fill:'backwards' なので、順番が来るまで文字は上がったままの位置で待つ＝待機中に動かない。
+// キーフレームの割合と跳ね量は CSS の @keyframes dropBack と同じ（本体・説明文と動きをそろえるため）
+function dropLogoLetters(liftPx){
+  const svg=document.querySelector('.logo__svg');
+  if(!svg||!svg.animate) return;
+  const paths=svg.querySelectorAll('.logo__g');
+  if(!paths.length) return;
+  const vb=svg.viewBox.baseVal;
+  const scale=(svg.getBoundingClientRect().width||1)/((vb&&vb.width)||449);
+  const L=liftPx/scale, B1=-5/scale, B2=-1.6/scale;   // 画面px → SVGの座標に直す
+  paths.forEach(p=>{
+    const i=+(p.style.getPropertyValue('--i')||0);
+    p.animate([
+      {transform:'translateY('+L+'px)',  easing:'cubic-bezier(.55,.055,.675,.19)'},
+      {transform:'translateY(0)',        offset:.667, easing:'cubic-bezier(.2,.6,.35,1)'},
+      {transform:'translateY('+B1+'px)', offset:.770, easing:'cubic-bezier(.6,0,.9,.5)'},
+      {transform:'translateY(0)',        offset:.873, easing:'cubic-bezier(.2,.6,.35,1)'},
+      {transform:'translateY('+B2+'px)', offset:.937, easing:'cubic-bezier(.6,0,.9,.5)'},
+      {transform:'translateY(0)'}
+    ], {duration:630, delay:i*45, fill:'backwards'});
+  });
+}
 function playBiroon(){
   if(gifState!=='idle') return;
   gifState='waitLoopEnd';
@@ -1223,9 +1397,24 @@ function playBiroon(){
     showAnim(ANIM.biroon, ()=>{
       gifState='biroon';
       // 伸びた頭が文字に当たる → ロゴと説明文を持ち上げ、縮んだら戻す（GIF実測：伸び切り7コマ目=0.28秒、戻り32コマ目=1.28秒）
+      // GIF 33コマ×40ms を実測した結果（キャラの黒い輪郭線で測定）：
+      //   1〜7コマ(0-280ms)      まだ縮んでいる（上端 44.9%）
+      //   8コマ(280ms)           19.2% までグンと伸びる ← ここで文字を蹴り上げる
+      //   14〜25コマ(520-1000ms) 13.3% ＝伸び切り。文字はこの間ずっと上に浮いている
+      //   26〜32コマ(1000-1280ms) 18.8〜19.2%。まだ背が高いので、ここで文字を降ろすと追突する
+      //   33コマ(1280ms)         41.3% ＝着地。文字を降ろしはじめるのはここ
       const inner=document.querySelector('.hero__inner');
-      setTimeout(()=>inner.classList.add('lifted'), 260);
-      setTimeout(()=>inner.classList.remove('lifted'), 1250);
+      setTimeout(()=>{ inner.classList.add('lifted'); bounceLogoLetters(); }, 280);
+      // キラッは跳ねと同時だと早すぎたので、びろーんが伸び切る 520ms（14コマ目）に合わせる
+      setTimeout(()=>{ window.__logoShine?.(); }, 520);
+      setTimeout(()=>{
+        // クラスを外す前に「いまどれだけ持ち上がっているか」を読む（文字ごとの落下の開始位置に使う）
+        const m=new DOMMatrix(getComputedStyle(document.querySelector('.logo')).transform);
+        inner.classList.remove('lifted');
+        inner.classList.add('landing');            // 重力で落ちる（@keyframes dropBack）
+        dropLogoLetters(m.m42);                    // ロゴだけは文字1つずつ
+        setTimeout(()=>inner.classList.remove('landing'), 700);
+      }, 1280);
       setTimeout(()=>{
         showAnim(ANIM.normal, ()=>{
           normalStart=performance.now();
