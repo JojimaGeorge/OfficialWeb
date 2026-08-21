@@ -159,8 +159,12 @@ body.theme-pink   .moon{ background-color:#a83c5e; }
    ============================================================ */
 .loader{
   position:fixed; inset:0; z-index:1000;
-  background:#1e9bf0;
   display:flex; align-items:center; justify-content:center;
+}
+/* 星の穴はこの「背景の板」だけに掛ける（絵や文字と同じ要素に掛けると、中身が別の層に分かれて穴の中に残る） */
+.loader__bg{
+  position:absolute; inset:0;
+  background:#173b8a;  /* ページの空色と違う「夜の青」にして、星の穴がはっきり見えるように */
   -webkit-mask-image:linear-gradient(#000,#000), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon fill='%23000' points='50,0 62.34,33.01 97.55,34.55 69.97,56.49 79.39,90.45 50,71 20.61,90.45 30.03,56.49 2.45,34.55 37.66,33.01'/%3E%3C/svg%3E");
           mask-image:linear-gradient(#000,#000), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon fill='%23000' points='50,0 62.34,33.01 97.55,34.55 69.97,56.49 79.39,90.45 50,71 20.61,90.45 30.03,56.49 2.45,34.55 37.66,33.01'/%3E%3C/svg%3E");
   -webkit-mask-size:100% 100%, 0px 0px; mask-size:100% 100%, 0px 0px;
@@ -169,14 +173,19 @@ body.theme-pink   .moon{ background-color:#a83c5e; }
   -webkit-mask-composite:xor; mask-composite:exclude;
   /* 星の大きさは JS が毎フレーム mask-size を更新して広げる（CSS transition は mask-size に効かなかった） */
 }
-.loader.reveal{ pointer-events:none; }
-.loader__inner{ text-align:center; color:#fff; }
-.loader__char{ width:140px; height:auto; margin:0 auto 14px; transform-origin:50% 100%; animation:loaderBounce .75s cubic-bezier(.4,0,.6,1) infinite; }
-@keyframes loaderBounce{
-  0%,100%{ transform:translateY(0) scale(1.12,.88); }
-  40%    { transform:translateY(-34px) scale(.94,1.08); }
-  60%    { transform:translateY(-30px) scale(1,1); }
+.loader.is-open{ pointer-events:none; }  /* ※ .reveal はページの出現アニメ用クラスと衝突するので使わない */
+.loader__inner{ position:relative; text-align:center; color:#fff; }
+/* 開き始めたら中身は即座に消す。opacity/transform のアニメで消すと、隣の紺の板（マスク付き）ごと描画から落ちる（Chromeで実測） */
+.loader.is-open .loader__inner{ visibility:hidden; }
+.loader__char{ width:min(72vw, 340px); height:auto; margin:0 auto 10px; display:block; }  /* アニメWebP（ファイル側で無限ループ） */
+.loader__ring{
+  position:fixed; left:50%; top:50%; translate:-50% -50%; z-index:1001; pointer-events:none;
+  width:0; height:0; overflow:visible;
+  fill:none; stroke:#fff; stroke-width:2.6; stroke-linejoin:round;
+  filter:drop-shadow(0 0 6px rgba(255,255,255,.95)) drop-shadow(0 0 18px rgba(255,240,160,.8));
+  display:none;
 }
+.loader__ring.show{ display:block; }
 .loader__text{ font-family:var(--font-logo); font-size:15px; letter-spacing:.12em; text-shadow:0 2px 0 rgba(0,0,0,.14); }
 .loader__dots i{ display:inline-block; width:6px; height:6px; border-radius:50%; background:#fff; margin-left:5px; animation:dotBlink 1.2s ease-in-out infinite; }
 .loader__dots i:nth-child(2){ animation-delay:.2s; } .loader__dots i:nth-child(3){ animation-delay:.4s; }
@@ -660,34 +669,44 @@ footer{
 <body class="theme-blue">
 <!-- ローディング画面（読み込み完了 or 最低1.5秒 → 星型に開く。最長4.5秒で強制的に開く） -->
 <div class="loader" id="loader" aria-hidden="true">
+  <div class="loader__bg" id="loaderBg"></div>
   <div class="loader__inner">
-    <img class="loader__char" src="assets/img/pochamon-main.webp" alt="" width="140" height="138" fetchpriority="high">
+    <img class="loader__char" src="assets/img/loader.webp" alt="" width="560" height="372" fetchpriority="high">
     <div class="loader__text">よみこみちゅう<span class="loader__dots"><i></i><i></i><i></i></span></div>
   </div>
 </div>
+<!-- 星の穴の縁に出る白い光の輪（穴と同じ大きさで広がる。ローディング画面とは別の層） -->
+<svg class="loader__ring" id="loaderRing" viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,0 62.34,33.01 97.55,34.55 69.97,56.49 79.39,90.45 50,71 20.61,90.45 30.03,56.49 2.45,34.55 37.66,33.01"/></svg>
 <script>
 (function(){
   const ld=document.getElementById('loader');
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const t0=performance.now(), MIN=1500, MAX=4500;
+  const t0=performance.now(), MIN=2600, MAX=6000;   // 最低2.6秒見せる／最長6秒で強制的に開く
+  const ring=document.getElementById('loaderRing');
+  const bg=document.getElementById('loaderBg');
   let done=false;
   function go(){
     if(done) return; done=true;
     document.body.classList.add('revealed');                     // ロゴの文字アニメ・光の合図
     document.dispatchEvent(new Event('pochamon:reveal'));
-    if(reduce){ ld.remove(); return; }
-    ld.classList.add('reveal');
-    // 星型の穴を 0 → 画面の3.2倍まで 1秒で広げる（ゆっくり始まり一気に開く）
-    const DUR=1000, full=Math.max(innerWidth, innerHeight)*3.2, start=performance.now();
+    if(reduce){ ld.remove(); ring.remove(); return; }
+    ld.classList.add('is-open'); ring.classList.add('show');
+    // 星型の穴を 0 → 画面の3.2倍まで 1.4秒で広げる。星は最初の0.35秒で「ぽん」と小さく出てから一気に開く
+    const DUR=1400, full=Math.max(innerWidth, innerHeight)*3.2, start=performance.now();
+    const SMALL=Math.min(innerWidth, innerHeight)*0.28;           // 最初に見せる星の大きさ
     (function grow(now){
       const p=Math.min(1, (now-start)/DUR);
-      const e=p<.5 ? 4*p*p*p : 1-Math.pow(-2*p+2,3)/2;   // easeInOutCubic
-      const s=Math.round(full*e)+'px';
-      ld.style.webkitMaskSize=`100% 100%, ${s} ${s}`; ld.style.maskSize=`100% 100%, ${s} ${s}`;
-      if(p<1) requestAnimationFrame(grow); else ld.remove();
+      let px;
+      if(p<.25){ const q=p/.25; px=SMALL*(1-Math.pow(1-q,3)); }                       // ぽんと出る
+      else { const q=(p-.25)/.75; const e=q*q*q; px=SMALL+(full-SMALL)*e; }          // 加速して開く
+      const s=Math.round(px)+'px';
+      bg.style.webkitMaskSize=`100% 100%, ${s} ${s}`; bg.style.maskSize=`100% 100%, ${s} ${s}`;
+      ring.style.width=s; ring.style.height=s;
+      ring.style.opacity=String(p<.8 ? 1 : 1-(p-.8)/.2);
+      if(p<1) requestAnimationFrame(grow); else { ld.remove(); ring.remove(); }
     })(start);
   }
-  if(reduce){ document.body.classList.add('no-loader'); ld.remove(); done=true; document.body.classList.add('revealed'); return; }
+  if(reduce){ document.body.classList.add('no-loader'); ld.remove(); ring.remove(); done=true; document.body.classList.add('revealed'); return; }
   const ready=()=>setTimeout(go, Math.max(0, MIN-(performance.now()-t0)));
   if(document.readyState==='complete') ready(); else addEventListener('load', ready, {once:true});
   setTimeout(go, MAX);
