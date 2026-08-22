@@ -14,7 +14,7 @@ const root = path.join(repo, 'main');
 const outDir = path.join(repo, 'tools', 'shots-fixes-0823');
 fs.mkdirSync(outDir, { recursive: true });
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.gif': 'image/gif', '.mp4': 'video/mp4', '.css': 'text/css' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.htm': 'text/html; charset=utf-8', '.js': 'text/javascript', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.gif': 'image/gif', '.mp4': 'video/mp4', '.css': 'text/css' };
 const server = http.createServer((req, res) => {
   const u = decodeURIComponent(req.url.split('?')[0]);
   let p = path.join(root, u === '/' ? 'index.html' : u);
@@ -47,6 +47,10 @@ async function shotEl(page, sel, file) {
   await shotEl(page, '.app-grid-wrap', 'sp-appcards.png');
   await shotEl(page, '.news-list', 'sp-newslist.png');
   await shotEl(page, '.profile-timeline', 'sp-timeline.png');
+  await shotEl(page, '.work-item.reversed', 'sp-work04.png');
+  { const gp = await ctx.newPage(); await gp.goto(base.replace('/index.html','/ginpika2nd/index.htm'), { waitUntil: 'load' }); await sleep(2500);
+    await gp.screenshot({ path: path.join(outDir, 'sp-ginpika.png') });
+    report.push('[sp] ginpika title = ' + await gp.title()); await gp.close(); }
   // タグ枠のはみ出し実測
   const m = await page.evaluate(() => {
     const a = document.querySelector('.news-list a');
@@ -80,6 +84,10 @@ async function shotEl(page, sel, file) {
   }
   caps.forEach((c, i) => report.push(`[pc] slide${i}: ${c}`));
   await shotEl(page, '.profile-timeline', 'pc-timeline.png');
+  await shotEl(page, '.work-item.reversed', 'pc-work04.png');
+  { const gp = await ctx.newPage(); await gp.goto(base.replace('/index.html','/ginpika2nd/index.htm'), { waitUntil: 'load' }); await sleep(2500);
+    await gp.screenshot({ path: path.join(outDir, 'pc-ginpika.png'), fullPage: false });
+    report.push('[pc] ginpika title = ' + await gp.title()); await gp.close(); }
   const w5 = (await page.$$('.work-item')).at(-1);
   await w5.scrollIntoViewIfNeeded(); await sleep(1400);
   await w5.screenshot({ path: path.join(outDir, 'pc-work05.png') });
