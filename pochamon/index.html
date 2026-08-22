@@ -889,7 +889,11 @@ footer{
     })(start);
   }
   if(reduce){ document.body.classList.add('no-loader'); ld.remove(); done=true; document.body.classList.add('revealed'); return; }
-  const ready=()=>setTimeout(go, Math.max(0, MIN-(performance.now()-t0)));
+  const ready=()=>setTimeout(()=>{
+    // カードの下ごしらえが走っていれば、終わるまで待ってから開ける（最長1.2秒。これ以上は待たせない）
+    const prep=window.__cardsPrep;
+    if(prep) Promise.race([prep, new Promise(r=>setTimeout(r,1200))]).then(go, go); else go();
+  }, Math.max(0, MIN-(performance.now()-t0)));
   if(document.readyState==='complete') ready(); else addEventListener('load', ready, {once:true});
   setTimeout(go, MAX);
 })();
@@ -1771,36 +1775,55 @@ const FALLBACK={amayadori:'assets/img/umbrella.webp', ukiwa:'assets/img/pochamon
 function showFallback(stage){ stage.innerHTML=`<img class="fallback" src="${FALLBACK[stage.dataset.card]}" alt="" loading="lazy">`; }
 if(reduce){ stages.forEach(showFallback); }
 else{
+  // ---- カードの下ごしらえ（読み込み→組み立て→シェーダー準備→絵のGPU転送）----
+  // 重いのは「組み立て246ms」と「シェーダー準備370ms」。どのタイミングでやっても消えないので、
+  // ローディング画面が出ている間（最低2.6秒）に済ませる＝画面が隠れているので誰にも見えない。
+  const CARD_IMG=["rain-sky.jpg","umbrella.png","ukiwa-bg.jpg","ukiwa-char.png"];
+  let built=false;
+  async function buildCards(){
+    let E;
+    try{ E=await getEngine(); }catch(err){ console.warn("3Dカードの読み込みに失敗", err); stages.forEach(showFallback); return; }
+    if(!E.webglOk()){ stages.forEach(showFallback); return; }
+    for(const stage of stages){
+      if(!stage.querySelector("canvas")) continue;
+      const spec=E.FULLART.find(c=>c.id===stage.dataset.card);
+      const m=E.mountCard(stage.querySelector("canvas"),{fill:.88});
+      try{ await m.load(spec); }catch(err){ console.warn(err); m.dispose(); showFallback(stage); }
+    }
+    const gb=document.getElementById("gyroBtn");
+    if(E.gyroAvailable){
+      gb.classList.add("show");
+      let gyroOn=false;
+      gb.addEventListener("click",async()=>{
+        if(gyroOn){ E.disableGyro(); gyroOn=false; gb.classList.remove("active"); gb.textContent="スマホの かたむきで うごかす"; return; }
+        if(await E.enableGyro()){ gyroOn=true; gb.classList.add("active"); gb.textContent="かたむきセンサー ON（もういちど押すと OFF）"; }
+      });
+    }
+    built=true;
+  }
+
+  // 通信を節約したい人・回線が細い人には最初から1.2MBを落とさせない（その人たちは今まで通り、近づいてから）
+  const conn=navigator.connection||{};
+  const preloadOk = !conn.saveData && !/(^|-)2g$/.test(conn.effectiveType||"");
+
+  if(preloadOk){
+    CARD_IMG.forEach(f=>fetch("assets/cards/img/"+f,{cache:"force-cache"}).catch(()=>{}));
+    window.__cardsPrep = buildCards();          // ← ローディング画面がこれを待つ（最長1.2秒だけ）
+  }else{
+    const prefetch=()=>{ getEngine().catch(()=>{}); };
+    if("requestIdleCallback" in window) requestIdleCallback(prefetch,{timeout:6000}); else setTimeout(prefetch, 3000);
+  }
+
+  // 保険：下ごしらえが動かなかった／間に合わなかった時は、近づいて手が止まったところで作る
   const sio=new IntersectionObserver(async es=>{
     if(!es.some(e=>e.isIntersecting)) return;
     sio.disconnect();
-    await afterScrollIdle(150);   // 指が止まってから
-    let E; try{ E=await getEngine(); }catch(err){ console.warn('3Dカードの読み込みに失敗', err); stages.forEach(showFallback); return; }
-    if(!E.webglOk()){ stages.forEach(showFallback); return; }
-    // 2枚を同時に作らず順番に（1枚ぶんの画像デコードとシェーダー準備が終わってから次へ）。スクロール中の固まりを避ける
-    for(const stage of stages){
-      const spec=E.FULLART.find(c=>c.id===stage.dataset.card);
-      const m=E.mountCard(stage.querySelector('canvas'),{fill:.88});
-      try{ await m.load(spec); }catch(err){ console.warn(err); m.dispose(); showFallback(stage); }
-      await new Promise(r=>setTimeout(r, 120));
-      await afterScrollIdle(150, 500);   // 2枚目も動いていない時に。ただし最大500msで進む
-    }
-    const gb=document.getElementById('gyroBtn');
-    if(E.gyroAvailable){
-      gb.classList.add('show');
-      let gyroOn=false;
-      gb.addEventListener('click',async()=>{
-        if(gyroOn){ E.disableGyro(); gyroOn=false; gb.classList.remove('active'); gb.textContent='スマホの かたむきで うごかす'; return; }
-        if(await E.enableGyro()){ gyroOn=true; gb.classList.add('active'); gb.textContent='かたむきセンサー ON（もういちど押すと OFF）'; }
-      });
-    }
-  },{rootMargin:'900px 0px'});
+    if(window.__cardsPrep){ try{ await window.__cardsPrep; }catch(e){} }
+    if(built) return;
+    await afterScrollIdle(150);
+    await buildCards();
+  },{rootMargin:"900px 0px"});
   stages.forEach(s=>sio.observe(s));
-  // Three.js 本体とカードのコードは、ページ表示後の暇な時間に先に取りに行っておく（700KB の読み込み・解析をスクロール中にしない）
-  const CARD_IMG=['rain-sky.jpg','umbrella.png','ukiwa-bg.jpg','ukiwa-char.png'];
-  // 絵もブラウザの保管庫に先に入れておく（取りに行くだけ。展開はカードを作る時にやる）
-  const prefetch=()=>{ getEngine().catch(()=>{}); CARD_IMG.forEach(f=>fetch('assets/cards/img/'+f,{cache:'force-cache'}).catch(()=>{})); };
-  if('requestIdleCallback' in window) requestIdleCallback(prefetch,{timeout:6000}); else setTimeout(prefetch, 3000);
 }
 
 // --- 背景の粒子エフェクト（セクションの色ごとに種類が変わる）。ページの表示が終わってから読み込む ---
