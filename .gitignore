@@ -1,0 +1,5 @@
+.wrangler/
+main/.atelier-backup/
+tools/shots-design-c1/
+tools/pochamon-hoi/shots-verify/
+tools/pochamon-hoi/*.png

@@ -1,610 +1,979 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-	<meta name="theme-color" content="#004CFF">
-	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
-	<title>Jojima George Official Web</title>
-	<meta name="description"  content="城島ジョージ公式HPです。こちらではNEWSをお伝えします。">
-	<link href="parts/jojima.css?ver=1.0.6" rel="stylesheet" type="text/css" />
-	<link rel="icon" href="image/pfpfav.png" type="image/x-icon">
-	<link rel="shortcut icon" href="image/pfpfav.png" type="image/x-icon">
-	<!-- Google Fonts -->
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Righteous&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#004CFF">
+  <title>NEWS | Jojima George Official Web</title>
+  <meta name="description" content="城島ジョージ公式HPです。こちらではNEWSをお伝えします。">
+  <link rel="icon" href="image/pfpfav.png" type="image/x-icon">
+  <link rel="shortcut icon" href="image/pfpfav.png" type="image/x-icon">
+  <!-- Google Fonts（design_c1 と同一セット） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================
+       NEWS 一覧ページ
+       design_c1.html のデザイントークンを踏襲した単独ページ。
+       絵の具アニメーション・three.js・Swiper は載せない
+       ============================================ */
+    :root {
+      --main:       #004CFF;
+      --main-tint:  #d6e0ff;
+      --main-deep:  #0035b3;
+      --grad:       linear-gradient(135deg, #004CFF 0%, #7aa8ff 100%);
+      --paper:      #f5f3f0;
+      --paper-white:#ffffff;
+      --ink:        #141414;
+      --ink-soft:   #555555;
+      --border:     #e2ded8;
+      --border-dark:#cfc9c0;
+      --ease:       cubic-bezier(0.075, 0.82, 0.165, 1);
+      --side:       clamp(20px, 8vw, 140px);
+      --font-en:    'Figtree', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-feature-settings: "palt";
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.9;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .en { font-family: var(--font-en); }
+
+    a { color: inherit; text-decoration: none; }
+
+    img { max-width: 100%; display: block; }
+
+    /* ===== NAV（紙色のblurバー） ===== */
+    .news-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 40px;
+      background: rgba(245, 243, 240, 0.85);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: var(--font-en);
+      font-weight: 900;
+      font-size: 15px;
+      letter-spacing: 3px;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 32px;
+      font-family: var(--font-en);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+
+    .nav-links a {
+      color: var(--ink-soft);
+      transition: color 0.4s var(--ease);
+    }
+
+    .nav-links a:hover { color: var(--main); }
+    .nav-links a.is-current { color: var(--main); }
+
+    /* ===== ページ本体 ===== */
+    .news-page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 160px var(--side) 120px;
+    }
+
+    @media (min-width: 981px) {
+      /* --side が広い画面では中央980pxに収める */
+      .news-page { padding-left: 24px; padding-right: 24px; }
+    }
+
+    .sec-label {
+      font-family: var(--font-en);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--main);
+      margin-bottom: 14px;
+    }
+
+    .sec-title {
+      font-size: clamp(26px, 4vw, 40px);
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      line-height: 1.4;
+    }
+
+    .page-lead {
+      margin-top: 16px;
+      color: var(--ink-soft);
+      font-size: 14px;
+    }
+
+    /* ===== 記事一覧 ===== */
+    .news-archive {
+      margin-top: 64px;
+      border-top: 1px solid var(--border-dark);
+    }
+
+    .news-entry {
+      display: grid;
+      grid-template-columns: 190px 1fr;
+      gap: 32px;
+      padding: 56px 0;
+      border-bottom: 1px solid var(--border);
+      /* ナビ高さぶんアンカー位置を补正 */
+      scroll-margin-top: 96px;
+    }
+
+    .entry-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .entry-date {
+      font-family: var(--font-en);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--ink);
+    }
+
+    .entry-tag {
+      font-family: var(--font-en);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--main);
+      border: 1px solid var(--main);
+      padding: 3px 10px;
+    }
+
+    .entry-title {
+      font-size: clamp(19px, 2.4vw, 24px);
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      line-height: 1.5;
+    }
+
+    .entry-img {
+      margin-top: 24px;
+      max-width: 460px;
+    }
+
+    .entry-text {
+      margin-top: 24px;
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 2.1;
+      max-width: 640px;
+    }
+
+    .entry-links {
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 28px;
+    }
+
+    .entry-links a {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--main);
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.4s var(--ease), color 0.4s var(--ease);
+    }
+
+    .entry-links a::after { content: " \2192"; }
+
+    .entry-links a:hover {
+      color: var(--main-deep);
+      border-bottom-color: var(--main-deep);
+    }
+
+    /* ===== 戻る導線 ===== */
+    .back-top {
+      margin-top: 72px;
+      text-align: center;
+    }
+
+    .back-top a {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--ink);
+      border: 1px solid var(--border-dark);
+      padding: 14px 40px;
+      transition: background 0.4s var(--ease), color 0.4s var(--ease), border-color 0.4s var(--ease);
+    }
+
+    .back-top a:hover {
+      background: var(--main);
+      border-color: var(--main);
+      color: #fff;
+    }
+
+    /* ===== 固定SNSアイコン（design_c1 と同配置） ===== */
+    .social-icons {
+      position: fixed;
+      right: 28px;
+      bottom: 24px;
+      z-index: 20;
+      display: flex;
+      gap: 10px;
+    }
+
+    .social-icons a { display: block; width: 44px; height: 44px; }
+    .social-icons a img { width: 100%; height: 100%; object-fit: contain; }
+
+    /* ===== FOOTER（design_c1 の奥付を踏襲） ===== */
+    .footer {
+      background: #0c0c0c;
+      color: #fff;
+      padding: 88px var(--side) 40px;
+    }
+
+    .footer-grid {
+      max-width: 1240px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 48px;
+    }
+
+    .footer-brand-name {
+      font-family: var(--font-en);
+      font-weight: 900;
+      font-size: 18px;
+      letter-spacing: 3px;
+      margin-bottom: 20px;
+    }
+
+    .footer-brand-text {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.65);
+      line-height: 2.1;
+    }
+
+    .footer-col-title {
+      font-family: var(--font-en);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.45);
+      margin-bottom: 18px;
+    }
+
+    .footer-links {
+      list-style: none;
+    }
+
+    .footer-links li { margin-bottom: 10px; }
+
+    .footer-links a {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.8);
+      transition: color 0.4s var(--ease);
+    }
+
+    .footer-links a:hover { color: #fff; }
+
+    .footer-bottom {
+      max-width: 1240px;
+      margin: 64px auto 0;
+      padding-top: 24px;
+      /* 右下の固定SNSアイコン領域ぶん空ける（design_c1 と同じ配慮） */
+      padding-right: 180px;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .footer-copy {
+      font-family: var(--font-en);
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      letter-spacing: 1px;
+    }
+
+    .footer-request {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      transition: color 0.4s var(--ease);
+    }
+
+    .footer-request:hover { color: var(--main-tint); }
+
+    /* ===== 入場アニメ（design_c1 と同じ .reveal 文法・控えめ設定） ===== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 1.1s var(--ease), transform 1.1s var(--ease);
+    }
+
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+      }
+    }
+
+    /* ===== SP ===== */
+    @media (max-width: 768px) {
+      .news-nav { padding: 14px 20px; }
+      .nav-links { gap: 18px; font-size: 10px; letter-spacing: 1px; }
+
+      .news-page { padding: 130px 20px 80px; }
+
+      .news-entry {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 44px 0;
+      }
+
+      .entry-meta {
+        flex-direction: row;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .entry-img { max-width: 100%; }
+
+      .footer { padding: 64px 20px 32px; }
+      .footer-grid { grid-template-columns: 1fr; gap: 36px; }
+      .footer-bottom { padding-right: 0; padding-bottom: 64px; } /* SPはアイコンの下逃げ */
+
+      .social-icons { right: 16px; bottom: 16px; }
+      .social-icons a { width: 40px; height: 40px; }
+    }
+
+    @media (max-width: 480px) {
+      .news-nav { padding: 14px 16px; gap: 10px; }
+      .nav-logo { font-size: 11px; letter-spacing: 1px; }
+      .nav-links { gap: 10px; font-size: 9px; letter-spacing: 0.5px; }
+    }
+  </style>
 </head>
-
-	
-
-	
 <body>
-	
-<div id="wrappernavi" class="show">
-  <div class="btn-gnavi">
-    <span></span>
-    <span></span>
-    <span></span>
-  </div>
-  <nav id="global-navi">
-    <ul class="menu">
-	  <div class="letter menu">
-		  <li><a href="https://jojima-george.com/#top">TOP</a></li>
-		  <li><a href="">NEWS</a></li>
-		  <li><a href="https://jojima-george.com/#works">WORKS</a></li>
-		  <li><a href="https://jojima-george.com/illustration.html">PORTFOLIO</a></li>
-		  <li><a href="https://jojima-george.com/#links">LINKS</a></li>
-		  <li><a href="https://jojima-george.com/#contact">CONTACT</a></li>
-	  </div>
+
+  <nav class="news-nav">
+    <a class="nav-logo en" href="./">JOJIMA GEORGE</a>
+    <ul class="nav-links">
+      <li><a href="./#hero">TOP</a></li>
+      <li><a href="./#works">WORKS</a></li>
+      <li><a href="./#profile">PROFILE</a></li>
+      <li><a href="news.html" class="is-current">NEWS</a></li>
+      <li><a href="./#contact">CONTACT</a></li>
     </ul>
   </nav>
-</div>
 
+  <main class="news-page">
+    <header class="page-head">
+      <div class="sec-label reveal">News</div>
+      <h1 class="sec-title reveal">最新情報</h1>
+      <p class="page-lead reveal">出展・新作・イベントなどのお知らせ一覧です。</p>
+    </header>
 
+    <div class="news-archive">
 
-<div id="rightbox">
-<br><br><br><br>
+      <article class="news-entry reveal" id="news20">
+        <div class="entry-meta">
+          <span class="entry-date en">2026.5.23</span>
+          <span class="entry-tag en">Exhibition</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">出展情報：デザインフェスタ63</h2>
+          <figure class="entry-img"><img src="image/designfes63.webp" alt="デザフェス63 ぽちゃもん"></figure>
+          <p class="entry-text">
+            このたびデザフェスにて新ブランド「ぽちゃもん」が初出展となります！<br>
+            TikTokでアニメーション展開中のぽちゃもんグッズを会場でぜひお楽しみください。<br>
+            ミニゲームも遊べますので、ご来場お待ちしています。<br><br>
+            日時:5/23(土)24(日)<br>
+            場所:東京ビッグサイト西1階【F-123】
+          </p>
+          <div class="entry-links">
+            <a href="https://www.tiktok.com/@pochamon_jp" target="_blank" rel="noopener noreferrer">TikTok</a>
+          </div>
+        </div>
+      </article>
 
+      <article class="news-entry reveal" id="news">
+        <div class="entry-meta">
+          <span class="entry-date en">2025.11.16</span>
+          <span class="entry-tag en">Exhibition</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">出展情報：FANTASIA2025</h2>
+          <figure class="entry-img"><img src="image/FANTASIA2025.webp" alt="FANTASIA2025"></figure>
+          <p class="entry-text">
+            FANTASIA2025に出展させていただきます！<br>
+            引き続き旬の「すしだるま」グッズをお楽しみください。<br>
+            ご来場お待ちしております。<br><br>
+            日時:11/23(日)11:00～17:00<br>
+            場所:科学技術館(最寄り九段下駅または竹橋駅)
+          </p>
+        </div>
+      </article>
 
+      <article class="news-entry reveal" id="news19">
+        <div class="entry-meta">
+          <span class="entry-date en">2025.11.8</span>
+          <span class="entry-tag en">Exhibition</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">出展情報：デザインフェスタ62</h2>
+          <figure class="entry-img"><img src="image/designfes62.webp" alt="デザフェス62"></figure>
+          <p class="entry-text">
+            このたびデザフェスに初参加させていただきます！<br>
+            「すしだるま」グッズの新ネタもご用意してお待ちしております。<br>
+            ぜひご来店くださいませ。<br><br>
+            日時:11/15(土)16(日) 10:00～18:00<br>
+            場所:東京ビッグサイト西館1階【F-245】
+          </p>
+        </div>
+      </article>
 
- <a name="news"></a>
- <h1>
-  <span class="bgextend bgLRextendTrigger">
-    <span class="bgappearTrigger">　NEWS
-  </span></span>
-</h1>
+      <article class="news-entry reveal" id="news18">
+        <div class="entry-meta">
+          <span class="entry-date en">2025.9.19</span>
+          <span class="entry-tag en">Exhibition</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">作品展示「東海道五拾六次目」</h2>
+          <figure class="entry-img"><img src="illust/34_tokaido.webp" alt="東海道イラスト"></figure>
+          <p class="entry-text">
+            展示会に作品を展示させていただきます！<br>
+            歴史や場所に思いを馳せながら様々な作品をお楽しみください。<br><br>
+            『東海道五拾六次目』<br>
+            ～広重が描かなかった宿場町～<br><br>
+            展示会場:東海道由比宿交流館<br>
+            期間:9/19～10/21(月曜休館)
+          </p>
+        </div>
+      </article>
 
-<div class="leftrightbox">
-<!--NEWS-->
-<!--ここから編集-->
-<a name="news20"></a>
-<div class="boxleft">
-  <div class="date-box">
-    <span class="date">2026/5/23</span>
-  </div>
-  <h3>出展情報:デザインフェスタ63</h3>
-  <br>
-    <img class="square" src="image/designfes63.webp" alt="デザフェス63 ぽちゃもん">
-    <br><br><br>
-  <p>
-    このたびデザフェスにて新ブランド「ぽちゃもん」が初出展となります！<br>
-    TikTokでアニメーション展開中のぽちゃもんグッズを会場でぜひお楽しみください。<br>
-    ミニゲームも遊べますので、ご来場お待ちしています。<br><br>
-    日時:5/23(土)24(日)<br>
-    場所:東京ビッグサイト西1階【F-123】
-  </p>
-  <a href="https://www.tiktok.com/@pochamon_jp" target="_blank" class="cp_textlink07"><h3>TikTok</h3></a>
-</div>
+      <article class="news-entry reveal" id="news17">
+        <div class="entry-meta">
+          <span class="entry-date en">2025.8.31</span>
+          <span class="entry-tag en">Exhibition</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">出展情報：COMITIA153</h2>
+          <figure class="entry-img"><img src="image/COMITIA153.webp" alt="COMITIA153"></figure>
+          <p class="entry-text">
+            COMITIA153に出展します！<br>
+            新鮮な「すしだるま」グッズを取り揃えてお待ちしております。<br>
+            ぜひお気軽に遊びにきてください。<br><br>
+            日時:9/7(日) 11:00～16:00<br>
+            場所:東京ビッグサイト【東6 O09b】
+          </p>
+        </div>
+      </article>
 
-<a name="news"></a>
-<div class="boxleft">
-  <div class="date-box">
-    <span class="date">2025/11/16</span>
-  </div>
-  <h3>出展情報:FANTASIA2025</h3>
-  <br>
-    <img class="square" src="image/FANTASIA2025.webp" alt="FANTASIA2025">
-    <br><br><br>
-  <p>
-    FANTASIA2025に出展させていただきます！<br>
-    引き続き旬の「すしだるま」グッズをお楽しみください。<br>
-    ご来場お待ちしております。<br><br>
-    日時:11/23(日)11:00～17:00<br>
-    場所:科学技術館(最寄り九段下駅または竹橋駅)
-  </p>
-</div>
+      <article class="news-entry reveal" id="news16">
+        <div class="entry-meta">
+          <span class="entry-date en">2024.12.23</span>
+          <span class="entry-tag en">New Work</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">『White End』新作案内</h2>
+          <figure class="entry-img"><img src="illust/33_whiteend.webp" alt="White End"></figure>
+          <p class="entry-text">
+            「冬のかけら」展示作品のオークションを実施します！<br><br>
+            『White End』<br>
+            12/25(Wed)22:00<br>
+            0.1ETH～(24h Auction)<br><br>
+            このまま白く消えていくと思っていた<br>
+            目覚めた想いが、世界を染めていく<br><br>
+            ★落札者にはキャンバスアートをプレゼント<br>
+            (国内発送に限ります)
+          </p>
+          <div class="entry-links">
+            <a href="https://foundation.app/mint/eth/0x7E4F18eA83E6d5fdF891ab4C7475606af6a880be/5" target="_blank" rel="noopener noreferrer">オークションページ</a>
+            <a href="https://x.com/jojima_george/status/1870952454780842092" target="_blank" rel="noopener noreferrer">X告知ポスト</a>
+          </div>
+        </div>
+      </article>
 
-<a name="news19"></a>
-<div class="boxleft">
-  <div class="date-box">
-    <span class="date">2025/11/8</span>
-  </div>
-  <h3>出展情報:デザインフェスタ62</h3>
-  <br>
-    <img class="square" src="image/designfes62.webp" alt="デザフェス62">
-    <br><br><br>
-  <p>
-    このたびデザフェスに初参加させていただきます！<br>
-    「すしだるま」グッズの新ネタもご用意してお待ちしております。<br>
-    ぜひご来店くださいませ。<br><br>
-    日時:11/15(土)16(日) 10:00～18:00<br>
-    場所:東京ビッグサイト西館1階【F-245】
-  </p>
-</div>
+      <article class="news-entry reveal" id="news15">
+        <div class="entry-meta">
+          <span class="entry-date en">2024.11.12</span>
+          <span class="entry-tag en">Client Work</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">Sunrise公式キャラクターデザイン発表</h2>
+          <figure class="entry-img"><img src="image/haru.webp" alt="HARU"></figure>
+          <p class="entry-text">
+            世界30万人以上が参加する次世代ブロックチェーンのリーディングプレイヤー「Sunrise」の公式マスコットキャラクター「HARU」のデザインを手がけました。
+            テストネットでは、着せ替えコンテンツやゲーム要素も盛り込まれています。
+            ブロックチェーンに興味のあるかたはぜひ触れてみてください！
+            (画像はプレスリリースより引用)
+          </p>
+          <div class="entry-links">
+            <a href="https://prtimes.jp/main/html/rd/p/000000010.000146736.html" target="_blank" rel="noopener noreferrer">プレスリリース</a>
+            <a href="https://testnet.app.sunriselayer.io/v2" target="_blank" rel="noopener noreferrer">テストネットv2</a>
+          </div>
+        </div>
+      </article>
 
-<a name="news18"></a>
-<div class="boxleft">
-  <div class="date-box">
-    <span class="date">2025/9/19</span>
-  </div>
-  <h3>作品展示「東海道五拾六次目」</h3>
-  <br>
-    <img class="square" src="illust/34_tokaido.webp" alt="東海道イラスト">
-    <br><br><br>
-  <p>
-    展示会に作品を展示させていただきます！<br>
-    歴史や場所に思いを馳せながら様々な作品をお楽しみください。<br><br>
-    『東海道五拾六次目』<br>
-    ～広重が描かなかった宿場町～<br><br>
-    展示会場:東海道由比宿交流館<br>
-    期間:9/19～10/21(月曜休館)
-  </p>
-</div>
+      <article class="news-entry reveal" id="news14">
+        <div class="entry-meta">
+          <span class="entry-date en">2024.10.11</span>
+          <span class="entry-tag en">Exhibition</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">展示会「SEA」作品展示</h2>
+          <p class="entry-text">
+            アナログ作品の展示会に作品を展示します！<br><br>
+            熱海市 『Article - cafe&amp;gallery』 にて開催するアートカフェイベント<br>
+            『 SEA - Sweet Exciting Art 』<br>
+            2024年 10月 12日(土)〜13日(日)<br>
+            12(土) 10:00 〜 18:00<br>
+            13(日) 10:00 〜 17:00<br>
+            （公式Xより情報引用）
+          </p>
+          <div class="entry-links">
+            <a href="https://x.com/SEA_Art_FES" target="_blank" rel="noopener noreferrer">SEA公式アカウント(X)</a>
+          </div>
+        </div>
+      </article>
 
-<a name="news17"></a>
-<div class="boxleft">
-  <div class="date-box">
-    <span class="date">2025/8/31</span>
-  </div>
-  <h3>出展情報:COMITIA153</h3>
-  <br>
-    <img class="square" src="image/COMITIA153.webp" alt="COMITIA153">
-    <br><br><br>
-  <p>
-    COMITIA153に出展します！<br>
-    新鮮な「すしだるま」グッズを取り揃えてお待ちしております。<br>
-    ぜひお気軽に遊びにきてください。<br><br>
-    日時:9/7(日) 11:00～16:00<br>
-    場所:東京ビッグサイト【東6 O09b】
-  </p>
-</div>
+      <article class="news-entry reveal" id="news13">
+        <div class="entry-meta">
+          <span class="entry-date en">2024.8.1</span>
+          <span class="entry-tag en">New Work</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">『プールサイドの秘密』新作案内</h2>
+          <figure class="entry-img"><img src="illust/32_pool.webp" alt="プールサイドの秘密"></figure>
+          <p class="entry-text">
+            夏のかけら展示作品のオークションを実施します！<br><br>
+            『プールサイドの秘密』<br>
+            8/3(Sat)22:00<br>
+            0.1ETH～(24h Auction)<br><br>
+            夏祭り、誰もいないプールで待ち合わせ<br>
+            二人だけの小さな花を水面に咲かせよう<br><br>
+            ★bid特典イラストあり<br>
+            ★落札者にはキャンバスアートをプレゼント<br>
+            (国内発送に限ります)
+          </p>
+          <div class="entry-links">
+            <a href="https://foundation.app/mint/eth/0x7E4F18eA83E6d5fdF891ab4C7475606af6a880be/4" target="_blank" rel="noopener noreferrer">オークションページ</a>
+            <a href="https://x.com/JojimaGeorgeNFT/status/1818406214138552425" target="_blank" rel="noopener noreferrer">告知詳細(X)</a>
+          </div>
+        </div>
+      </article>
 
-<a name="news16"></a>
-<div class="boxleft">
-  <div class="date-box">
-    <span class="date">2024/12/23</span>
-  </div>
-  <h3>『White End』新作案内</h3>
-  <br>
-  <img src="illust/33_whiteend.webp" class="square">
-  <br><br>
-  <p>
-    「冬のかけら」展示作品のオークションを実施します！<br><br>
-    『White End』<br>
-    12/25(Wed)22:00<br>
-    0.1ETH～(24h Auction)<br><br>
-    このまま白く消えていくと思っていた<br>
-    目覚めた想いが、世界を染めていく<br><br>
-    ★落札者にはキャンバスアートをプレゼント<br>
-    (国内発送に限ります)
-  </p>
-  <br>
-  <a href="https://foundation.app/mint/eth/0x7E4F18eA83E6d5fdF891ab4C7475606af6a880be/5" target="_blank" class="cp_textlink07">
-    <h3>オークションページ</h3>
-  </a>
-  <br><br>
-  <a href="https://x.com/jojima_george/status/1870952454780842092" target="_blank" class="cp_textlink07">
-    <h3>X告知ポスト</h3>
-  </a>
-</div>
+      <article class="news-entry reveal" id="news12">
+        <div class="entry-meta">
+          <span class="entry-date en">2024.6.26</span>
+          <span class="entry-tag en">New Work</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">ギンアニ フィナーレ作品発表</h2>
+          <figure class="entry-img"><img src="illust/31_humming.webp" alt="ハミングバード"></figure>
+          <p class="entry-text">
+            ギンピカアニバーサリーが遂にフィナーレ！<br>
+            記念作品のオークションを実施いたします。<br><br>
+            『ハミングバード』<br>
+            6/28(Fri)22:00<br>
+            0.09ETH～(24h Auction)<br><br>
+            すれ違う足跡 やがて消えていくけれど<br>
+            いつか撒いた種 虹色の花が咲いた<br>
+            ここにいる貴方へ永遠の花束を贈ろう<br><br>
+            ※bid特典イラストあり
+          </p>
+          <div class="entry-links">
+            <a href="https://foundation.app/mint/eth/0x7E4F18eA83E6d5fdF891ab4C7475606af6a880be/3" target="_blank" rel="noopener noreferrer">オークションページ</a>
+            <a href="https://x.com/JojimaGeorgeNFT/status/1805722637819154591" target="_blank" rel="noopener noreferrer">告知詳細(X)</a>
+          </div>
+        </div>
+      </article>
 
+      <article class="news-entry reveal" id="news11">
+        <div class="entry-meta">
+          <span class="entry-date en">2024.6.7</span>
+          <span class="entry-tag en">Event</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">全４弾！ギンピカアニバーサリー開始</h2>
+          <figure class="entry-img"><img src="illust/29_Anniversary.webp" alt="ギンピカアニバーサリー"></figure>
+          <p class="entry-text">
+            NFT活動2周年記念！ギンピカアニバーサリーを開幕します！<br>
+            Xのフォロワー様5,000名突破記念と、誕生日も添えて。<br><br>
+            期間中は全４種の作品が登場します。第一弾は全員集合イラスト！これまでのキャラと企画を一枚に詰め込みました。感謝の気持ちを込めてお求めやすい価格に設定しました。ぜひお楽しみください。<br><br>
+            ミント期間<br>
+            6/7(Fri)22:00～月末<br><br>
+            価格<br>
+            0.005ETH(ETH/Polygon)
+          </p>
+          <div class="entry-links">
+            <a href="https://jojima-george.com/ginpika2nd/" target="_blank" rel="noopener noreferrer">キャンペーンページ</a>
+            <a href="https://x.com/JojimaGeorgeNFT/status/1797961498049827008" target="_blank" rel="noopener noreferrer">告知詳細(X)</a>
+          </div>
+        </div>
+      </article>
 
-<a name="news15"></a>
-<div class="boxleft">
-  <div class="date-box">
-    <span class="date">2024/11/12</span>
-  </div>
-  <h3>Sunrise公式キャラクターデザイン発表</h3>
-  <br>
-  <img src="image/haru.webp" class="square">
-  <br><br>
-  <p>
-    世界30万人以上が参加する次世代ブロックチェーンのリーディングプレイヤー
-	「Sunrise」の公式マスコットキャラクター「HARU」のデザインを手がけました。
-	テストネットでは、着せ替えコンテンツやゲーム要素も盛り込まれています。
-	ブロックチェーンに興味のあるかたはぜひ触れてみてください！
-	(画像はプレスリリースより引用)
-  </p>
-  <br>
-  <a href="https://prtimes.jp/main/html/rd/p/000000010.000146736.html" target="_blank" class="cp_textlink07">
-    <h3>プレスリリース</h3>
-  </a>
-  <br><br>
-  <a href="https://testnet.app.sunriselayer.io/v2" target="_blank" class="cp_textlink07">
-    <h3>テストネットv2</h3>
-  </a>
-</div>
+      <article class="news-entry reveal" id="news10">
+        <div class="entry-meta">
+          <span class="entry-date en">2024.1.16</span>
+          <span class="entry-tag en">New Work</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">『橙の泪』新作案内</h2>
+          <figure class="entry-img"><img src="illust/27_tears.webp" alt="橙の泪"></figure>
+          <p class="entry-text">
+            新作オークションを実施します。<br><br>
+            『橙の泪』<br>
+            1/19(Fri)22:00<br>
+            0.1ETH～(24h Auction)<br><br>
+            いつか流したあの泪が<br>
+            橙の雨で降りてきて<br>
+            すべてを温めてくれる日<br><br>
+            bid特典イラストあり<br>
+            落札者にキャンバスアートプレゼント
+          </p>
+          <div class="entry-links">
+            <a href="https://foundation.app/@JojimaGeorgeNFT/nfd-3a28/2" target="_blank" rel="noopener noreferrer">オークションページ</a>
+            <a href="https://twitter.com/JojimaGeorgeNFT/status/1747015807820079280" target="_blank" rel="noopener noreferrer">告知詳細(X)</a>
+          </div>
+        </div>
+      </article>
 
-<a name="news14"></a>
-<div class="boxleft">
-	<div class="date-box">
-	<span class="date">2024/10/11</span>
-	</div>
+      <article class="news-entry reveal" id="news9">
+        <div class="entry-meta">
+          <span class="entry-date en">2023.12.28</span>
+          <span class="entry-tag en">Event</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">NFT紅白2023 代表戦開幕！</h2>
+          <figure class="entry-img"><img src="illust/28_babaman.webp" alt="NFT紅白2023 代表戦"></figure>
+          <p class="entry-text">
+            今年も350名の参加者が集ったNFT紅白。<br>
+            ついにフィナーレの代表戦が12/28 22時より開幕します！<br>
+            紅組・白組各5名の代表メンバー作品が最後の戦いを繰り広げます。<br>
+            また主催者として城島も紫組作品を出品します。<br>
+            年末の大勝負をお見逃しなく！
+          </p>
+          <div class="entry-links">
+            <a href="https://foundation.app/@JojimaGeorgeNFT/nfd-3a28/1" target="_blank" rel="noopener noreferrer">オークションページ</a>
+            <a href="https://jojima-george.com/kouhaku2023/leader.html" target="_blank" rel="noopener noreferrer">代表戦一覧</a>
+          </div>
+        </div>
+      </article>
 
-<h3>展示会「SEA」作品展示</h3>
-<br>
-  <p>
-アナログ作品の展示会に作品を展示します！<br><br>
-熱海市 『Article - cafe&gallery』 にて開催するアートカフェイベント<br>
-『 SEA - Sweet Exciting Art 』<br>
-2024年 10月 12日(土)〜13日(日)<br>
-12(土) 10:00 〜 18:00<br>
-13(日) 10:00 〜 17:00<br>
-（公式Xより情報引用）
-  </p><br>
-	
-<a href="https://x.com/SEA_Art_FES" target="_blank" class="cp_textlink07"><h3>SEA公式アカウント(X)</h3></a>
+      <article class="news-entry reveal" id="news8">
+        <div class="entry-meta">
+          <span class="entry-date en">2023.12.15</span>
+          <span class="entry-tag en">Event</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">冬のフリーミント祭りに参加！</h2>
+          <figure class="entry-img"><img src="illust/27_w3s_santa.webp" alt="ウェスサンタ"></figure>
+          <p class="entry-text">
+            NFT配布サービス「mooon」主催のフリーミント祭りに参加します！<br>
+            今回はサンタ姿のウェスちゃんをフリーミントします！<br><br>
+            開始日時：12/15(金)21時～<br>
+            配布数：50点<br>
+            有料級に可愛く仕上がった作品のミントをお見逃しなく。<br>
+            数に限りがありますのでお早めにどうぞ！<br>
+            以下ミントページは開始時刻より接続可能です。
+          </p>
+          <div class="entry-links">
+            <a href="https://www.mooon.app/ja/posts/MTY1bapADvvcmKJouO3r" target="_blank" rel="noopener noreferrer">ミントページ</a>
+            <a href="https://www.mooon.app/en" target="_blank" rel="noopener noreferrer">mooon公式</a>
+          </div>
+        </div>
+      </article>
 
-</div>
+      <article class="news-entry reveal" id="news7">
+        <div class="entry-meta">
+          <span class="entry-date en">2023.11.23</span>
+          <span class="entry-tag en">Event</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">NFT紅白2023開催！</h2>
+          <figure class="entry-img"><img src="image/NFTkouhaku2023.png" alt="NFT紅白2023"></figure>
+          <p class="entry-text">
+            昨年も大好評だった年末イベントが今年も開催！<br>
+            NFT紅白2023のエントリー受付を開始いたします。<br>
+            クリエイターもコレクターもお気軽に参加できるNFT企画です。<br>
+            SNSのトレンド入りも果たしたイベントで、年末の一体感をぜひ味わいませんか？<br>
+            奮ってエントリーをお待ちしております。<br>
+            エントリー締切：12/18
+          </p>
+          <div class="entry-links">
+            <a href="https://jojima-george.com/kouhaku2023/" target="_blank" rel="noopener noreferrer">公式HP</a>
+            <a href="https://x.com/JojimaGeorgeNFT/status/1727679368057819435" target="_blank" rel="noopener noreferrer">イベント概要</a>
+          </div>
+        </div>
+      </article>
 
-<a name="news13"></a>
-<div class="boxleft">
-	<div class="date-box">
-	<span class="date">2024/8/1</span>
-	</div>
+      <article class="news-entry reveal" id="news6">
+        <div class="entry-meta">
+          <span class="entry-date en">2023.8.8</span>
+          <span class="entry-tag en">Game</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">「ばーばの日」記念ゲーム発表♥</h2>
+          <figure class="entry-img"><img src="tokimekibb/images/baba2.png" alt="ときめきサマー"></figure>
+          <p class="entry-text">
+            8/8は「ばーばの日」
+            記念のブラウザゲームをこしらえました。<br>
+            その名も「時女守愛のときめきサマー」<br>
+            最後までラヴ・タンクを満たすと先着でドキドキNFTをゲット！<br>
+            時間帯で登場するばーばが変わり、好感度によってもばーばの態度がヴァージョンアップします。<br>
+            ひと夏の忘れられないアヴァンチュールをお楽しみに…
+          </p>
+          <div class="entry-links">
+            <a href="https://jojima-george.com/tokimekibb/" target="_blank" rel="noopener noreferrer">ゲームを遊ぶ</a>
+          </div>
+        </div>
+      </article>
 
-<h3>『プールサイドの秘密』新作案内</h3>
-<br>
-  <img class="square" src="illust/32_pool.webp" alt="プールサイドの秘密">
-  <br><br><br>
-  <p>
-夏のかけら展示作品のオークションを実施します！<br>
-<br>
-『プールサイドの秘密』<br>
-8/3(Sat)22:00<br>
-0.1ETH～(24h Auction)<br>
-<br>
-夏祭り、誰もいないプールで待ち合わせ<br>
-二人だけの小さな花を水面に咲かせよう<br>
-<br>
-★bid特典イラストあり<br>
-★落札者にはキャンバスアートをプレゼント<br>
-(国内発送に限ります)<br>
-  </p><br>
-	
-　<a href="https://foundation.app/mint/eth/0x7E4F18eA83E6d5fdF891ab4C7475606af6a880be/4" target="_blank" class="cp_textlink07"><h3>オークションページ</h3></a><br><br>
-<a href="https://x.com/JojimaGeorgeNFT/status/1818406214138552425" target="_blank" class="cp_textlink07"><h3>告知詳細(X)</h3></a>
+      <article class="news-entry reveal" id="news5">
+        <div class="entry-meta">
+          <span class="entry-date en">2023.7.7</span>
+          <span class="entry-tag en">Community</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">Discord専用チャンネルオープン！</h2>
+          <figure class="entry-img"><img src="illust/1_W3S_N.webp" alt="ウェスちゃん"></figure>
+          <p class="entry-text">
+            NFTコミュニティW3S(ウェス)のDiscord内に、城島のコミュニティチャンネルをオープンしました！<br>
+            こちらではTwitterの発信よりも細かい情報などをお伝えしたり、交流を深めるチャンネルとなっています。<br>
+            W3SのTwitterプロフィールより、Discordチャンネルにリンクできます。<br>
+            ぜひ遊びにきてみなさんと交流を深めていきましょう！
+          </p>
+          <div class="entry-links">
+            <a href="https://twitter.com/W3S_byCNF" target="_blank" rel="noopener noreferrer">W3S Twiter</a>
+          </div>
+        </div>
+      </article>
 
-</div>
+      <article class="news-entry reveal" id="news4">
+        <div class="entry-meta">
+          <span class="entry-date en">2023.6.23</span>
+          <span class="entry-tag en">New Work</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">新作NFTのご案内</h2>
+          <figure class="entry-img"><img src="illust/2_natsunokakera.webp" alt="潮騒のクリームソーダ"></figure>
+          <p class="entry-text">
+            新作のNFTをリストします。<br><br>
+            『潮騒のクリームソーダ』<br><br>
+            7/7(Fri)21:00~<br>
+            0.1ETH(fixed price)<br><br>
+            初夏を感じる爽やかな光。<br>
+            空と海とクリームソーダが、あなたを青く染める。<br>
+            目を閉じれば風と波の音。潮の香りがその一瞬を包み込みます。<br><br>
+            7月8日,9日に表参道・穏田ギャラリーで行われる展示会「夏のかけら」出展作品です。<br>
+            現地ではキャンバスアートの展示も行われます。
+          </p>
+          <div class="entry-links">
+            <a href="https://opensea.io/assets/ethereum/0x495f947276749ce646f68ac8c248420045cb7b5e/90874479104274141344385426509829030696472688961509959558866162323061305507841" target="_blank" rel="noopener noreferrer">OpenSea</a>
+          </div>
+        </div>
+      </article>
 
-<a name="news12"></a>
-<div class="boxleft">
-	<div class="date-box">
-	<span class="date">2024/6/26</span>
-	</div>
+      <article class="news-entry reveal" id="news3">
+        <div class="entry-meta">
+          <span class="entry-date en">2023.6.29</span>
+          <span class="entry-tag en">Event</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">W3SコラボNFT フリーミントのお知らせ</h2>
+          <figure class="entry-img"><img src="illust/1_W3S_N.webp" alt="ウェスちゃん"></figure>
+          <p class="entry-text">
+            NFTコミュニティ「CNF」が、Nコレ大阪に出展します！
+            姉妹コミュニティW3S(ウェス)公式キャラクター「ウェスちゃん」のファンアートNFTを、イベント期間限定で無料配布します。<br>
+            ウェスちゃんは、城島がキャラクターデザインをおこなったキャラクターです。
+            合計4名のクリエイターによるウェスちゃんNFTをゲットできますので、ぜひ公式Twitterで条件をご確認ください。
+          </p>
+          <div class="entry-links">
+            <a href="https://twitter.com/W3S_byCNF/status/1674164204553510912" target="_blank" rel="noopener noreferrer">公式ツイート</a>
+          </div>
+        </div>
+      </article>
 
-<h3>ギンアニ フィナーレ作品発表</h3>
-<br>
-  <img class="square" src="illust/31_humming.webp" alt="ハミングバード">
-  <br><br><br>
-  <p>
-ギンピカアニバーサリーが遂にフィナーレ！<br>
-記念作品のオークションを実施いたします。<br>
-<br>
-『ハミングバード』<br>
-6/28(Fri)22:00<br>
-0.09ETH～(24h Auction)<br><br>
-すれ違う足跡 やがて消えていくけれど<br>
-いつか撒いた種 虹色の花が咲いた<br>
-ここにいる貴方へ永遠の花束を贈ろう<br><br>
-※bid特典イラストあり<br>
-  </p><br>
-	
-　<a href="https://foundation.app/mint/eth/0x7E4F18eA83E6d5fdF891ab4C7475606af6a880be/3" target="_blank" class="cp_textlink07"><h3>オークションページ</h3></a><br><br>
-<a href="https://x.com/JojimaGeorgeNFT/status/1805722637819154591" target="_blank" class="cp_textlink07"><h3>告知詳細(X)</h3></a>
+      <article class="news-entry reveal" id="news2">
+        <div class="entry-meta">
+          <span class="entry-date en">2023.6.23</span>
+          <span class="entry-tag en">New Work</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">新作NFTのご案内</h2>
+          <figure class="entry-img"><img src="illust/3_fakefur.webp" alt="フェイクファー"></figure>
+          <p class="entry-text">
+            新作のNFTをリストします。<br><br>
+            『フェイクファー』<br>
+            0.1ETH(fixed price)<br><br>
+            NFT×音楽を題材としたイベント「NON」の展示用作品として制作しました。<br>
+            音楽が題材なので、影響を受けた大事なもので何か描きたいと思ったことがきっかけの作品です。<br>
+            あとから振り返ったときに気付かされる、何気ない日々の大切さを表現しました。<br>
+            ぜひ作品を見ていただけると嬉しいです。
+          </p>
+          <div class="entry-links">
+            <a href="https://opensea.io/assets/ethereum/0x495f947276749ce646f68ac8c248420045cb7b5e/90874479104274141344385426509829030696472688961509959558866162321961793880065" target="_blank" rel="noopener noreferrer">OpenSea</a>
+          </div>
+        </div>
+      </article>
 
-</div>
+      <article class="news-entry reveal" id="news1">
+        <div class="entry-meta">
+          <span class="entry-date en">2023.3.10-4.2</span>
+          <span class="entry-tag en">Event</span>
+        </div>
+        <div class="entry-body">
+          <h2 class="entry-title">すしだるまグランプリの開催</h2>
+          <figure class="entry-img"><img src="image/grandprix.png" alt="すしだるまグランプリ"></figure>
+          <p class="entry-text">
+            すしだるま１周年企画！ファンアートを投稿して、記念NFTをゲットしよう！<br>
+            入賞者にはオリジナルグッズをプレゼント
+          </p>
+          <div class="entry-links">
+            <a href="https://sushidaruma-grandprix.studio.site/" target="_blank" rel="noopener noreferrer">特設サイトへ移動</a>
+          </div>
+        </div>
+      </article>
 
-<a name="news11"></a>
-<div class="boxleft">
-	<div class="date-box">
-	<span class="date">2024/6/7</span>
-	</div>
-
-<h3>全４弾！ギンピカアニバーサリー開始</h3>
-<br>
-  <img class="square" src="illust/29_Anniversary.webp" alt="ギンピカアニバーサリー">
-  <br><br><br>
-  <p>
-NFT活動2周年記念！ギンピカアニバーサリーを開幕します！<br>
-Xのフォロワー様5,000名突破記念と、誕生日も添えて。<br>
-<br>
-期間中は全４種の作品が登場します。第一弾は全員集合イラスト！これまでのキャラと企画を一枚に詰め込みました。感謝の気持ちを込めてお求めやすい価格に設定しました。ぜひお楽しみください。<br><br>
-ミント期間<br>
-6/7(Fri)22:00～月末<br><br>
-価格<br>
-0.005ETH(ETH/Polygon)<br><br>
-  </p><br>
-	
-　<a href="https://jojima-george.com/ginpika2nd/" target="_blank" class="cp_textlink07"><h3>キャンペーンページ</h3></a><br><br>
-<a href="https://x.com/JojimaGeorgeNFT/status/1797961498049827008" target="_blank" class="cp_textlink07"><h3>告知詳細(X)</h3></a>
-
-</div>			
-
-<a name="news10"></a>
-<div class="boxleft">
-	<div class="date-box">
-	<span class="date">2024/1/16</span>
-	</div>
-
-<h3>『橙の泪』新作案内</h3>
-<br>
-  <img class="square" src="illust/27_tears.webp" alt="橙の泪">
-  <br><br><br>
-  <p>
-新作オークションを実施します。<br>
-<br>
-『橙の泪』<br>
-1/19(Fri)22:00<br>
-0.1ETH～(24h Auction)<br><br>
-	  
-いつか流したあの泪が<br>
-橙の雨で降りてきて<br>
-すべてを温めてくれる日<br><br>
-bid特典イラストあり<br>
-落札者にキャンバスアートプレゼント<br>
-  </p><br>
-	
-　<a href="https://foundation.app/@JojimaGeorgeNFT/nfd-3a28/2" target="_blank" class="cp_textlink07"><h3>オークションページ</h3></a><br><br>
-<a href="https://twitter.com/JojimaGeorgeNFT/status/1747015807820079280" target="_blank" class="cp_textlink07"><h3>告知詳細(X)</h3></a>
-
-  
-</div>			
-
-<a name="news9"></a>
-<div class="boxleft">
-	<div class="date-box">
-	<span class="date">2023/12/28</span>
-	</div>
-
-<h3>NFT紅白2023 代表戦開幕！</h3>
-<br>
-  <img class="square" src="illust/28_babaman.webp" alt="purpledayz">
-  <br><br><br>
-  <p>
-今年も350名の参加者が集ったNFT紅白。<br>
-ついにフィナーレの代表戦が12/28 22時より開幕します！<br>
-紅組・白組各5名の代表メンバー作品が最後の戦いを繰り広げます。<br>
-また主催者として城島も紫組作品を出品します。<br>
-年末の大勝負をお見逃しなく！<br>
-  </p><br>
-　<a href="https://foundation.app/@JojimaGeorgeNFT/nfd-3a28/1" target="_blank" class="cp_textlink07"><h3>オークションページ</h3></a>
- <br><br>
-  <a href="https://jojima-george.com/kouhaku2023/leader.html" target="_blank" class="cp_textlink07"><h3>代表戦一覧</h3></a>
-  
-</div>		
-
-<a name="news8"></a>
-<div class="boxleft">
-	<div class="date-box">
-	<span class="date">2023/12/15</span>
-	</div>
-
-<h3>冬のフリーミント祭りに参加！</h3>
-<br>
-  <img class="square" src="illust/27_w3s_santa.webp" alt="ウェスサンタ">
-  <br><br><br>
-  <p>
-NFT配布サービス「mooon」主催のフリーミント祭りに参加します！<br>
-今回はサンタ姿のウェスちゃんをフリーミントします！<br><br>
-開始日時：12/15(金)21時～<br>
-配布数：50点<br>
-有料級に可愛く仕上がった作品のミントをお見逃しなく。<br>
-数に限りがありますのでお早めにどうぞ！<br>
-以下ミントページは開始時刻より接続可能です。<br>
-  </p><br>
-　<a href="https://www.mooon.app/ja/posts/MTY1bapADvvcmKJouO3r" target="_blank" class="cp_textlink07"><h3>ミントページ</h3></a>
- <br><br>
-  <a href="https://www.mooon.app/en" target="_blank" class="cp_textlink07"><h3>mooon公式</h3></a>
-  
-</div>		
-
-
-
-<a name="news7"></a>
-   <div class="boxleft">
-		<div class="date-box">
-		<span class="date">2023/11/23</span>
-		</div>
-
-	<h3>NFT紅白2023開催！</h3>
-	<br>
-      <img class="square" src="image/NFTkouhaku2023.png" alt="NFT紅白2023">
-	  <br><br><br>
-      <p>
-昨年も大好評だった年末イベントが今年も開催！<br>
-NFT紅白2023のエントリー受付を開始いたします。<br>
-クリエイターもコレクターもお気軽に参加できるNFT企画です。<br>
-SNSのトレンド入りも果たしたイベントで、年末の一体感をぜひ味わいませんか？<br>
-奮ってエントリーをお待ちしております。<br>
-エントリー締切：12/18<br>
-	  </p><br>
-	　<a href="https://jojima-george.com/kouhaku2023/" target="_blank" class="cp_textlink07"><h3>公式HP</h3></a>
-	 <br><br>
-	  <a href="https://x.com/JojimaGeorgeNFT/status/1727679368057819435" target="_blank" class="cp_textlink07"><h3>イベント概要</h3></a>
-	  
-    </div>		
-
-<a name="news6"></a>
-   <div class="boxleft">
-		<div class="date-box">
-		<span class="date">2023/8/8</span>
-		</div>
-
-	<h3>「ばーばの日」記念ゲーム発表♥</h3>
-	<br>
-      <img class="square" src="tokimekibb/images/baba2.png" alt="ときめきサマー">
-	  <br><br><br>
-      <p>
-8/8は「ばーばの日」
-記念のブラウザゲームをこしらえました。<br>
-その名も「時女守愛のときめきサマー」<br>
-最後までラヴ・タンクを満たすと先着でドキドキNFTをゲット！<br>
-時間帯で登場するばーばが変わり、好感度によってもばーばの態度がヴァージョンアップします。<br>
-ひと夏の忘れられないアヴァンチュールをお楽しみに…<br>
-	  </p><br>
-	　<a href="https://jojima-george.com/tokimekibb/" target="_blank" class="cp_textlink07"><h3>ゲームを遊ぶ</h3></a>
-	  
-    </div>	
-
-
-<a name="news5"></a>
-    <div class="boxleft">
-		<div class="date-box">
-		<span class="date">2023/7/7</span>
-		</div>
-
-	<h3>Discord専用チャンネルオープン！</h3>
-	<br>
-      <img class="square" src="illust/1_W3S_N.webp" alt="ウェスちゃん">
-	  <br><br><br>
-      <p>
-		NFTコミュニティW3S(ウェス)のDiscord内に、城島のコミュニティチャンネルをオープンしました！<br>
-		こちらではTwitterの発信よりも細かい情報などをお伝えしたり、交流を深めるチャンネルとなっています。<br>
-		W3SのTwitterプロフィールより、Discordチャンネルにリンクできます。<br>
-		ぜひ遊びにきてみなさんと交流を深めていきましょう！
-	  </p><br>
-	　<a href="https://twitter.com/W3S_byCNF" target="_blank" class="cp_textlink07"><h3>W3S Twiter</h3></a>
-	  
-    </div>	
-
-
-<a name="news4"></a>
-	<div class="boxright">
-		<div class="date-box">
-		<span class="date">2023/6/23</span>
-		</div>
-	<h3>新作NFTのご案内</h3>
-	<br>
-      <img class="square" src="illust/2_natsunokakera.webp" alt="潮騒のクリームソーダ">
-	  <br><br><br>
-      <p>
-		新作のNFTをリストします。<br><br>
-
-		『潮騒のクリームソーダ』<br><br>
-		
-		7/7(Fri)21:00~<br>
-		0.1ETH(fixed price)<br><br>
-		
-		初夏を感じる爽やかな光。<br>
-		空と海とクリームソーダが、あなたを青く染める。<br>
-		目を閉じれば風と波の音。潮の香りがその一瞬を包み込みます。<br><br>
-		
-		7月8日,9日に表参道・穏田ギャラリーで行われる展示会「夏のかけら」出展作品です。<br>
-		現地ではキャンバスアートの展示も行われます。
-		</p><br>
-	　<a href="https://opensea.io/assets/ethereum/0x495f947276749ce646f68ac8c248420045cb7b5e/90874479104274141344385426509829030696472688961509959558866162323061305507841" target="_blank" class="cp_textlink07"><h3>OpenSea</h3></a>	
-</div>
-
-
- <a name="news3"></a>	  
-
-    <div class="boxleft">
-		<div class="date-box">
-		<span class="date">2023/6/29</span>
-		</div>
-
-	<h3>W3SコラボNFT フリーミントのお知らせ</h3>
-	<br>
-      <img class="square" src="illust/1_W3S_N.webp" alt="ウェスちゃん">
-	  <br><br><br>
-      <p>
-	  NFTコミュニティ「CNF」が、Nコレ大阪に出展します！
-	  姉妹コミュニティW3S(ウェス)公式キャラクター「ウェスちゃん」のファンアートNFTを、イベント期間限定で無料配布します。<br>
-	　ウェスちゃんは、城島がキャラクターデザインをおこなったキャラクターです。
-	　合計4名のクリエイターによるウェスちゃんNFTをゲットできますので、ぜひ公式Twitterで条件をご確認ください。
-	  </p><br>
-	　<a href="https://twitter.com/W3S_byCNF/status/1674164204553510912" target="_blank" class="cp_textlink07"><h3>公式ツイート</h3></a>
-	  
     </div>
-	
-	 <a name="news2"></a>
-	<div class="boxright">
-		<div class="date-box">
-		<span class="date">2023/6/23</span>
-		</div>
-	<h3>新作NFTのご案内</h3>
-	<br>
-      <img class="square" src="illust/3_fakefur.webp" alt="フェイクファー">
-	  <br><br><br>
-      <p>
-		新作のNFTをリストします。<br><br>
 
-		『フェイクファー』<br>
-		0.1ETH(fixed price)<br><br>
-
-		NFT×音楽を題材としたイベント「NON」の展示用作品として制作しました。<br>
-		音楽が題材なので、影響を受けた大事なもので何か描きたいと思ったことがきっかけの作品です。<br>
-		あとから振り返ったときに気付かされる、何気ない日々の大切さを表現しました。<br>
-		ぜひ作品を見ていただけると嬉しいです。
-		</p><br>
-	　<a href="https://opensea.io/assets/ethereum/0x495f947276749ce646f68ac8c248420045cb7b5e/90874479104274141344385426509829030696472688961509959558866162321961793880065" target="_blank" class="cp_textlink07"><h3>OpenSea</h3></a>	
-	  </div>
-
-
-	 <a name="news1"></a> 
-	<div class="boxleft">
-		<div class="date-box">
-		<span class="date">2023/3/10～4/2</span>
-		</div>
-	<h3>すしだるまグランプリの開催</h3>
-	　<br>
-	  <img class="square" src="image/grandprix.png" alt="すしだるまグランプリ">
-	  <br><br>
-	  <p>
-			すしだるま１周年企画！ファンアートを投稿して、記念NFTをゲットしよう！<br>
-			入賞者にはオリジナルグッズをプレゼント</p><br>
-	  <a href="https://sushidaruma-grandprix.studio.site/" target="_blank" class="cp_textlink07"><h3>特設サイトへ移動</h3></a>
+    <div class="back-top reveal">
+      <a href="./">&larr; トップページへ戻る</a>
     </div>
-	<br><br> 
-	 </div>
+  </main>
 
-
-<br><br><br><br><br>
-
-</div>
-
-		
-<ul class="bgimg">
-    <li></li>
-    <li></li>
-    <li></li>
-    <li></li>
-</ul>
-	
-
-<!--タイトル-->
-<div class="left-sidebar"></div>
-<div class="text floating-text" id="flexible-text">
-	<span class="bgextend bgLRextendTrigger"><span class="bgappearTrigger">
-  <div class="line">JOJIMA GEORGE</div></span> </span>
-	<span class="bgextend bgLRextendTrigger"><span class="bgappearTrigger">
-  <div class="line">OFFICIAL WEB</div></span> </span>
-</div>
-
-
-
-<div class="social-icons">
-  <a href="https://twitter.com/JojimaGeorgeNFT" target="_blank" rel="noopener noreferrer">
-    <img src="image/X_logo.png" alt="X">
-  </a>
-  <a href="https://www.instagram.com/jojima_george/" target="_blank" rel="noopener noreferrer">
-    <img src="image/instagram_logo.png" alt="Instagram">
-  </a>
-  <a href="https://opensea.io/Jojima_GeorgeNFT/created" target="_blank" rel="noopener noreferrer">
-    <img src="image/opensea_logo.png" alt="OpenSea">
-  </a>
-</div>
-
-
-
-<footer>
-  <div class="footer-content">
-    <p class="copyright">
-      &copy; Jojima George
-    </p>
+  <div class="social-icons">
+    <a href="https://twitter.com/JojimaGeorgeNFT" target="_blank" rel="noopener noreferrer">
+      <img src="image/X_logo.png" alt="X">
+    </a>
+    <a href="https://www.instagram.com/jojima_george/" target="_blank" rel="noopener noreferrer">
+      <img src="image/instagram_logo.png" alt="Instagram">
+    </a>
+    <a href="https://opensea.io/Jojima_GeorgeNFT/created" target="_blank" rel="noopener noreferrer">
+      <img src="image/opensea_logo.png" alt="OpenSea">
+    </a>
   </div>
-</footer>		
 
-	<script type="text/javascript" src="parts/jojima.js?ver=1.0.0"></script>
-	<script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="  crossorigin="anonymous"></script>
-	<script src="js/luxy.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/simple-parallax-js@5.6.2/dist/simpleParallax.min.js"></script>
-	<script type="text/javascript" src="parts/leftscroll.js?ver=1.0.1"></script>
+  <footer class="footer">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name en">JOJIMA GEORGE</div>
+        <p class="footer-brand-text">
+          イラストレーター / キャラクターデザイナー。<br>
+          人物イラスト、オリジナルキャラクター、NFTアート、Webデザインまで、<br>
+          絵で物語を運ぶ制作をしています。
+        </p>
+      </div>
+      <div>
+        <div class="footer-col-title">Sitemap</div>
+        <ul class="footer-links">
+          <li><a href="./#hero">Top</a></li>
+          <li><a href="./#works">Works</a></li>
+          <li><a href="./#profile">Profile</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="./#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Links</div>
+        <ul class="footer-links">
+          <li><a href="https://jojima-george.com/illustration.html">Portfolio</a></li>
+          <li><a href="https://sushi-daruma.com" target="_blank" rel="noopener noreferrer">すしだるま</a></li>
+          <li><a href="https://note.com/jojima_george/" target="_blank" rel="noopener noreferrer">note</a></li>
+          <li><a href="https://twitter.com/jojima_george" target="_blank" rel="noopener noreferrer">X(twitter)</a></li>
+          <li><a href="https://www.instagram.com/jojima_george/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-copy">&copy; Jojima George</div>
+      <a href="./#contact" class="footer-request">お仕事のご相談はこちら &rarr;</a>
+    </div>
+  </footer>
 
+  <script>
+    // 入場アニメ（design_c1 と同じ IntersectionObserver 方式・控えめ設定）
+    (function () {
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const targets = document.querySelectorAll('.reveal');
+      if (reduceMotion || !('IntersectionObserver' in window)) {
+        targets.forEach(el => el.classList.add('is-visible'));
+        return;
+      }
+      const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('is-visible');
+          obs.unobserve(entry.target);
+        });
+      }, { threshold: 0, rootMargin: '0px 0px -12% 0px' });
+      targets.forEach(el => observer.observe(el));
+
+      // アンカー直リンク時（news.html#newsXX）はページ内の対象より上も即表示
+      if (location.hash) {
+        targets.forEach(el => el.classList.add('is-visible'));
+        // scroll-behavior:smooth はロード中のフラグメントスクロールを
+        // 「画像読み込み前の古い座標」へ滑らせてアンカーをずらすため、
+        // ハッシュ付きロード時は一時的にネイティブへ切替→着地確定後に復帰
+        document.documentElement.style.scrollBehavior = 'auto';
+        window.addEventListener('load', () => {
+          const target = document.getElementById(location.hash.slice(1));
+          if (!target) {
+            document.documentElement.style.scrollBehavior = '';
+            return;
+          }
+          target.scrollIntoView({ block: 'start' });
+          // 遅れて走るスクロール（smooth残党・遅延レイアウト）を最終上書き
+          setTimeout(() => {
+            target.scrollIntoView({ block: 'start' });
+            document.documentElement.style.scrollBehavior = '';
+          }, 300);
+        });
+      }
+    })();
+  </script>
 
 </body>
-
-
 </html>
