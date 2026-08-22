@@ -166,48 +166,57 @@
       transform: scale(1.05);
     }
 
-    /* ぽちゃもんスライド：PCは公式サイトのOG画像（2400×1260・横長）を背景に敷く。
-       SP（≤600px）は横長画像を縦に切ると文字が欠けるので、同じ配色を CSS で組み直し
-       ロゴとキャラを中央に置く（data-sp は空＝JSが背景画像を外す） */
+    /* ぽちゃもんスライド：PC・SP とも公式サイトと同じ青地を CSS で組み、
+       ロゴ＋動くぽちゃもん（アニメWebP）を中央に大きく置く（2026-08-22 本人指定。
+       OG画像は使わず、data-pc / data-sp は空＝JSが背景画像を外す。
+       版ズレシェーダー用の絵だけ data-shader で OG画像を渡す） */
     .slide-pochamon {
+      background-image:
+        radial-gradient(circle at 12% 30%, #0f7fd6 0, #0f7fd6 18%, transparent 34%),
+        radial-gradient(circle at 90% 18%, #5cb9f7 0, #5cb9f7 10%, transparent 26%),
+        radial-gradient(circle at 88% 92%, #b9bd6f 0, #b9bd6f 10%, transparent 24%),
+        radial-gradient(circle at 8% 85%, #1266b8 0, #1266b8 8%, transparent 20%);
       background-color: #1e9bf0;
     }
 
     .pochamon-sp {
-      display: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      position: absolute;
+      inset: 0;
+      padding-top: 84px;    /* 上の固定ナビ（高さ約68px）に ロゴが潜らないように */
+      padding-bottom: 10vh; /* 下の hero-content（左下の名前）と被らないよう少し上寄せ */
+    }
+
+    .pochamon-sp-logo {
+      width: min(30vw, 44vh, 420px);
+      height: auto;
+    }
+
+    .pochamon-sp-char {
+      width: min(34vw, 50vh, 480px);
+      height: auto;
+      /* アニメWebPは上側に透明の余白が多いので、ロゴとの間が空きすぎないよう少し引き上げる */
+      margin-top: calc(min(34vw, 50vh, 480px) * -0.14);
     }
 
     @media (max-width: 600px) {
-      .slide-pochamon {
-        background-image:
-          radial-gradient(circle at 12% 30%, #0f7fd6 0, #0f7fd6 18%, transparent 34%),
-          radial-gradient(circle at 90% 18%, #5cb9f7 0, #5cb9f7 10%, transparent 26%),
-          radial-gradient(circle at 88% 92%, #b9bd6f 0, #b9bd6f 10%, transparent 24%),
-          radial-gradient(circle at 8% 85%, #1266b8 0, #1266b8 8%, transparent 20%);
-        background-color: #1e9bf0;
-      }
-
       .pochamon-sp {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        position: absolute;
-        inset: 0;
-        padding-bottom: 24vh; /* 下の黒グラデ（hero-overlay）と hero-content を避けて上寄せ */
+        gap: 6px;
+        padding-bottom: 26vh; /* 下の黒グラデ（hero-overlay）と hero-content を避けて上寄せ */
       }
 
       .pochamon-sp-logo {
-        width: 64vw;
-        max-width: 300px;
-        height: auto;
+        width: 76vw;
+        max-width: 360px;
       }
 
       .pochamon-sp-char {
-        width: 62vw;
-        max-width: 300px;
-        height: auto;
+        width: 86vw;
+        max-width: 420px;
       }
     }
 
@@ -864,6 +873,18 @@
       .ink-guard-block {
         padding: 18px;
         margin: -18px;
+      }
+
+      /* SP は下敷きを消す（2026-08-22 本人指示）：市松はタップした時だけ出るので邪魔にならず、
+         むしろ下敷きで隠れて見えなくなる方が損。淡ブルーの contact-hero パネルだけは残す */
+      .ink-guard,
+      #profile .ink-guard,
+      #contact .ink-guard {
+        background: transparent;
+      }
+
+      #contact .contact-hero.ink-guard {
+        background: rgba(0, 76, 255, 0.05);
       }
     }
 
@@ -1996,7 +2017,7 @@
         </div>
         <div class="swiper-slide">
           <!-- ぽちゃもん：PC=公式サイトOG画像 / SP=CSS組み（data-sp 空） -->
-          <div class="swiper-slide-inner slide-pochamon" data-pc="image/pochamon_hero.png" data-sp="">
+          <div class="swiper-slide-inner slide-pochamon" data-pc="" data-sp="" data-shader="image/pochamon_hero.png">
             <div class="pochamon-sp" aria-hidden="true">
               <img class="pochamon-sp-logo" src="image/pochamon_logo.svg" alt="">
               <img class="pochamon-sp-char" src="image/pochamon_idle.webp" alt="">
@@ -2951,6 +2972,7 @@
         const inner = slide.querySelector('.swiper-slide-inner');
         if (!inner) return null;
         const spSize = window.matchMedia('(max-width: 600px)').matches;
+        if (inner.dataset.shader) return inner.dataset.shader; // CSS組みのスライドはシェーダー用の絵を別に持つ
         return spSize ? (inner.dataset.sp || inner.dataset.pc) : (inner.dataset.pc || inner.dataset.sp);
       }
 
