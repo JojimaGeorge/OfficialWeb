@@ -1758,11 +1758,11 @@ function getEngine(){
 
 // --- 「ぽちゃもんカード」セクション：画面に近づいたら読み込んで2枚載せる ---
 // スクロールが止まるまで待つ（重い準備を動いている最中に走らせない＝「固まった」に見える正体）
-function afterScrollIdle(ms){
+function afterScrollIdle(ms, maxWait){
   return new Promise(res=>{
-    let t=setTimeout(done,ms);
+    let t=setTimeout(done,ms), cap=maxWait?setTimeout(done,maxWait):0;   // 上限つき＝止まらない人を待ち続けない
     const bump=()=>{ clearTimeout(t); t=setTimeout(done,ms); };
-    function done(){ removeEventListener('scroll',bump); res(); }
+    function done(){ clearTimeout(t); clearTimeout(cap); removeEventListener('scroll',bump); res(); }
     addEventListener('scroll',bump,{passive:true});
   });
 }
@@ -1774,7 +1774,7 @@ else{
   const sio=new IntersectionObserver(async es=>{
     if(!es.some(e=>e.isIntersecting)) return;
     sio.disconnect();
-    await afterScrollIdle(180);   // 指が止まってから
+    await afterScrollIdle(150);   // 指が止まってから
     let E; try{ E=await getEngine(); }catch(err){ console.warn('3Dカードの読み込みに失敗', err); stages.forEach(showFallback); return; }
     if(!E.webglOk()){ stages.forEach(showFallback); return; }
     // 2枚を同時に作らず順番に（1枚ぶんの画像デコードとシェーダー準備が終わってから次へ）。スクロール中の固まりを避ける
@@ -1782,8 +1782,8 @@ else{
       const spec=E.FULLART.find(c=>c.id===stage.dataset.card);
       const m=E.mountCard(stage.querySelector('canvas'),{fill:.88});
       try{ await m.load(spec); }catch(err){ console.warn(err); m.dispose(); showFallback(stage); }
-      await new Promise(r=>setTimeout(r, 350));
-      await afterScrollIdle(180);   // 2枚目も、動いていない時に
+      await new Promise(r=>setTimeout(r, 120));
+      await afterScrollIdle(150, 500);   // 2枚目も動いていない時に。ただし最大500msで進む
     }
     const gb=document.getElementById('gyroBtn');
     if(E.gyroAvailable){
@@ -1794,10 +1794,12 @@ else{
         if(await E.enableGyro()){ gyroOn=true; gb.classList.add('active'); gb.textContent='かたむきセンサー ON（もういちど押すと OFF）'; }
       });
     }
-  },{rootMargin:'250px 0px'});
+  },{rootMargin:'900px 0px'});
   stages.forEach(s=>sio.observe(s));
   // Three.js 本体とカードのコードは、ページ表示後の暇な時間に先に取りに行っておく（700KB の読み込み・解析をスクロール中にしない）
-  const prefetch=()=>{ getEngine().catch(()=>{}); };
+  const CARD_IMG=['rain-sky.jpg','umbrella.png','ukiwa-bg.jpg','ukiwa-char.png'];
+  // 絵もブラウザの保管庫に先に入れておく（取りに行くだけ。展開はカードを作る時にやる）
+  const prefetch=()=>{ getEngine().catch(()=>{}); CARD_IMG.forEach(f=>fetch('assets/cards/img/'+f,{cache:'force-cache'}).catch(()=>{})); };
   if('requestIdleCallback' in window) requestIdleCallback(prefetch,{timeout:6000}); else setTimeout(prefetch, 3000);
 }
 
