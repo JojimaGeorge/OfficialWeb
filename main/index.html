@@ -21,7 +21,7 @@
   <link rel="icon" href="image/pfpfav.png" sizes="62x62" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;700;900&family=Noto+Sans+JP:wght@400;500;700;900&family=DotGothic16&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-F6LJY0JQPR"></script>
@@ -32,12 +32,33 @@
     gtag('config', 'G-F6LJY0JQPR');
   </script>
   <style>
+    /* ============================================
+       DESIGN TOKENS
+       「ベタ青=情報 / グラデ=装飾とCTA / 淡ブルー=イラストの地」の3階調で
+       単色#004CFFに3色分の役割を持たせる。器は無彩色+紙で9割を組む。
+       ============================================ */
     :root {
-      --color-blue: #004CFF;
+      --color-blue: #004CFF;          /* 互換用エイリアス */
+      --main:       #004CFF;
+      --main-tint:  #d6e0ff;          /* イラストの背後に敷ける唯一の色地 */
+      --main-deep:  #0035b3;
+      --grad:       linear-gradient(135deg, #004CFF 0%, #7aa8ff 100%);
+      --paper:      #f5f3f0;
+      --paper-white:#ffffff;
+      --ink:        #141414;
+      --ink-soft:   #555555;
+      --border:     #e2ded8;
+      --border-dark:#cfc9c0;
+      /* ハウスイージング: 入場・hover系はこれ1本に統一する */
+      --ease:       cubic-bezier(0.075, 0.82, 0.165, 1);
+      --side:       clamp(20px, 8vw, 140px);
+      --font-en:    'Figtree', 'Helvetica Neue', Arial, sans-serif;
+      --font-jp:    'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif;
     }
 
     html {
-      background: #000;
+      /* 紙色にしておく：速いスクロールで未描画の穴ができても黒く光らない（FVは .hero が自前の画像で覆う） */
+      background: var(--paper);
       scroll-behavior: smooth;
     }
 
@@ -49,14 +70,18 @@
 
     body {
       width: 100%;
-      font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif;
-      color: #1a1a1a;
+      font-family: var(--font-jp);
+      font-feature-settings: "palt";
+      color: var(--ink);
       line-height: 1.7;
       overflow-x: hidden;
     }
 
+    /* 欧文ラベルは常にFigtreeで組む（和欧の役割分離: 英語=装飾/日本語=内容） */
+    .en { font-family: var(--font-en); }
+
     /* ============================================
-       OPENING ANIMATION
+       OPENING ANIMATION（index.htmlから無改変で流用）
        ============================================ */
     .opening {
       position: fixed;
@@ -81,13 +106,14 @@
       position: relative;
       z-index: 2;
       color: #fff;
+      font-family: var(--font-en);
       font-size: 40px;
       font-weight: 900;
       letter-spacing: 8px;
       text-transform: uppercase;
       opacity: 0;
       transform: translateY(12px);
-      transition: opacity 0.6s ease, transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+      transition: opacity 0.6s ease, transform 0.8s var(--ease);
     }
 
     .opening.is-show .opening-text {
@@ -97,8 +123,7 @@
 
     .opening-text .char {
       display: inline-block;
-      transition: transform 1s cubic-bezier(0.19, 1, 0.22, 1),
-                  opacity 0.5s ease;
+      transition: transform 1s var(--ease), opacity 0.5s ease;
     }
 
     .opening.is-end .opening-text .char {
@@ -107,7 +132,7 @@
     }
 
     /* ============================================
-       HERO SECTION (Swiper full-screen slider)
+       HERO（fixed背面 + Swiper。構造はindex.htmlの実績ある形を踏襲）
        ============================================ */
     .hero {
       position: fixed;
@@ -137,9 +162,85 @@
       transition: transform 6s ease-out;
     }
 
-    /* Slow Ken Burns zoom on active slide */
     .hero-swiper .swiper-slide-active .swiper-slide-inner {
       transform: scale(1.05);
+    }
+
+    /* ぽちゃもんスライド：PCは公式サイトのOG画像（2400×1260・横長）を背景に敷く。
+       SP（≤600px）は横長画像を縦に切ると文字が欠けるので、同じ配色を CSS で組み直し
+       ロゴとキャラを中央に置く（data-sp は空＝JSが背景画像を外す） */
+    .slide-pochamon {
+      background-color: #1e9bf0;
+    }
+
+    .pochamon-sp {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .slide-pochamon {
+        background-image:
+          radial-gradient(circle at 12% 30%, #0f7fd6 0, #0f7fd6 18%, transparent 34%),
+          radial-gradient(circle at 90% 18%, #5cb9f7 0, #5cb9f7 10%, transparent 26%),
+          radial-gradient(circle at 88% 92%, #b9bd6f 0, #b9bd6f 10%, transparent 24%),
+          radial-gradient(circle at 8% 85%, #1266b8 0, #1266b8 8%, transparent 20%);
+        background-color: #1e9bf0;
+      }
+
+      .pochamon-sp {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        position: absolute;
+        inset: 0;
+        padding-bottom: 24vh; /* 下の黒グラデ（hero-overlay）と hero-content を避けて上寄せ */
+      }
+
+      .pochamon-sp-logo {
+        width: 64vw;
+        max-width: 300px;
+        height: auto;
+      }
+
+      .pochamon-sp-char {
+        width: 62vw;
+        max-width: 300px;
+        height: auto;
+      }
+    }
+
+    /* three.js 版ズレシェーダーの canvas。hero-swiper の上・hero-overlay の下に重ねる */
+    .hero-shader-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .hero-shader-canvas.is-ready {
+      opacity: 1;
+    }
+
+    /* 市松キラキラ canvas。全画面固定・クリック透過。
+       カーソル／タップの周辺だけに Magic Window の「粒」が市松に並んで瞬く。
+       あくまで背景の演出＝セクション背景（非positioned）より上・
+       .section-inner(z-index:1) や footer-grid(2) のコンテンツより下に敷く */
+    .spark-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .spark-canvas { display: none; }
     }
 
     .hero-overlay {
@@ -149,13 +250,13 @@
       width: 100%;
       height: 100%;
       background:
-        linear-gradient(to top right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 25%, transparent 50%),
-        linear-gradient(to top left, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 20%, transparent 45%);
+        linear-gradient(to top right, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.25) 25%, transparent 50%),
+        linear-gradient(to top left, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 20%, transparent 45%);
       z-index: 2;
       pointer-events: none;
     }
 
-    /* NAV */
+    /* NAV（index.htmlの構成を踏襲: blur背景・ロゴはスクロール後に出現） */
     .hero-nav {
       position: fixed;
       top: 0;
@@ -172,17 +273,12 @@
       transition: background 0.4s, backdrop-filter 0.4s, transform 0.35s ease;
     }
 
-    .hero-nav.scrolled {
-      background: rgba(0,0,0,0.2);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-
     .hero-nav.nav-hidden {
       transform: translateY(-100%);
     }
 
     .hero-logo {
+      font-family: var(--font-en);
       font-size: 16px;
       font-weight: 900;
       letter-spacing: 6px;
@@ -203,6 +299,7 @@
     }
 
     .hero-menu li a {
+      font-family: var(--font-en);
       color: rgba(255,255,255,0.9);
       text-decoration: none;
       font-size: 12px;
@@ -216,7 +313,7 @@
       opacity: 0.5;
     }
 
-    /* HERO CONTENT - bottom left */
+    /* HERO CONTENT - bottom left（index.htmlの配置を踏襲） */
     .hero-content {
       position: absolute;
       bottom: 32px;
@@ -226,6 +323,7 @@
     }
 
     .hero-eyebrow {
+      font-family: var(--font-en);
       font-size: 12px;
       font-weight: 400;
       letter-spacing: 5px;
@@ -239,29 +337,16 @@
       line-height: 1;
     }
 
-    .hero-name-main,
-    .hero-name-sub {
-      display: block;
-      font-size: 96px;
-      font-weight: 900;
-      letter-spacing: 8px;
-      text-transform: uppercase;
-    }
-
-    .hero-name-sub {
-      margin-top: -4px;
-    }
-
-    /* SVG Stroke Animation for Hero Name */
+    /* SVGストローク署名（index.htmlから流用） */
     .hero-name-svg {
       display: block;
-      max-width: 500px;
+      max-width: 480px;
       width: 100%;
       overflow: visible;
     }
 
     .hero-name-svg text {
-      font-family: 'Figtree', 'Helvetica Neue', Arial, sans-serif;
+      font-family: var(--font-en);
       font-weight: 900;
       text-transform: uppercase;
       fill: rgba(255,255,255,0);
@@ -294,6 +379,7 @@
 
     .hero-btn {
       display: inline-block;
+      font-family: var(--font-en);
       padding: 14px 48px;
       border: 1px solid rgba(255,255,255,0.5);
       border-radius: 50px;
@@ -311,7 +397,7 @@
       color: #000;
     }
 
-    /* SLIDE OVERLAY TEXT (tag / title / caption) */
+    /* SLIDE OVERLAY TEXT（index.htmlの構成: tag / title / caption） */
     .slide-overlay {
       position: absolute;
       bottom: 100px;
@@ -330,6 +416,7 @@
     }
 
     .slide-tag {
+      font-family: var(--font-en);
       font-size: 10px;
       font-weight: 700;
       letter-spacing: 4px;
@@ -366,7 +453,7 @@
     .hero-progress-bar {
       height: 100%;
       width: 0%;
-      background: var(--color-blue);
+      background: var(--main);
     }
 
     .hero-progress-bar.is-running {
@@ -375,7 +462,7 @@
     }
 
     /* ============================================
-       FIXED SOCIAL ICONS (bottom-right, like production)
+       FIXED SOCIAL ICONS（index.htmlから流用）
        ============================================ */
     .social-icons {
       position: fixed;
@@ -415,353 +502,85 @@
     }
 
     /* ============================================
-       MAIN CONTENT (scrolls over hero)
+       MAIN CONTENT（heroの上にスクロールで被さる）
        ============================================ */
     .main-content {
       position: relative;
       z-index: 10;
       margin-top: 100vh;
       margin-top: 100svh;
-      background: #f5f3f0;
-      border-radius: 20px 20px 0 0;
-      box-shadow: 0 -10px 40px rgba(0,0,0,0.25);
+      background: var(--paper);
     }
 
     /* ============================================
-       SHARED SECTION STYLES
+       COMMISSION BAR（冒頭の軽い依頼導線・二重導線の1本目）
        ============================================ */
-    .section {
-      padding: 120px 0;
-    }
-
-    #links,
-    #contact {
-      padding: 160px 0;
-    }
-
-    .section-inner {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 0 60px;
-    }
-
-    .section-white {
-      background: var(--color-blue);
-      color: #fff;
-      position: relative;
-    }
-
-    .section-white .section-title {
-      color: #fff;
-    }
-
-    .section-white .section-title-line {
-      background: rgba(255,255,255,0.4);
-    }
-
-    .section-light {
-      background: #f5f3f0;
-    }
-
-    .section-dark {
-      background: #111;
-      color: #fff;
-    }
-
-    .section-title-wrap {
-      display: inline-block;
-      margin-bottom: 64px;
-    }
-
-    .section-title {
-      font-size: 24px;
-      font-weight: 900;
-      letter-spacing: 6px;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-
-    .section-title-line {
-      height: 2px;
-      background: var(--color-blue);
-    }
-
-    /* ============================================
-       NEWS SECTION (GRID)
-       ============================================ */
-    .news-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 64px;
-    }
-
-    .news-card {
-      display: block;
-      background: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    .request-bar {
+      display: flex;
+      align-items: center;
+      gap: clamp(16px, 4vw, 48px);
+      padding: 28px var(--side);
+      background: var(--paper);
+      border-bottom: 1px solid var(--border);
       text-decoration: none;
-      color: inherit;
-      transition: transform 0.3s, box-shadow 0.3s;
+      color: var(--ink);
+      transition: background 0.4s var(--ease), color 0.4s var(--ease);
     }
 
-    .news-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    .request-bar-label {
+      font-family: var(--font-en);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--main);
+      flex-shrink: 0;
+      transition: color 0.4s;
     }
 
-    .news-card-img-wrap {
-      width: 100%;
-      aspect-ratio: 3 / 4;
-      overflow: hidden;
-    }
-
-    .news-card-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: transform 0.4s ease;
-    }
-
-    .news-card:hover .news-card-img {
-      transform: scale(1.05);
-    }
-
-    .news-card-body {
-      padding: 14px 18px 16px;
-    }
-
-    .news-card-tag {
-      display: inline-block;
-      font-size: 10px;
+    .request-bar-text {
+      font-size: 15px;
       font-weight: 700;
       letter-spacing: 2px;
-      text-transform: uppercase;
-      color: #e8553d;
-      margin-bottom: 8px;
     }
 
-    .news-card-title {
-      font-size: 14px;
-      font-weight: 700;
-      line-height: 1.5;
-      color: #333;
-      margin-bottom: 8px;
-    }
-
-    .news-card-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 18px 14px;
-    }
-
-    .news-card-date {
-      font-size: 12px;
-      font-weight: 700;
-      color: #999;
-      letter-spacing: 1px;
-    }
-
-    .news-card-arrow {
-      width: 24px;
-      height: 24px;
+    .request-bar-arrow {
+      margin-left: auto;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      background: #f0f0f0;
+      background: var(--grad);
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #666;
-      font-size: 12px;
-      transition: background 0.3s;
-    }
-
-    .news-card:hover .news-card-arrow {
-      background: #e0e0e0;
-    }
-
-    /* More button */
-    .more-btn-wrap {
-      text-align: center;
-      margin-top: 48px;
-    }
-
-    .more-btn {
-      display: inline-block;
-      padding: 14px 48px;
-      border: 1px solid #ccc;
-      border-radius: 50px;
-      color: #333;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      text-decoration: none;
-      background: rgba(255,255,255,0.6);
-      transition: all 0.3s;
-    }
-
-    .more-btn:hover {
-      border-color: var(--color-blue);
-      color: var(--color-blue);
-      background: rgba(255,255,255,0.85);
-    }
-
-    /* ============================================
-       PROFILE SECTION
-       ============================================ */
-    .profile-card {
-      display: flex;
-      gap: 80px;
-      align-items: center;
-      background: rgba(0,30,120,0.35);
-      border-radius: 4px;
-      padding: 64px 72px;
-      box-shadow: none;
-    }
-
-    .profile-img-wrap {
-      flex-shrink: 0;
-    }
-
-    .profile-img {
-      width: 240px;
-      height: 240px;
-      border-radius: 50%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .profile-body {
-      flex: 1;
-    }
-
-    .profile-name {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      letter-spacing: 2px;
-    }
-
-    .profile-name-en {
-      font-size: 13px;
-      font-weight: 400;
-      color: rgba(255,255,255,0.6);
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-bottom: 28px;
-    }
-
-    .profile-bio {
+      font-family: var(--font-en);
       font-size: 16px;
-      font-weight: 400;
-      line-height: 2;
-      color: rgba(255,255,255,0.85);
+      flex-shrink: 0;
+      transition: transform 0.3s var(--ease);
     }
 
-    .profile-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 24px;
-    }
-
-    .profile-tag {
-      display: inline-block;
-      padding: 6px 16px;
-      border: 1px solid rgba(255,255,255,0.4);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      color: rgba(255,255,255,0.7);
-      text-transform: uppercase;
+    @media (any-hover: hover) {
+      .request-bar:hover {
+        background: var(--main);
+        color: #fff;
+      }
+      .request-bar:hover .request-bar-label { color: rgba(255,255,255,0.8); }
+      .request-bar:hover .request-bar-arrow { transform: translateX(6px); }
     }
 
     /* ============================================
-       PROFILE TIMELINE
+       WORKS（index.htmlの交互配置をベースに、依頼タグで情報量を追加）
        ============================================ */
-    .profile-timeline {
-      position: relative;
-      margin-top: 80px;
-      padding-left: 40px;
+    #works {
+      background: var(--paper);
     }
 
-    .profile-timeline::before {
-      content: '';
-      position: absolute;
-      left: 7px;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.2));
-    }
-
-    .timeline-item {
-      position: relative;
-      padding-bottom: 48px;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.6s ease, transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
-    }
-
-    .timeline-item.is-visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .timeline-item:last-child {
-      padding-bottom: 0;
-    }
-
-    .timeline-item::before {
-      content: '';
-      position: absolute;
-      left: -40px;
-      top: 4px;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #fff;
-      border: 3px solid rgba(255,255,255,0.7);
-      z-index: 1;
-    }
-
-    .timeline-item:first-child::before {
-      background: #fff;
-    }
-
-    .timeline-year {
-      font-size: 13px;
-      font-weight: 900;
-      letter-spacing: 3px;
-      color: rgba(255,255,255,0.9);
-      margin-bottom: 8px;
-    }
-
-    .timeline-title {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-      color: #fff;
-    }
-
-    .timeline-desc {
-      font-size: 14px;
-      color: rgba(255,255,255,0.7);
-      line-height: 1.7;
-    }
-
-    /* ============================================
-       WORKS SECTION
-       ============================================ */
     .work-item {
       display: flex;
       gap: 80px;
       align-items: center;
-      margin-bottom: 100px;
+      margin-bottom: 110px;
     }
 
     .work-item:last-child {
@@ -784,11 +603,6 @@
       border-radius: 8px;
       display: block;
       box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
-
-    .work-img.is-visible {
-      transform: scale(1);
     }
 
     .work-body {
@@ -797,10 +611,11 @@
     }
 
     .work-num {
-      font-size: 11px;
-      font-weight: 400;
+      font-family: var(--font-en);
+      font-size: 13px;
+      font-weight: 700;
       letter-spacing: 4px;
-      color: #bbb;
+      color: var(--main);
       text-transform: uppercase;
       margin-bottom: 16px;
     }
@@ -814,25 +629,46 @@
     }
 
     .work-desc {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 400;
       line-height: 2;
-      color: #555;
-      margin-bottom: 32px;
+      color: var(--ink-soft);
+      margin-bottom: 26px;
+    }
+
+    /* 依頼タグ: 「このジャンルで何が頼めるか」を作品の文脈で言う文中CTA */
+    .offer-tags {
+      list-style: none;
+      border-top: 1px solid var(--border-dark);
+    }
+
+    .offer-tags li {
+      padding: 11px 4px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+    }
+
+    .offer-tags-note {
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--ink-soft);
+      margin: 8px 0 26px;
     }
 
     .work-links {
       display: flex;
-      gap: 16px;
+      gap: 14px;
       flex-wrap: wrap;
     }
 
     .work-link {
       display: inline-block;
       padding: 12px 32px;
-      border: 2px solid #ccc;
+      border: 2px solid var(--border-dark);
       border-radius: 50px;
-      color: #333;
+      color: var(--ink);
       font-size: 13px;
       font-weight: 700;
       letter-spacing: 1px;
@@ -842,228 +678,896 @@
     }
 
     .work-link:hover {
-      border-color: var(--color-blue);
-      color: var(--color-blue);
+      border-color: var(--main);
+      color: var(--main);
       background: rgba(255,255,255,0.85);
     }
 
-    /* ============================================
-       LINKS SECTION (GRID)
-       ============================================ */
-    .links-grid {
+    /* Work 05（アプリ・サービス）: 画像の代わりに自作プロダクトのカード4枚を並べる。
+       角丸なし・罫線で区切る（サイト全体の雑誌的トーンに合わせる） */
+    .app-grid-wrap {
+      border-radius: 0;
+      overflow: visible;
+    }
+
+    .app-grid {
+      list-style: none;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 48px;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border-dark);
+      border: 1px solid var(--border-dark);
     }
 
-    .link-card {
-      display: block;
-      background: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      text-decoration: none;
-      color: inherit;
-      transition: box-shadow 0.3s, transform 0.3s;
-    }
-
-    .link-card:hover {
-      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
-      transform: translateY(-4px);
-    }
-
-    .link-card-img {
-      width: 100%;
-      aspect-ratio: 16 / 10;
-      object-fit: cover;
-      display: block;
-    }
-
-    .link-card-body {
-      padding: 24px 28px;
-    }
-
-    .link-card-name {
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-
-    /* ============================================
-       CONTACT SECTION
-       ============================================ */
-    .contact-wrap {
+    /* li を flex にしてカードを行の高さまで伸ばす（短いカードの下に罫線色が覗くのを防ぐ） */
+    .app-grid li {
       display: flex;
-      gap: 80px;
+    }
+
+    .app-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      padding: 26px 22px;
+      background: var(--paper-white);
+      color: var(--ink);
+      text-decoration: none;
+      min-height: 210px;
+      transition: background 0.3s;
+    }
+
+    @media (any-hover: hover) {
+      .app-card[href]:hover { background: rgba(0, 76, 255, 0.05); }
+      .app-card[href]:hover .app-card-arrow { transform: translateX(4px); }
+    }
+
+    .app-icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
       align-items: center;
+      justify-content: center;
+      font-family: var(--font-en);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #fff;
+      background: var(--c, var(--main));
     }
 
-    .contact-img-wrap {
-      flex-shrink: 0;
-    }
-
-    .contact-img {
-      width: 360px;
-      border-radius: 4px;
+    .app-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
       display: block;
     }
 
-    .contact-body {
+    /* 実ロゴを貼る枠は色地なし（ロゴ自身の色で見せる） */
+    .app-icon-img {
+      background: transparent;
+    }
+
+    /* ドット絵のロゴはぼかさず拡大。元画像(192px)は周りに余白が多く宝石が中央6割しか無いので
+       枠内で1.6倍にして他のロゴと見た目の大きさを揃える */
+    .app-icon img.is-pixel {
+      image-rendering: pixelated;
+      transform: scale(1.6);
+    }
+
+    /* 文字ロゴ（ワードマーク）：各サービスの題字をそのまま使う。高さを揃えて幅は成り行き */
+    .app-wordmark img {
+      display: block;
+      height: 22px;
+      width: auto;
+      max-width: 100%;
+    }
+
+    /* OB Lite の題字はアプリと同じドットフォント（DotGothic16） */
+    .app-wordmark-pixel {
+      font-family: 'DotGothic16', var(--font-jp);
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+
+    /* リンク先が無いカード（非公開のツール）は押せる見た目にしない */
+    .app-card:not([href]) {
+      cursor: default;
+    }
+
+    .app-card strong {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      line-height: 1.4;
+    }
+
+    .app-card-desc {
+      font-size: 12.5px;
+      line-height: 1.8;
+      color: var(--ink-soft);
       flex: 1;
     }
 
-    .contact-text {
-      font-size: 16px;
-      font-weight: 400;
+    .app-card-tech {
+      font-family: var(--font-en);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--main);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .app-card-arrow {
+      display: inline-block;
+      transition: transform 0.3s var(--ease);
+    }
+
+    /* ============================================
+       SECTION 共通（PROFILE / NEWS / CONTACT）
+       英語小ラベル→和文大見出し→本文の3段導入で統一
+       ============================================ */
+    .section {
+      padding: 120px var(--side);
+    }
+
+    .section-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 文字ブロックの下敷き（2026-08-22 本人指示）：セクション地色と同色で少し透ける板。
+       普段は地と同化して見えず、市松キラキラが下を通った時だけ薄く透ける＝文字の可読性を守る。
+       ぼかし・角丸は付けない */
+    .ink-guard {
+      background: rgba(245, 243, 240, 0.72); /* --paper の半透明 */
+    }
+
+    /* 本文系は余白ぶん外側まで板を広げる（負マージンで実寸は不変） */
+    .work-body.ink-guard,
+    .profile-grid .ink-guard,
+    .news-feature.ink-guard,
+    .news-list.ink-guard,
+    .contact-sub-grid.ink-guard,
+    .ink-guard-block {
+      padding: 32px;
+      margin: -32px;
+    }
+
+    /* PROFILE は青ベタ地に合わせる */
+    #profile .ink-guard {
+      background: rgba(0, 76, 255, 0.72); /* --main の半透明 */
+    }
+
+    /* CONTACT は白地。淡ブルーパネルは既存トーンを保つ */
+    #contact .ink-guard {
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    #contact .contact-hero.ink-guard {
+      background: linear-gradient(rgba(0, 76, 255, 0.05), rgba(0, 76, 255, 0.05)), rgba(255, 255, 255, 0.72);
+    }
+
+    @media (max-width: 768px) {
+      .work-body.ink-guard,
+      .profile-grid .ink-guard,
+      .news-feature.ink-guard,
+      .news-list.ink-guard,
+      .contact-sub-grid.ink-guard,
+      .ink-guard-block {
+        padding: 18px;
+        margin: -18px;
+      }
+    }
+
+    /* 章見出し：和文の副題をやめ、英字のラベルそのものを大見出しにする
+       （Works / Profile / News / Contact） */
+    .sec-label {
+      font-family: var(--font-en);
+      font-size: clamp(30px, 3.6vw, 52px);
+      font-weight: 900;
+      letter-spacing: 4px;
+      line-height: 1;
+      text-transform: uppercase;
+      color: var(--ink);
+      margin-bottom: 56px;
+    }
+
+    /* ============================================
+       PROFILE（元デザイン踏襲: 青ベタ章・白文字）
+       ============================================ */
+    #profile {
+      background: var(--main);
+      color: #fff;
+    }
+
+    #profile .sec-label { color: #fff; }
+    #profile .profile-photo figcaption { color: rgba(255,255,255,0.65); }
+    #profile .profile-name-en { color: rgba(255,255,255,0.65); }
+    #profile .profile-bio { color: rgba(255,255,255,0.88); }
+    #profile .profile-stats {
+      border-top-color: rgba(255,255,255,0.4);
+      border-bottom-color: rgba(255,255,255,0.4);
+    }
+    #profile .stat-item { border-color: rgba(255,255,255,0.4); }
+    #profile .stat-value { color: #fff; }
+    #profile .stat-label-en { color: rgba(255,255,255,0.6); }
+    #profile .stat-label-jp { color: #fff; }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+      gap: clamp(40px, 6vw, 100px);
+      align-items: start;
+      margin-bottom: 90px;
+    }
+
+    /* 円形をやめ角版で(雑誌の人物写真)。キャプション付き */
+    .profile-photo img {
+      display: block;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .profile-photo figcaption {
+      font-family: var(--font-en);
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin-top: 10px;
+    }
+
+    .profile-name {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      margin-bottom: 4px;
+    }
+
+    .profile-name-en {
+      font-family: var(--font-en);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    .profile-bio {
+      font-size: 15px;
+      line-height: 2.2;
+      color: var(--ink-soft);
+      max-width: 62ch;
+    }
+
+    /* できることチップ：イラストだけじゃない、を一目で伝える */
+    .profile-skills {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 28px;
+    }
+
+    .profile-skills li {
+      font-family: var(--font-en);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.55);
+      padding: 7px 14px;
+    }
+
+    .profile-skills li.is-jp {
+      font-family: var(--font-jp);
+      letter-spacing: 1px;
+    }
+
+    /* 実績数字: 発注者が3秒で信頼できる層 */
+    .profile-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 90px;
+    }
+
+    .stat-item {
+      padding: 36px 28px;
+      border-left: 1px solid var(--border);
+    }
+
+    .stat-item:first-child { border-left: none; }
+
+    .stat-value {
+      font-family: var(--font-en);
+      font-size: clamp(34px, 3.6vw, 52px);
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: var(--main);
+      line-height: 1.1;
+    }
+
+    .stat-value .jp {
+      font-family: var(--font-jp);
+      font-size: 0.72em;
+      letter-spacing: 2px;
+    }
+
+    .stat-label-en {
+      font-family: var(--font-en);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin-top: 12px;
+    }
+
+    .stat-label-jp {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      color: var(--ink);
+      margin-top: 2px;
+    }
+
+    /* 年表: 本番 index.html の「丸と線」を移植。
+       線は見えた時に上から伸び（scaleY）、項目は階段状に浮かび上がり、丸がポンと出る */
+    .profile-timeline {
+      position: relative;
+      padding-left: 40px;
+    }
+
+    .profile-timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.2));
+      transform-origin: top;
+      transform: scaleY(0);
+      transition: transform 1.8s var(--ease) 0.2s;
+    }
+
+    .profile-timeline.is-visible::before {
+      transform: scaleY(1);
+    }
+
+    .tl-item {
+      position: relative;
+      padding-bottom: 48px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    .tl-item.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .tl-item:last-child {
+      padding-bottom: 0;
+    }
+
+    .tl-item::before {
+      content: '';
+      position: absolute;
+      left: -40px;
+      top: 4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid rgba(255,255,255,0.7);
+      z-index: 1;
+      transform: scale(0);
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s;
+    }
+
+    .tl-item.is-visible::before {
+      transform: scale(1);
+    }
+
+    .tl-year {
+      font-family: var(--font-en);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 8px;
+    }
+
+    .tl-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .tl-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.7;
+    }
+
+    /* ============================================
+       NEWS: 最新1件=feature + 以降=目次リスト
+       ============================================ */
+    #news {
+      background: var(--paper);
+    }
+
+    .news-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      gap: clamp(40px, 5vw, 90px);
+      align-items: start;
+    }
+
+    .news-feature {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .news-feature-imgwrap {
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .news-feature img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      transition: transform 0.6s var(--ease);
+    }
+
+    @media (any-hover: hover) {
+      .news-feature:hover img { transform: scale(1.04); }
+    }
+
+    .news-tag {
+      display: inline-block;
+      font-family: var(--font-en);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+      background: var(--main);
+      padding: 4px 10px;
+      margin-right: 12px;
+    }
+
+    .news-date {
+      font-family: var(--font-en);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--ink-soft);
+    }
+
+    .news-feature-title {
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.7;
+      letter-spacing: 0.5px;
+      margin-top: 12px;
+    }
+
+    /* 2件目以降: 画像を捨て罫線リスト(雑誌の目次) */
+    .news-list {
+      list-style: none;
+      border-top: 1px solid var(--border-dark);
+    }
+
+    .news-list a {
+      display: grid;
+      grid-template-columns: 92px 92px 1fr auto;
+      gap: 18px;
+      align-items: center;
+      padding: 22px 4px;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.3s;
+    }
+
+    @media (any-hover: hover) {
+      .news-list a:hover { background: rgba(0, 76, 255, 0.05); }
+    }
+
+    .news-list .news-tag {
+      margin-right: 0;
+      text-align: center;
+      background: transparent;
+      color: var(--main);
+      border: 1px solid var(--main);
+      padding: 3px 6px;
+    }
+
+    .news-list-title {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .news-list-arrow {
+      font-family: var(--font-en);
+      color: var(--main);
+      font-size: 14px;
+    }
+
+    .more-btn-wrap {
+      margin-top: 48px;
+    }
+
+    .more-btn {
+      display: inline-block;
+      font-family: var(--font-en);
+      padding: 13px 44px;
+      border: 1px solid var(--border-dark);
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: border-color 0.3s, color 0.3s;
+    }
+
+    @media (any-hover: hover) {
+      .more-btn:hover {
+        border-color: var(--main);
+        color: var(--main);
+      }
+    }
+
+    /* ============================================
+       CONTACT（コンバージョンの本丸）
+       視線の流れ: 誘い文句 → 大きなCTA → 安心材料 → 詳細(できること/流れ)
+       ============================================ */
+    #contact {
+      background: var(--paper-white);
+      border-top: 1px solid var(--border);
+    }
+
+    /* 誘い+CTAをひとつの淡ブルーパネルに集約して最初に見せる */
+    .contact-hero {
+      display: flex;
+      align-items: center;
+      gap: clamp(28px, 4vw, 64px);
+      background: rgba(0, 76, 255, 0.05);
+      border: 1px solid rgba(0, 76, 255, 0.18);
+      padding: clamp(28px, 4vw, 56px);
+      margin-bottom: 72px;
+    }
+
+    .contact-img {
+      width: clamp(110px, 13vw, 180px);
+      flex-shrink: 0;
+    }
+
+    .contact-img img {
+      display: block;
+      width: 100%;
+    }
+
+    .contact-lead {
+      font-size: clamp(16px, 1.6vw, 20px);
+      font-weight: 700;
       line-height: 2;
-      color: #555;
-      margin-bottom: 36px;
+      letter-spacing: 1px;
+      margin-bottom: 28px;
+    }
+
+    .contact-lead span {
+      color: var(--main);
     }
 
     .contact-buttons {
       display: flex;
       gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
     }
 
-    .contact-btn {
+    /* CTAは迷わせない2択・大きく（グラデはCTA専用） */
+    .contact-btn-primary {
       display: inline-block;
-      padding: 16px 48px;
-      border-radius: 50px;
-      font-size: 14px;
+      padding: 18px 56px;
+      background: var(--grad);
+      color: #fff;
+      font-size: 15px;
       font-weight: 700;
       letter-spacing: 2px;
       text-decoration: none;
-      transition: all 0.3s;
-    }
-
-    .contact-btn-primary {
-      background: #1a1a1a;
-      color: #fff;
-    }
-
-    .contact-btn-primary:hover {
-      background: var(--color-blue);
+      border-radius: 50px;
+      box-shadow: 0 6px 18px rgba(0, 76, 255, 0.25);
+      transition: opacity 0.3s, transform 0.3s var(--ease);
     }
 
     .contact-btn-secondary {
-      background: rgba(255,255,255,0.6);
-      color: #1a1a1a;
-      border: 1px solid #ccc;
+      display: inline-block;
+      padding: 18px 44px;
+      border: 2px solid var(--main);
+      color: var(--main);
+      background: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-decoration: none;
+      border-radius: 50px;
+      transition: background 0.3s, color 0.3s;
     }
 
-    .contact-btn-secondary:hover {
-      border-color: var(--color-blue);
-      color: var(--color-blue);
-      background: rgba(255,255,255,0.85);
+    @media (any-hover: hover) {
+      .contact-btn-primary:hover { opacity: 0.88; transform: translateY(-2px); }
+      .contact-btn-secondary:hover { background: var(--main); color: #fff; }
+    }
+
+    /* 安心材料: 申し込みの心理ハードルを下げる3点 */
+    .contact-assure {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 28px;
+    }
+
+    .contact-assure li {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      color: var(--ink-soft);
+      padding-left: 12px;
+      border-left: 2px solid var(--main);
+    }
+
+    /* 詳細情報: できること / 流れ の2カラム */
+    .contact-sub-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(40px, 6vw, 100px);
+      align-items: start;
+    }
+
+    .contact-sub {
+      font-family: var(--font-en);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin-bottom: 16px;
+    }
+
+    .contact-sub b {
+      font-family: var(--font-jp);
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: 1px;
+    }
+
+    /* ご依頼できること: 罫線リスト */
+    .offer-list {
+      list-style: none;
+      border-top: 1px solid var(--border-dark);
+    }
+
+    .offer-list li {
+      display: flex;
+      align-items: center;
+      padding: 17px 4px;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+
+    .offer-list li small {
+      margin-left: auto;
+      font-family: var(--font-en);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+
+    /* ご依頼の流れ3ステップ */
+    .flow-list {
+      list-style: none;
+      counter-reset: flow;
+      border-top: 1px solid var(--border-dark);
+    }
+
+    .flow-list li {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 18px;
+      padding: 18px 4px;
+      border-bottom: 1px solid var(--border);
+      align-items: baseline;
+    }
+
+    .flow-list li::before {
+      counter-increment: flow;
+      content: "0" counter(flow);
+      font-family: var(--font-en);
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--main);
+      letter-spacing: 1px;
+    }
+
+    .flow-list strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+
+    .flow-list span {
+      font-size: 13px;
+      color: var(--ink-soft);
     }
 
     /* ============================================
-       FOOTER
+       FOOTER: 奥付。ヒーローのタイポを回収して本を閉じる
        ============================================ */
     .footer {
-      background: #0a0a0a;
-      color: rgba(255,255,255,0.5);
-      padding: 60px 0;
+      position: relative;
+      background: #0c0c0c;
+      color: rgba(255,255,255,0.6);
+      padding: 100px var(--side) 48px;
+      overflow: hidden;
     }
 
-    .footer-inner {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 0 40px;
+    .footer-grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) minmax(0, 3fr);
+      gap: clamp(32px, 5vw, 80px);
+      max-width: 1240px;
+      margin: 0 auto 72px;
+    }
+
+    .footer-brand .footer-logo {
+      font-family: var(--font-en);
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: #fff;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .footer-brand p {
+      font-size: 12px;
+      line-height: 2;
+      letter-spacing: 1px;
+    }
+
+    .footer-col-title {
+      font-family: var(--font-en);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 18px;
+    }
+
+    .footer-links {
+      list-style: none;
+    }
+
+    .footer-links li {
+      margin-bottom: 10px;
+    }
+
+    .footer-links a {
+      color: rgba(255,255,255,0.75);
+      text-decoration: none;
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      transition: color 0.3s;
+    }
+
+    @media (any-hover: hover) {
+      .footer-links a:hover { color: #7aa8ff; }
+    }
+
+    .footer-bottom {
+      position: relative;
+      z-index: 2;
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
       align-items: center;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding-top: 24px;
+      /* 右端は固定SNSアイコンの定位置なので依頼リンクを重ねない */
+      padding-right: 180px;
+      border-top: 1px solid rgba(255,255,255,0.12);
     }
 
     .footer-copy {
-      font-size: 12px;
+      font-family: var(--font-en);
+      font-size: 11px;
       letter-spacing: 2px;
     }
 
+    .footer-request {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #7aa8ff;
+      text-decoration: none;
+    }
+
+    @media (any-hover: hover) {
+      .footer-request:hover { color: #fff; }
+    }
+
     /* ============================================
-       SCROLL REVEAL ANIMATION (IntersectionObserver)
+       REVEAL（irokoto方式・親[data-stagger]配下は子.revealを階段delay。
+       viewport下端まで来てから発火 → 大きく上昇 → スクロールと同じ時間軸で追いつかせる）
        ============================================ */
     .reveal {
       opacity: 0;
-      transform: translateY(40px);
-      transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+      transform: translateY(80px);
+      transition: opacity 1.4s var(--ease), transform 1.4s var(--ease);
+      will-change: opacity, transform;
     }
 
     .reveal.is-visible {
       opacity: 1;
       transform: translateY(0);
+      /* 出現後は合成レイヤーを手放す（レイヤーが多いと速いスクロールで描画が追いつかずチラつく） */
+      will-change: auto;
     }
 
-    .reveal-children > * {
-      opacity: 0;
-      transform: translateY(30px);
-      transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+    /* SPは移動量を控えめに（小画面で80pxは重い） */
+    @media (max-width: 768px) {
+      .reveal {
+        transform: translateY(56px);
+        transition: opacity 1.2s var(--ease), transform 1.2s var(--ease);
+      }
     }
 
-    .reveal-children.is-visible > * {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .reveal-children.is-visible > *:nth-child(1) { transition-delay: 0s; }
-    .reveal-children.is-visible > *:nth-child(2) { transition-delay: 0.15s; }
-    .reveal-children.is-visible > *:nth-child(3) { transition-delay: 0.3s; }
-    .reveal-children.is-visible > *:nth-child(4) { transition-delay: 0.45s; }
-    .reveal-children.is-visible > *:nth-child(5) { transition-delay: 0.6s; }
-    .reveal-children.is-visible > *:nth-child(6) { transition-delay: 0.75s; }
-
-    /* ============================================
-       RESPONSIVE: TABLET (≤1024px)
-       ============================================ */
-    @media (max-width: 1024px) {
-      .hero-content {
-        left: 40px;
-        bottom: 32px;
-      }
-
-      .hero-name-main,
-      .hero-name-sub {
-        font-size: 64px;
-        letter-spacing: 4px;
-      }
-
-      .hero-desc {
-        max-width: 360px;
-        font-size: 14px;
-      }
-
-      .slide-overlay {
-        right: 40px;
-        bottom: 80px;
-      }
-
-      .section-inner {
-        padding: 0 40px;
-      }
-
-      .profile-card {
-        gap: 48px;
-        padding: 48px;
-      }
-
-      .work-item {
-        gap: 48px;
-      }
-
-      .contact-wrap {
-        gap: 48px;
-      }
-
-      .contact-img {
-        width: 280px;
+    @media (prefers-reduced-motion: reduce) {
+      .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
       }
     }
 
     /* ============================================
-       RESPONSIVE: MOBILE (≤768px)
-       ============================================ */
-    /* ============================================
-       HAMBURGER MENU (mobile drawer)
+       HAMBURGER + MOBILE DRAWER（index.htmlから流用・配色のみ青系へ）
        ============================================ */
     .btn-hamburger {
       display: none;
@@ -1105,13 +1609,11 @@
     .mobile-drawer {
       position: fixed;
       top: 0;
-      right: -260px;
-      width: 220px;
+      right: -280px;
+      width: 240px;
       height: 100dvh;
       padding-top: 80px;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      background-image: linear-gradient(to bottom, rgba(129,114,255,0.57), rgba(255,77,187,0.64));
+      background: var(--main);
       z-index: 300;
       transition: right 0.3s ease;
     }
@@ -1127,16 +1629,25 @@
     }
 
     .mobile-drawer ul li {
-      padding: 18px 32px;
+      padding: 16px 32px;
     }
 
     .mobile-drawer ul li a {
+      font-family: var(--font-en);
       color: #fff;
       text-decoration: none;
       font-size: 14px;
       font-weight: 700;
       letter-spacing: 4px;
       text-transform: uppercase;
+    }
+
+    .mobile-drawer ul li.drawer-cta a {
+      font-family: var(--font-jp);
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.7);
+      padding: 10px 24px;
+      letter-spacing: 2px;
     }
 
     .mobile-drawer-overlay {
@@ -1154,14 +1665,57 @@
       display: block;
     }
 
+    /* ============================================
+       RESPONSIVE: TABLET (≤1024px)
+       ============================================ */
+    @media (max-width: 1024px) {
+      .hero-content {
+        left: 40px;
+        bottom: 32px;
+      }
+
+      .hero-desc {
+        max-width: 360px;
+        font-size: 14px;
+      }
+
+      .slide-overlay {
+        right: 40px;
+        bottom: 80px;
+      }
+
+      .social-icons { right: 40px; }
+
+      .work-item {
+        gap: 48px;
+      }
+
+      .profile-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .news-grid {
+        grid-template-columns: 1fr;
+        gap: 48px;
+      }
+
+      .contact-sub-grid {
+        grid-template-columns: 1fr;
+        gap: 48px;
+      }
+    }
+
+    /* ============================================
+       RESPONSIVE: MOBILE (≤768px)
+       ============================================ */
     @media (max-width: 768px) {
-      /* Opening */
       .opening-text {
         font-size: 24px;
         letter-spacing: 4px;
       }
 
-      /* Hero */
+      /* Hero（index.htmlの構成を踏襲） */
       .hero-content {
         left: 20px;
         right: 20px;
@@ -1174,22 +1728,11 @@
         margin-bottom: 14px;
       }
 
-      .hero-name {
-        margin-bottom: 16px;
-      }
+      .hero-name { margin-bottom: 16px; }
+      .hero-name-svg { max-width: 260px; }
 
-      .hero-name-main,
-      .hero-name-sub {
-        font-size: clamp(40px, 12vw, 56px);
-        letter-spacing: 2px;
-      }
-
-      .hero-desc {
-        font-size: 14px;
-        max-width: 100%;
-        margin-bottom: 20px;
-        line-height: 1.7;
-      }
+      /* Hero description: hide on SP */
+      .hero-desc { display: none; }
 
       .hero-btn {
         padding: 12px 36px;
@@ -1197,38 +1740,17 @@
         margin-top: 8px;
       }
 
-      /* Hero overlay: bottom-up gradient only on SP */
+      /* Slide overlay: hide on SP */
+      .slide-overlay { display: none; }
+
       .hero-overlay {
         background:
           linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 25%, rgba(0,0,0,0.2) 50%, transparent 65%);
       }
 
-      /* Slide overlay: hide on SP */
-      .slide-overlay {
-        display: none;
-      }
-
-      /* Hero description: hide on SP */
-      .hero-desc {
-        display: none;
-      }
-
-      /* Nav: hide horizontal menu, show hamburger */
+      /* Nav: hide menu, show hamburger（index.htmlと同挙動） */
       .hero-nav {
         padding: 12px 16px;
-      }
-
-      /* Hide logo text on SP */
-      .hero-logo {
-        display: none;
-      }
-
-      .hero-menu {
-        display: none;
-      }
-
-      /* Nav: right-align hamburger, no background on SP */
-      .hero-nav {
         justify-content: flex-end;
         background: transparent;
         backdrop-filter: none;
@@ -1241,20 +1763,14 @@
         -webkit-backdrop-filter: none;
       }
 
-      .hero-nav.nav-hidden {
-        transform: none;
-      }
+      .hero-nav.nav-hidden { transform: none; }
+      .hero-logo { display: none; }
+      .hero-menu { display: none; }
+      .btn-hamburger { display: block; }
 
-      .btn-hamburger {
-        display: block;
-      }
+      .hero-nav.scrolled .btn-hamburger span { background: #888; }
 
-      /* Hamburger color: gray when scrolled past hero */
-      .hero-nav.scrolled .btn-hamburger span {
-        background: #888;
-      }
-
-      /* Social icons: fixed bottom-right like index.html */
+      /* Social icons */
       .social-icons {
         bottom: 10px;
         right: 10px;
@@ -1278,134 +1794,30 @@
         height: 24px;
       }
 
+      /* Request bar */
+      .request-bar {
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        padding: 20px;
+      }
+
+      .request-bar-text { font-size: 13px; letter-spacing: 1px; }
+      .request-bar-arrow { width: 36px; height: 36px; font-size: 14px; }
+
       /* Sections */
-      .section {
-        padding: 64px 0;
-      }
+      .section { padding: 64px 20px; }
+      .sec-label { font-size: 30px; letter-spacing: 2px; margin-bottom: 32px; }
 
-      .section-inner {
-        padding: 0 16px;
-      }
-
-      .section-title {
-        font-size: 20px;
-        letter-spacing: 4px;
-      }
-
-      .section-title-wrap {
-        margin-bottom: 32px;
-      }
-
-      /* News grid: 1 column on SP */
-      .news-grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
-      }
-
-      .news-card-img-wrap {
-        aspect-ratio: 3 / 4;
-      }
-
-      .news-card-body {
-        padding: 14px 16px 16px;
-      }
-
-      .news-card-title {
-        font-size: 15px;
-        line-height: 1.5;
-        margin-bottom: 8px;
-      }
-
-      .news-card-footer {
-        padding: 0 16px 14px;
-      }
-
-      .news-card-date {
-        font-size: 12px;
-      }
-
-      /* Profile */
-      .profile-card {
-        flex-direction: column;
-        gap: 24px;
-        padding: 28px 20px;
-        text-align: center;
-      }
-
-      .profile-img {
-        width: 120px;
-        height: 120px;
-      }
-
-      .profile-name {
-        font-size: 22px;
-      }
-
-      .profile-name-en {
-        font-size: 12px;
-        margin-bottom: 16px;
-      }
-
-      .profile-bio {
-        font-size: 15px;
-        text-align: left;
-        line-height: 1.9;
-      }
-
-      .profile-tags {
-        gap: 6px;
-        margin-top: 16px;
-        justify-content: center;
-      }
-
-      .profile-tag {
-        font-size: 12px;
-        padding: 6px 14px;
-      }
-
-      .profile-timeline {
-        margin-top: 48px;
-        padding-left: 32px;
-      }
-
-      .profile-timeline::before {
-        left: 5px;
-      }
-
-      .timeline-item {
-        padding-bottom: 32px;
-      }
-
-      .timeline-item::before {
-        left: -32px;
-        width: 12px;
-        height: 12px;
-        top: 3px;
-      }
-
-      .timeline-title {
-        font-size: 16px;
-      }
-
-      .timeline-desc {
-        font-size: 14px;
-      }
-
-      /* Hero SVG name responsive */
-      .hero-name-svg {
-        max-width: 260px;
-      }
-
-      /* Works */
+      /* Works: 縦積み（index.htmlと同挙動） */
       .work-item,
       .work-item.reversed {
         flex-direction: column;
         gap: 24px;
-        margin-bottom: 48px;
+        margin-bottom: 56px;
       }
 
       .work-num {
-        font-size: 11px;
+        font-size: 12px;
         margin-bottom: 10px;
       }
 
@@ -1420,88 +1832,130 @@
         line-height: 1.9;
       }
 
+      .offer-tags li {
+        font-size: 12px;
+        letter-spacing: 1px;
+      }
+
       .work-link {
         padding: 11px 26px;
         font-size: 13px;
       }
 
-      /* Links grid: 2 columns on SP */
-      .links-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
+      /* Profile */
+      .profile-photo img { max-width: 200px; }
+
+      .profile-stats { grid-template-columns: 1fr 1fr; }
+
+      .stat-item {
+        border-left: none;
+        border-top: 1px solid rgba(255,255,255,0.4);
+        padding: 24px 4px;
       }
 
-      .link-card-body {
-        padding: 16px 20px;
+      .stat-item:nth-child(-n+2) { border-top: none; }
+      .stat-item:nth-child(even) { border-left: 1px solid rgba(255,255,255,0.4); padding-left: 16px; }
+
+      .profile-skills { gap: 6px; margin-top: 20px; }
+      .profile-skills li { font-size: 10px; padding: 6px 10px; }
+
+      .profile-timeline { padding-left: 32px; }
+      .profile-timeline::before { left: 5px; }
+      .tl-item { padding-bottom: 32px; }
+      .tl-item::before { left: -32px; width: 12px; height: 12px; top: 3px; }
+      .tl-title { font-size: 16px; }
+
+      /* News: リストは日付を隠しタイトル折返し許可 */
+      .news-list a {
+        grid-template-columns: 82px 1fr auto;
+        gap: 10px;
+        padding: 16px 2px;
       }
 
-      .link-card-name {
-        font-size: 15px;
-      }
+      .news-list .news-date { display: none; }
+      .news-list-title { white-space: normal; font-size: 13px; }
 
-      /* Contact */
-      .contact-wrap {
+      /* Contact: パネルを縦積み・CTAは全幅で押しやすく */
+      .contact-hero {
         flex-direction: column;
-        gap: 24px;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 24px 20px;
+        margin-bottom: 48px;
       }
 
-      .contact-img {
-        width: 100%;
-        max-width: 240px;
-      }
+      .contact-img { width: 96px; }
 
-      .contact-text {
-        font-size: 14px;
+      .contact-lead {
+        font-size: 15px;
+        line-height: 1.9;
+        margin-bottom: 20px;
       }
 
       .contact-buttons {
         flex-direction: column;
+        width: 100%;
         gap: 12px;
+        margin-bottom: 20px;
       }
 
-      .contact-btn {
+      .contact-btn-primary,
+      .contact-btn-secondary {
+        display: block;
         text-align: center;
-        padding: 14px 32px;
+        padding: 16px 24px;
         font-size: 14px;
       }
 
-      /* More button */
-      .more-btn {
-        padding: 13px 38px;
-        font-size: 13px;
+      .contact-assure {
+        flex-direction: column;
+        gap: 8px;
       }
 
-      /* Main content top radius */
-      .main-content {
-        border-radius: 16px 16px 0 0;
+      .offer-list li {
+        font-size: 13px;
+        padding: 14px 2px;
+      }
+
+      .flow-list li {
+        grid-template-columns: 40px 1fr;
+        gap: 12px;
+      }
+
+      .footer { padding: 64px 20px 36px; }
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 36px;
+        margin-bottom: 48px;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+        padding-right: 0;
+        padding-bottom: 56px; /* 固定SNSアイコンと依頼リンクの重なり回避 */
       }
     }
-
-
   </style>
 </head>
 <body>
 
-  <!-- OPENING ANIMATION -->
+  <!-- OPENING ANIMATION（既存流用） -->
   <div class="opening" id="opening">
     <div class="opening-text" id="opening-text">JOJIMA GEORGE</div>
   </div>
 
-  <!-- ============================================
-       1. HERO (fixed behind content, Swiper slider)
-       ============================================ -->
-  <!-- NAV (outside hero to avoid stacking context trap) -->
+  <!-- NAV -->
   <nav class="hero-nav" id="hero-nav">
     <div class="hero-logo">JOJIMA GEORGE</div>
     <ul class="hero-menu">
       <li><a href="#hero">TOP</a></li>
-      <li><a href="#news">NEWS</a></li>
       <li><a href="#works">WORKS</a></li>
-      <li><a href="#portfolio">PORTFOLIO</a></li>
-      <li><a href="#links">LINKS</a></li>
+      <li><a href="#profile">PROFILE</a></li>
+      <li><a href="#news">NEWS</a></li>
       <li><a href="#contact">CONTACT</a></li>
     </ul>
-    <!-- Hamburger button (mobile only) -->
     <div class="btn-hamburger" id="btn-hamburger">
       <span></span>
       <span></span>
@@ -1509,21 +1963,23 @@
     </div>
   </nav>
 
-  <!-- Mobile drawer (mobile only) -->
+  <!-- Mobile drawer -->
   <div class="mobile-drawer-overlay" id="drawer-overlay"></div>
   <div class="mobile-drawer" id="mobile-drawer">
     <ul>
       <li><a href="#hero" class="drawer-link">TOP</a></li>
-      <li><a href="#news" class="drawer-link">NEWS</a></li>
       <li><a href="#works" class="drawer-link">WORKS</a></li>
-      <li><a href="#portfolio" class="drawer-link">PORTFOLIO</a></li>
-      <li><a href="#links" class="drawer-link">LINKS</a></li>
+      <li><a href="#profile" class="drawer-link">PROFILE</a></li>
+      <li><a href="#news" class="drawer-link">NEWS</a></li>
       <li><a href="#contact" class="drawer-link">CONTACT</a></li>
+      <li class="drawer-cta"><a href="#contact" class="drawer-link">ご依頼はこちら</a></li>
     </ul>
   </div>
 
+  <!-- ============================================
+       1. HERO
+       ============================================ -->
   <section class="hero" id="hero">
-    <!-- Swiper full-screen slider -->
     <div class="swiper hero-swiper">
       <div class="swiper-wrapper">
         <div class="swiper-slide">
@@ -1539,28 +1995,37 @@
           <div class="swiper-slide-inner" data-pc="image/poolside.webp" data-sp="image/m_poolside.webp"></div>
         </div>
         <div class="swiper-slide">
-          <div class="swiper-slide-inner" data-pc="image/haru.webp" data-sp="image/m_tokaido.webp"></div>
+          <!-- ぽちゃもん：PC=公式サイトOG画像 / SP=CSS組み（data-sp 空） -->
+          <div class="swiper-slide-inner slide-pochamon" data-pc="image/pochamon_hero.png" data-sp="">
+            <div class="pochamon-sp" aria-hidden="true">
+              <img class="pochamon-sp-logo" src="image/pochamon_logo.svg" alt="">
+              <img class="pochamon-sp-char" src="image/pochamon_idle.webp" alt="">
+            </div>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- 版ズレシェーダー（three.js）が描画するcanvas -->
+    <canvas class="hero-shader-canvas" id="hero-shader-canvas" aria-hidden="true"></canvas>
 
     <div class="hero-overlay"></div>
 
     <!-- CONTENT (bottom-left) -->
     <div class="hero-content">
-      <div class="hero-eyebrow">Illustrator &amp; Designer</div>
+      <div class="hero-eyebrow">Illustrator / Designer / Developer</div>
       <div class="hero-name">
-        <svg class="hero-name-svg" id="hero-name-svg" viewBox="0 0 540 200" xmlns="http://www.w3.org/2000/svg">
+        <svg class="hero-name-svg" id="hero-name-svg" data-mouse-parallax="0.025" viewBox="0 0 540 200" xmlns="http://www.w3.org/2000/svg">
           <text x="0" y="80" font-size="96" letter-spacing="8">Jojima</text>
           <text x="0" y="180" font-size="96" letter-spacing="8">George</text>
         </svg>
       </div>
-      <p class="hero-desc">Bringing stories to life through vibrant illustration and design. Character art, editorial, NFT &mdash; a wide range of creative expression.</p>
-      <a href="#works" class="hero-btn">View Works</a>
+      <p class="hero-desc" data-mouse-parallax="0.015">Illustration, character design, web and app development &mdash; from the first sketch to the final line of code, bringing stories to life across every medium.</p>
+      <a href="#works" class="hero-btn" data-mouse-parallax="0.010">View Works</a>
     </div>
 
     <!-- SLIDE OVERLAY (bottom-right, tag/title/caption) -->
-    <div class="slide-overlay is-active" id="slide-overlay">
+    <div class="slide-overlay is-active" id="slide-overlay" data-mouse-parallax="0.020">
       <div class="slide-tag" id="slide-tag">ILLUSTRATION</div>
       <div class="slide-title" id="slide-title-text">色彩で紡ぐ、夏の記憶</div>
       <div class="slide-caption" id="slide-caption-text">人物イラスト / オリジナル作品</div>
@@ -1572,7 +2037,7 @@
     </div>
   </section>
 
-  <!-- FIXED SOCIAL ICONS (bottom-right, matching jojima-george.com) -->
+  <!-- FIXED SOCIAL ICONS -->
   <div class="social-icons">
     <a href="https://twitter.com/jojima_george" target="_blank" rel="noopener noreferrer">
       <img src="image/X_logo.png" alt="X">
@@ -1588,316 +2053,449 @@
   </div>
 
   <!-- ============================================
-       MAIN CONTENT (scrolls over hero with parallax)
+       MAIN CONTENT
        ============================================ -->
   <div class="main-content">
 
-    <!-- 2. NEWS (CAROUSEL) -->
-    <section class="section section-light" id="news">
+    <!-- 市松キラキラ。main-content(z-index:10のスタッキングコンテキスト)内に置き、
+         ヒーローより上・本文の上に薄く重なる演出レイヤー -->
+    <canvas id="spark-canvas" class="spark-canvas" aria-hidden="true"></canvas>
+
+    <!-- 2. COMMISSION BAR（冒頭の軽い依頼導線） -->
+    <a class="request-bar" href="#contact">
+      <span class="request-bar-label">Commission</span>
+      <span class="request-bar-text">お仕事のご依頼・ご相談を受け付けています</span>
+      <span class="request-bar-arrow en">&rarr;</span>
+    </a>
+
+    <!-- ============================================
+         3. WORKS（index.htmlの交互配置ベース + 依頼タグ）
+         ============================================ -->
+    <section class="section" id="works" data-stagger>
       <div class="section-inner">
-        <div class="section-title-wrap reveal">
-          <div class="section-title">News</div>
-          <div class="section-title-line"></div>
-        </div>
-
-        <div class="news-grid reveal-children">
-          <a href="news.html#news20" class="news-card">
-            <div class="news-card-img-wrap">
-              <img class="news-card-img" src="image/designfes63.webp" alt="デザインフェスタ63 ぽちゃもん">
-            </div>
-            <div class="news-card-body">
-              <div class="news-card-tag">Exhibition</div>
-              <div class="news-card-title">出展情報：デザインフェスタ63にぽちゃもんが初出展。TikTokでアニメ展開中。</div>
-            </div>
-            <div class="news-card-footer">
-              <span class="news-card-date">2026.5.23</span>
-              <span class="news-card-arrow">&#x276F;</span>
-            </div>
-          </a>
-
-          <a href="news.html#news" class="news-card">
-            <div class="news-card-img-wrap">
-              <img class="news-card-img" src="image/FANTASIA2025.webp" alt="FANTASIA2025">
-            </div>
-            <div class="news-card-body">
-              <div class="news-card-tag">Exhibition</div>
-              <div class="news-card-title">出展情報：FANTASIA2025に出展します。すしだるまグッズをお楽しみください。</div>
-            </div>
-            <div class="news-card-footer">
-              <span class="news-card-date">2025.11.16</span>
-              <span class="news-card-arrow">&#x276F;</span>
-            </div>
-          </a>
-
-          <a href="news.html#news19" class="news-card">
-            <div class="news-card-img-wrap">
-              <img class="news-card-img" src="image/designfes62.webp" alt="デザインフェスタ62">
-            </div>
-            <div class="news-card-body">
-              <div class="news-card-tag">Exhibition</div>
-              <div class="news-card-title">出展情報：デザインフェスタ62に出展します。新作グッズも多数ご用意。</div>
-            </div>
-            <div class="news-card-footer">
-              <span class="news-card-date">2025.11.8</span>
-              <span class="news-card-arrow">&#x276F;</span>
-            </div>
-          </a>
-
-          <a href="news.html#news18" class="news-card">
-            <div class="news-card-img-wrap">
-              <img class="news-card-img" src="illust/34_tokaido.webp" alt="東海道五拾六次目">
-            </div>
-            <div class="news-card-body">
-              <div class="news-card-tag">Exhibition</div>
-              <div class="news-card-title">作品展示「東海道五拾六次目」に参加。新作イラストを展示します。</div>
-            </div>
-            <div class="news-card-footer">
-              <span class="news-card-date">2025.9.19</span>
-              <span class="news-card-arrow">&#x276F;</span>
-            </div>
-          </a>
-
-          <a href="news.html#news17" class="news-card">
-            <div class="news-card-img-wrap">
-              <img class="news-card-img" src="image/COMITIA153.webp" alt="COMITIA153">
-            </div>
-            <div class="news-card-body">
-              <div class="news-card-tag">Exhibition</div>
-              <div class="news-card-title">COMITIA153に出展。すしだるまグッズを取り揃えてお待ちしております。</div>
-            </div>
-            <div class="news-card-footer">
-              <span class="news-card-date">2025.8.31</span>
-              <span class="news-card-arrow">&#x276F;</span>
-            </div>
-          </a>
-
-          <a href="news.html#news16" class="news-card">
-            <div class="news-card-img-wrap">
-              <img class="news-card-img" src="illust/33_whiteend.webp" alt="White End">
-            </div>
-            <div class="news-card-body">
-              <div class="news-card-tag">New Work</div>
-              <div class="news-card-title">『White End』新作案内。冬のかけら展示作品のオークションを実施します。</div>
-            </div>
-            <div class="news-card-footer">
-              <span class="news-card-date">2024.12.23</span>
-              <span class="news-card-arrow">&#x276F;</span>
-            </div>
-          </a>
-
-        </div>
-
-        <div class="more-btn-wrap">
-          <a href="news.html" class="more-btn">もっと見る</a>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3. PROFILE -->
-    <section class="section section-white" id="profile">
-      <div class="section-inner">
-        <div class="section-title-wrap reveal">
-          <div class="section-title">Profile</div>
-          <div class="section-title-line"></div>
-        </div>
-
-        <div class="profile-card reveal">
-          <div class="profile-img-wrap">
-            <img class="profile-img" src="image/PFP.png" alt="城島ジョージ">
-          </div>
-          <div class="profile-body">
-            <div class="profile-name">城島ジョージ</div>
-            <div class="profile-name-en">Jojima George</div>
-            <p class="profile-bio">2016年に独学で絵を始め、アニメ調からリアル厚塗りまで幅広いテイストを武器にクライアントワークを展開。全国イラストコンテスト（ヒューマンアカデミー主催）最優秀賞を受賞し、本格的に商業制作へ。<br><br>ゲームイラスト、アパレルコラボ、ブロックチェーンプロジェクトのキャラクターデザインなど、ジャンルを越えた制作実績を持つ。１級色彩コーディネーターの資格を活かした配色設計も強み。<br><br>オリジナルキャラクター「すしだるま」「ぽちゃもん」はSNS・イベントで展開中。NFTアートでは200作品以上の販売実績があり、国内最大規模のオンラインイベント「NFT紅白」を主催。Web・グッズ・イベントの企画からデザイン・コーディングまで一貫して手がけるクリエイター。</p>
-            <div class="profile-tags">
-              <span class="profile-tag">Illustration</span>
-              <span class="profile-tag">Character Design</span>
-              <span class="profile-tag">NFT Art</span>
-              <span class="profile-tag">Web Design</span>
-              <span class="profile-tag">Color Coordination</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="profile-timeline">
-          <div class="timeline-item">
-            <div class="timeline-year">2016</div>
-            <div class="timeline-title">独学でイラスト制作を開始</div>
-            <div class="timeline-desc">アニメ調からリアル厚塗りまで幅広いテイストを独学で習得</div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-year">2019</div>
-            <div class="timeline-title">全国イラストコンテスト 最優秀賞受賞</div>
-            <div class="timeline-desc">ヒューマンアカデミー主催コンテストで最優秀賞を受賞し、商業制作へ本格参入</div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-year">2021</div>
-            <div class="timeline-title">NFTアート・ブロックチェーン領域へ進出</div>
-            <div class="timeline-desc">200作品以上の販売実績。国内最大規模のオンラインイベント「NFT紅白」を主催</div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-year">2023</div>
-            <div class="timeline-title">オリジナルキャラクター展開</div>
-            <div class="timeline-desc">「すしだるま」「ぽちゃもん」をSNS・リアルイベントで展開。グッズ制作も手がける</div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-year">NOW</div>
-            <div class="timeline-title">ジャンルを越えた制作活動</div>
-            <div class="timeline-desc">ゲームイラスト、アパレルコラボ、Web・グッズ・イベントの企画からデザイン・コーディングまで一貫して手がけるクリエイターとして活動中</div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- 4. WORKS -->
-    <section class="section section-light" id="works">
-      <div class="section-inner">
-        <div class="section-title-wrap reveal">
-          <div class="section-title">Works</div>
-          <div class="section-title-line"></div>
-        </div>
+        <h2 class="sec-label reveal">Works</h2>
 
         <!-- Work 1: ぽちゃもん -->
-        <div class="work-item reveal">
+        <div class="work-item reveal" data-stagger data-stagger-step="0.08" data-stagger-max="0.5">
           <div class="work-img-wrap">
             <video class="work-img" src="image/pochamon_sakura_surfing.mp4" poster="image/pochamon_sakura_surfing_poster.jpg" autoplay loop muted playsinline preload="metadata" aria-label="ぽちゃもん"></video>
           </div>
-          <div class="work-body">
-            <div class="work-num">Work 01</div>
-            <div class="work-title">ぽちゃもん</div>
-            <p class="work-desc">ぽちゃっとしたモモンガが自由に動き回る！ころころ楽しい手描きアニメーションの中で元気に過ごしています。グッズも展開中で、展示会等でご購入いただけます。びろーんとしたぽちゃもんに夢中になる人が増えています。</p>
-            <div class="work-links">
-              <a href="https://www.tiktok.com/@pochamon_jp" class="work-link">TikTok</a>
-              <a href="#" class="work-link">Instagram</a>
+          <div class="work-body ink-guard">
+            <div class="work-num reveal">Work 01 &mdash; Character</div>
+            <div class="work-title reveal">ぽちゃもん</div>
+            <p class="work-desc reveal">ぽちゃっとしたモモンガが自由に動き回る！ころころ楽しい手描きアニメーションの中で元気に過ごしています。TikTokでアニメを展開中で、グッズはデザインフェスタなどの展示会でご購入いただけます。</p>
+            <ul class="offer-tags reveal">
+              <li>キャラクターデザイン</li>
+              <li>SNS用 手描きアニメーション</li>
+              <li>グッズ展開・イベント出展</li>
+            </ul>
+            <p class="offer-tags-note reveal">&#8251; このジャンルでご依頼いただける内容です</p>
+            <div class="work-links reveal">
+              <a href="https://pochamon.jojima-george.com/" target="_blank" rel="noopener noreferrer" class="work-link">ぽちゃもんホームページ</a>
+              <a href="https://www.tiktok.com/@pochamon_jp" target="_blank" rel="noopener noreferrer" class="work-link">TikTok</a>
+              <a href="https://www.instagram.com/jojima_george/" target="_blank" rel="noopener noreferrer" class="work-link">Instagram</a>
             </div>
           </div>
         </div>
 
         <!-- Work 2: すしだるま -->
-        <div class="work-item reversed reveal">
+        <div class="work-item reversed reveal" data-stagger data-stagger-step="0.08" data-stagger-max="0.5">
           <div class="work-img-wrap">
             <img class="work-img" src="image/sushidaruma.gif" alt="すしだるま">
           </div>
-          <div class="work-body">
-            <div class="work-num">Work 02</div>
-            <div class="work-title">すしだるま</div>
-            <p class="work-desc">すしとゆきだるまが合体！可愛く飛び跳ねるアニメーションが特徴のキャラクターが誕生しました。老若男女に親しまれることを目指し、グッズ展開やNFTアートの活動を行っています。</p>
-            <div class="work-links">
-              <a href="https://sushi-daruma.com" class="work-link">すしだるまホームページ</a>
-              <a href="https://opensea.io/collection/sushidaruma" class="work-link">OpenSea(NFT)</a>
+          <div class="work-body ink-guard">
+            <div class="work-num reveal">Work 02 &mdash; Character</div>
+            <div class="work-title reveal">すしだるま</div>
+            <p class="work-desc reveal">すしとゆきだるまが合体！可愛く飛び跳ねるアニメーションが特徴のキャラクターです。老若男女に親しまれることを目指し、グッズ展開やイベント出展、ホームページの制作まで自分の手で行っています。</p>
+            <ul class="offer-tags reveal">
+              <li>キャラクターデザイン</li>
+              <li>2コマアニメーション・LINEスタンプ的表現</li>
+              <li>グッズ展開・キャラクターサイト制作</li>
+            </ul>
+            <p class="offer-tags-note reveal">&#8251; このジャンルでご依頼いただける内容です</p>
+            <div class="work-links reveal">
+              <a href="https://sushi-daruma.com" target="_blank" rel="noopener noreferrer" class="work-link">すしだるまホームページ</a>
+              <a href="https://sushidaruma-grandprix.studio.site/" target="_blank" rel="noopener noreferrer" class="work-link">すしだるまグランプリ</a>
             </div>
           </div>
         </div>
 
         <!-- Work 3: 人物イラスト -->
-        <div class="work-item reveal">
+        <div class="work-item reveal" data-stagger data-stagger-step="0.08" data-stagger-max="0.5">
           <div class="work-img-wrap">
             <img class="work-img" src="image/figures.webp" alt="人物イラスト">
           </div>
-          <div class="work-body">
-            <div class="work-num">Work 03</div>
-            <div class="work-title">人物イラスト</div>
-            <p class="work-desc">ゲームイラストやアパレルコラボなど、クライアントワークの実績が多数あります。アニメ調のイラストから厚塗りまで、幅広い技法を取り入れて世界観を表現しています。</p>
-            <div class="work-links">
+          <div class="work-body ink-guard">
+            <div class="work-num reveal">Work 03 &mdash; Client Work</div>
+            <div class="work-title reveal">人物イラスト</div>
+            <p class="work-desc reveal">ゲームイラストやアパレルコラボなど、クライアントワークの実績が多数あります。アニメ調のイラストから厚塗りまで、幅広い技法を取り入れて世界観を表現しています。</p>
+            <ul class="offer-tags reveal">
+              <li>ゲームイラスト・キャラクターデザイン</li>
+              <li>アパレルコラボ・商品ビジュアル</li>
+              <li>1級色彩コーディネーターによる配色設計</li>
+            </ul>
+            <p class="offer-tags-note reveal">&#8251; このジャンルでご依頼いただける内容です</p>
+            <div class="work-links reveal">
               <a href="https://jojima-george.com/illustration.html" class="work-link">ポートフォリオ(作品集)</a>
-              <a href="https://opensea.io/collection/jojimageorge" class="work-link">OpenSea(NFT)</a>
             </div>
           </div>
         </div>
 
         <!-- Work 4: 時女 守愛 -->
-        <div class="work-item reversed reveal">
+        <div class="work-item reversed reveal" data-stagger data-stagger-step="0.08" data-stagger-max="0.5">
           <div class="work-img-wrap">
             <img class="work-img" src="image/BB.webp" alt="時女 守愛(ばーば)">
           </div>
-          <div class="work-body">
-            <div class="work-num">Work 04</div>
-            <div class="work-title">時女 守愛(72)<br>Cute Girls Collection</div>
-            <p class="work-desc">通称「ばーば」で親しまれている、とっても可愛らしい72歳の乙女。Twitterではその愛くるしさで大人気になりました。</p>
-            <div class="work-links">
-              <a href="https://opensea.io/collection/tokime-moria" class="work-link">OpenSea(NFT)</a>
+          <div class="work-body ink-guard">
+            <div class="work-num reveal">Work 04 &mdash; Character Project</div>
+            <div class="work-title reveal">時女 守愛(72)<br>Cute Girls Collection</div>
+            <p class="work-desc reveal">通称「ばーば」で親しまれている、とっても可愛らしい72歳の乙女。Xではその愛くるしさで大人気になりました。コレクション「ギンピカ」や、国内最大規模のオンラインイベント「NFT紅白」など、キャラクターを軸にした企画・特設サイトの制作・運営まで一貫して手がけました。</p>
+            <ul class="offer-tags reveal">
+              <li>キャラクターデザイン・世界観設計</li>
+              <li>コレクション・オンラインイベントの企画運営</li>
+              <li>特設サイトのデザイン・コーディング</li>
+            </ul>
+            <p class="offer-tags-note reveal">&#8251; このジャンルでご依頼いただける内容です</p>
+            <div class="work-links reveal">
+              <a href="https://jojima-george.com/ginpika2nd/" class="work-link">ギンピカ</a>
+              <a href="https://jojima-george.com/kouhaku2023/" class="work-link">NFT紅白</a>
+              <a href="https://jojima-george.com/tokimekibb/" class="work-link">ときめきサマー</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Work 5: アプリ開発・サービス企画 -->
+        <div class="work-item reveal" data-stagger data-stagger-step="0.08" data-stagger-max="0.5">
+          <div class="work-img-wrap app-grid-wrap">
+            <ul class="app-grid">
+              <li>
+                <a class="app-card" href="https://matchbooth.pages.dev/" target="_blank" rel="noopener noreferrer">
+                  <span class="app-icon app-icon-img"><img src="image/matchbooth_icon.png" alt=""></span>
+                  <strong class="app-wordmark"><img src="image/matchbooth_wordmark.svg" alt="マッチブース！"></strong>
+                  <span class="app-card-desc">同人誌即売会向けのブースマップWebサービス。お気に入り登録、出展者の本人登録、Xの投稿埋め込みで「どこに行くか」を決められる。企画から設計・実装・公開まで。</span>
+                  <span class="app-card-tech">Cloudflare Pages / Workers / D1<span class="app-card-arrow">&rarr;</span></span>
+                </a>
+              </li>
+              <li>
+                <a class="app-card" href="https://ob-lite.app/" target="_blank" rel="noopener noreferrer">
+                  <span class="app-icon app-icon-img"><img src="image/oblite_icon.png" alt="" class="is-pixel"></span>
+                  <strong class="app-wordmark app-wordmark-pixel">OB Lite</strong>
+                  <span class="app-card-desc">GitHub同期のノートをスマホで読み書きできるPWA。Obsidian互換のMarkdownエディタに、端から端まで暗号化した共有リンクと買い切りProを実装。日英2言語で公開中。</span>
+                  <span class="app-card-tech">PWA / GitHub App / Stripe<span class="app-card-arrow">&rarr;</span></span>
+                </a>
+              </li>
+              <li>
+                <div class="app-card">
+                  <span class="app-icon app-icon-img"><img src="image/aurora_voice_logo.png" alt="Aurora Voice"></span>
+                  <strong>Aurora Voice</strong>
+                  <span class="app-card-desc">Windows向けの音声入力ツール。話した言葉を文字に起こし、箇条書きや文体まで整えて貼り付ける。音声もテキストも外に送らない完全ローカル設計。</span>
+                  <span class="app-card-tech">Python / whisper.cpp / llama.cpp</span>
+                </div>
+              </li>
+              <li>
+                <div class="app-card">
+                  <span class="app-icon app-icon-img"><img src="image/magic_window_logo.svg" alt="Magic Window"></span>
+                  <strong class="app-wordmark"><img src="image/magic_window_wordmark.svg" alt="Magic Window"></strong>
+                  <span class="app-card-desc">AIコーディング支援（Claude Code）専用のデスクトップクライアント。複数の会話をタブで並べ、回答を記事のように読みやすく表示する。Windowsアプリとして自作。</span>
+                  <span class="app-card-tech">Python / HTML &amp; JS / Windows App</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="work-body ink-guard">
+            <div class="work-num reveal">Work 05 &mdash; App &amp; Service</div>
+            <div class="work-title reveal">アプリ開発・サービス企画</div>
+            <p class="work-desc reveal">「あったらいいな」を企画して、画面設計からコーディング、公開まで自分の手で。Webアプリ・PWA・キャラクターサイトなど、自作のプロダクトを複数公開しています。イラストとデザインの経験を活かした、見た目と使い心地を両立する実装が強みです。</p>
+            <ul class="offer-tags reveal">
+              <li>Webアプリ・サービスの企画・プロトタイプ制作</li>
+              <li>UI・UXデザイン（画面設計・使い心地の改善相談）</li>
+              <li>フロントエンド実装・PWA化・公開まで</li>
+            </ul>
+            <p class="offer-tags-note reveal">&#8251; このジャンルでご依頼いただける内容です</p>
+            <div class="work-links reveal">
+              <a href="https://matchbooth.pages.dev/" target="_blank" rel="noopener noreferrer" class="work-link">マッチブース！</a>
+              <a href="https://ob-lite.app/" target="_blank" rel="noopener noreferrer" class="work-link">OB Lite</a>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 5. LINKS (CAROUSEL) -->
-    <section class="section section-white" id="links">
+    <!-- ============================================
+         4. PROFILE
+         ============================================ -->
+    <section class="section" id="profile" data-stagger>
       <div class="section-inner">
-        <div class="section-title-wrap reveal">
-          <div class="section-title">Links</div>
-          <div class="section-title-line"></div>
+        <h2 class="sec-label reveal">Profile</h2>
+
+        <div class="profile-grid reveal">
+          <figure class="profile-photo">
+            <img src="image/PFP.png" alt="城島ジョージ">
+            <figcaption>Illustrator / Designer / Developer</figcaption>
+          </figure>
+          <div class="ink-guard">
+            <div class="profile-name">城島ジョージ</div>
+            <div class="profile-name-en">Jojima George</div>
+            <p class="profile-bio">2016年に独学で絵を始め、アニメ調からリアル厚塗りまで幅広いテイストを武器にクライアントワークを展開。全国イラストコンテスト（ヒューマンアカデミー主催）最優秀賞を受賞し、本格的に商業制作へ。<br><br>ゲームイラスト、アパレルコラボ、キャラクターデザインなどジャンルを越えた制作実績に加え、Webサイトのデザイン・コーディング、Webアプリ・サービスの企画と開発まで、自分の手で形にしています。1級色彩コーディネーターの資格を活かした配色設計も強み。<br><br>オリジナルキャラクター「すしだるま」「ぽちゃもん」はSNS・イベントで展開中。絵が描けて、デザインもコードも書けて、企画から考えられる——イラスト1枚からアプリまで、ひとりで一貫して手がけられるのが持ち味です。</p>
+            <ul class="profile-skills">
+              <li>Illustration</li>
+              <li>Character Design</li>
+              <li>Web Design</li>
+              <li>Coding</li>
+              <li>App Development</li>
+              <li>UI / UX</li>
+              <li class="is-jp">企画・ディレクション</li>
+            </ul>
+          </div>
         </div>
 
-        <div class="links-grid reveal-children">
-          <a href="https://jojima-george.com/ginpika2nd/" class="link-card">
-            <img class="link-card-img" src="image/ginpika_logo.png" alt="ギンピカ">
+        <div class="ink-guard ink-guard-block">
+        <div class="profile-stats reveal">
+          <div class="stat-item">
+            <div class="stat-value">10<span class="jp">年</span></div>
+            <div class="stat-label-en">Illustration Career</div>
+            <div class="stat-label-jp">イラスト制作歴（2016年〜）</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value"><span class="jp">一貫対応</span></div>
+            <div class="stat-label-en">Plan &rarr; Design &rarr; Code</div>
+            <div class="stat-label-jp">企画からデザイン・開発までひとりで</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value"><span class="jp">1級</span></div>
+            <div class="stat-label-en">Color Coordinator</div>
+            <div class="stat-label-jp">色彩コーディネーター資格</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value"><span class="jp">最優秀賞</span></div>
+            <div class="stat-label-en">Illustration Contest</div>
+            <div class="stat-label-jp">全国イラストコンテスト受賞</div>
+          </div>
+        </div>
+
+        <div class="profile-timeline reveal">
+          <div class="tl-item">
+            <div class="tl-year">2016</div>
+            <div class="tl-title">独学でイラスト制作を開始</div>
+            <div class="tl-desc">アニメ調からリアル厚塗りまで幅広いテイストを独学で習得</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-year">2019</div>
+            <div class="tl-title">全国イラストコンテスト 最優秀賞受賞</div>
+            <div class="tl-desc">ヒューマンアカデミー主催コンテストで最優秀賞を受賞し、商業制作へ本格参入。ゲームイラスト・アパレルコラボなどクライアントワークを展開</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-year">2021</div>
+            <div class="tl-title">Webデザイン・企画運営へ領域を拡大</div>
+            <div class="tl-desc">コレクション「ギンピカ」や国内最大規模のオンラインイベント「NFT紅白」を企画・主催。特設サイトのデザインからコーディングまで自分の手で制作</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-year">2023</div>
+            <div class="tl-title">オリジナルキャラクター「すしだるま」展開</div>
+            <div class="tl-desc">SNS・グッズ・リアルイベントで展開。キャラクターサイトの制作やグランプリ企画も手がける</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-year">2026</div>
+            <div class="tl-title">「ぽちゃもん」始動・アプリ開発へ</div>
+            <div class="tl-desc">手描きアニメのキャラクター「ぽちゃもん」をTikTokで展開し、公式サイト・3Dカードを自作。同時に「マッチブース！」「OB Lite」などのWebアプリ・サービスを企画から開発・公開まで一人で手がける</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-year">NOW</div>
+            <div class="tl-title">企画からデザイン・コーディング・アプリ開発まで一貫して</div>
+            <div class="tl-desc">イラスト・キャラクター・Web・アプリを横断し、「描く」と「作る」の両方ができるクリエイターとして活動中</div>
+          </div>
+        </div>
+        </div><!-- /.ink-guard-block -->
+      </div>
+    </section>
+
+    <!-- ============================================
+         5. NEWS
+         ============================================ -->
+    <section class="section" id="news" data-stagger>
+      <div class="section-inner">
+        <h2 class="sec-label reveal">News</h2>
+
+        <div class="news-grid reveal">
+          <!-- 最新1件: feature -->
+          <a href="news.html#news20" class="news-feature ink-guard">
+            <div class="news-feature-imgwrap">
+              <img src="image/designfes63.webp" alt="デザインフェスタ63 ぽちゃもん">
+            </div>
+            <div>
+              <span class="news-tag">Exhibition</span>
+              <span class="news-date en">2026.5.23</span>
+            </div>
+            <div class="news-feature-title">出展情報：デザインフェスタ63にぽちゃもんが初出展。TikTokでアニメ展開中。</div>
           </a>
-          <a href="https://jojima-george.com/kouhaku2023/" class="link-card">
-            <img class="link-card-img" src="image/NFTkouhaku2023.png" alt="NFT紅白2023">
-          </a>
-          <a href="https://sushi-daruma.com" class="link-card">
-            <img class="link-card-img" src="image/sushidaruma_banner.png" alt="すしだるま">
-          </a>
-          <a href="https://sushidaruma-grandprix.studio.site/" class="link-card">
-            <img class="link-card-img" src="image/grandprix.png" alt="すしだるまグランプリ">
-          </a>
-          <a href="https://note.com/jojima_george/" class="link-card">
-            <img class="link-card-img" src="image/note.webp" alt="note">
-          </a>
-          <a href="https://jojima-george.com/tokimekibb/" class="link-card">
-            <img class="link-card-img" src="image/tokimeki_summer_logo.gif" alt="ときめきサマー">
-          </a>
+
+          <!-- 2件目以降: 目次リスト -->
+          <div>
+            <ul class="news-list ink-guard">
+              <li>
+                <a href="news.html#news">
+                  <span class="news-date en">2025.11.16</span>
+                  <span class="news-tag">Exhibition</span>
+                  <span class="news-list-title">出展情報：FANTASIA2025に出展します。すしだるまグッズをお楽しみください。</span>
+                  <span class="news-list-arrow">&rarr;</span>
+                </a>
+              </li>
+              <li>
+                <a href="news.html#news19">
+                  <span class="news-date en">2025.11.8</span>
+                  <span class="news-tag">Exhibition</span>
+                  <span class="news-list-title">出展情報：デザインフェスタ62に出展します。新作グッズも多数ご用意。</span>
+                  <span class="news-list-arrow">&rarr;</span>
+                </a>
+              </li>
+              <li>
+                <a href="news.html#news18">
+                  <span class="news-date en">2025.9.19</span>
+                  <span class="news-tag">Exhibition</span>
+                  <span class="news-list-title">作品展示「東海道五拾六次目」に参加。新作イラストを展示します。</span>
+                  <span class="news-list-arrow">&rarr;</span>
+                </a>
+              </li>
+              <li>
+                <a href="news.html#news17">
+                  <span class="news-date en">2025.8.31</span>
+                  <span class="news-tag">Exhibition</span>
+                  <span class="news-list-title">COMITIA153に出展。すしだるまグッズを取り揃えてお待ちしております。</span>
+                  <span class="news-list-arrow">&rarr;</span>
+                </a>
+              </li>
+              <li>
+                <a href="news.html#news16">
+                  <span class="news-date en">2024.12.23</span>
+                  <span class="news-tag">New Work</span>
+                  <span class="news-list-title">『White End』新作案内。冬のかけら展示作品のオークションを実施します。</span>
+                  <span class="news-list-arrow">&rarr;</span>
+                </a>
+              </li>
+            </ul>
+            <div class="more-btn-wrap">
+              <a href="news.html" class="more-btn">More News</a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 6. CONTACT -->
-    <section class="section section-light" id="contact">
+    <!-- ============================================
+         6. CONTACT（コンバージョンの本丸: 誘い→CTA→安心材料→詳細）
+         ============================================ -->
+    <section class="section" id="contact" data-stagger>
       <div class="section-inner">
-        <div class="section-title-wrap reveal">
-          <div class="section-title">Contact</div>
-          <div class="section-title-line"></div>
-        </div>
+        <h2 class="sec-label reveal">Contact</h2>
 
-        <div class="contact-wrap reveal">
-          <div class="contact-img-wrap">
-            <img class="contact-img" src="image/eatme.png" alt="Contact illustration">
+        <div class="contact-hero ink-guard reveal">
+          <div class="contact-img">
+            <img src="image/eatme.png" alt="Contact illustration">
           </div>
-          <div class="contact-body">
-            <p class="contact-text">お仕事・コラボ等のご相談は、X(twitter)DMまたはGoogle Formsよりお問い合わせください。</p>
+          <div>
+            <p class="contact-lead">イラスト1枚から、キャラクター開発・Web制作・アプリ開発まで。<br>「こんなことできる？」という<span>ラフな構想段階でも歓迎</span>です。</p>
             <div class="contact-buttons">
-              <a href="https://twitter.com/jojima_george" class="contact-btn contact-btn-primary">X(twitter)</a>
-              <a href="https://docs.google.com/forms/d/e/1FAIpQLSeJoD19lmZkOfHqdDr6TNpdMHv_xNbkj32XNEH_34wQPdMrKg/viewform" class="contact-btn contact-btn-secondary">Google Forms</a>
+              <a href="https://twitter.com/jojima_george" target="_blank" rel="noopener noreferrer" class="contact-btn-primary">X(twitter) のDMで相談する</a>
+              <a href="https://docs.google.com/forms/d/e/1FAIpQLSeJoD19lmZkOfHqdDr6TNpdMHv_xNbkj32XNEH_34wQPdMrKg/viewform" target="_blank" rel="noopener noreferrer" class="contact-btn-secondary">フォームから相談する</a>
             </div>
+            <ul class="contact-assure">
+              <li>ご相談・お見積りは無料</li>
+              <li>通常2〜3営業日以内にご返信</li>
+              <li>企画段階からの持ち込みOK</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="contact-sub-grid ink-guard reveal">
+          <div>
+            <div class="contact-sub">Services &mdash; <b>ご依頼できること</b></div>
+            <ul class="offer-list">
+              <li>キャラクターデザイン・イラスト制作<small>Character</small></li>
+              <li>ゲーム・アパレル等のクライアントワーク<small>Client Work</small></li>
+              <li>Webデザイン・コーディング<small>Web</small></li>
+              <li>アプリ・サービスのUI/UX設計・開発のご相談<small>App / UX</small></li>
+            </ul>
+          </div>
+          <div>
+            <div class="contact-sub">Flow &mdash; <b>ご依頼の流れ</b></div>
+            <ul class="flow-list">
+              <li>
+                <div>
+                  <strong>ご相談</strong>
+                  <span>X(twitter)のDM、またはフォームからお気軽にどうぞ</span>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>お見積り・スケジュール</strong>
+                  <span>内容を伺い、費用と納期をご提案します</span>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>制作・納品</strong>
+                  <span>ラフ確認を挟みながら制作を進めます</span>
+                </div>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 7. FOOTER -->
+    <!-- ============================================
+         7. FOOTER（奥付）
+         ============================================ -->
     <footer class="footer">
-      <div class="footer-inner">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">Jojima George</div>
+          <p>イラストレーター / デザイナー / 個人開発者。<br>人物イラスト、オリジナルキャラクター、Webデザイン、アプリ開発まで、絵とコードで物語を運ぶ制作をしています。</p>
+        </div>
+        <div>
+          <div class="footer-col-title">Sitemap</div>
+          <ul class="footer-links">
+            <li><a href="#hero">Top</a></li>
+            <li><a href="#works">Works</a></li>
+            <li><a href="#profile">Profile</a></li>
+            <li><a href="#news">News</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Links</div>
+          <ul class="footer-links">
+            <li><a href="https://jojima-george.com/illustration.html">Portfolio</a></li>
+            <li><a href="https://sushi-daruma.com" target="_blank" rel="noopener noreferrer">すしだるま</a></li>
+            <li><a href="https://note.com/jojima_george/" target="_blank" rel="noopener noreferrer">note</a></li>
+            <li><a href="https://twitter.com/jojima_george" target="_blank" rel="noopener noreferrer">X(twitter)</a></li>
+            <li><a href="https://www.instagram.com/jojima_george/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
         <div class="footer-copy">&copy; Jojima George</div>
+        <a href="#contact" class="footer-request">お仕事のご相談はこちら &rarr;</a>
       </div>
     </footer>
 
   </div><!-- /.main-content -->
 
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
   <script>
     // ===== Slide Data =====
     let heroSlides = [
       { tag: 'ILLUSTRATION', title: '色彩で紡ぐ、夏の記憶', caption: '人物イラスト / オリジナル作品' },
       { tag: 'ILLUSTRATION', title: '日常に宿る、静かな旋律', caption: '人物イラスト / オリジナル作品' },
-      { tag: 'PROJECT', title: 'ギンピカ 2nd Anniversary', caption: 'NFTコレクション / イベント' },
+      { tag: 'PROJECT', title: 'ギンピカ 2nd Anniversary', caption: 'コレクション / イベント企画' },
       { tag: 'ILLUSTRATION', title: '光と水のあいだに', caption: '人物イラスト / オリジナル作品' },
-      { tag: 'ILLUSTRATION', title: '春の訪れを描く', caption: '人物イラスト / オリジナル作品' },
+      { tag: 'CHARACTER', title: 'ぽちゃもん', caption: 'オリジナルキャラクター / 公式サイト' },
     ];
 
-    // SP（≤600px）はスライド順を 1,5,3,2,4 に並び替え（DOM・データ配列を同時更新）
+    // SP（≤600px）はスライド順を並び替え（index.htmlの挙動を踏襲）
     if (window.innerWidth <= 600) {
       const spOrder = [0, 4, 2, 1, 3];
       const wrapper = document.querySelector('.hero-swiper .swiper-wrapper');
@@ -1910,7 +2508,7 @@
 
     const totalHeroSlides = heroSlides.length;
 
-    // ===== Opening Animation =====
+    // ===== Opening Animation（既存流用） =====
     const opening = document.getElementById('opening');
     const openingText = document.getElementById('opening-text');
 
@@ -1927,7 +2525,6 @@
       setTimeout(() => opening.remove(), 2800);
       setTimeout(() => startProgress(), 2400);
 
-      // SVG stroke animation starts after opening ends
       const heroNameSvg = document.getElementById('hero-name-svg');
       setTimeout(() => {
         heroNameSvg.classList.add('is-active');
@@ -1943,7 +2540,7 @@
       }
     }, 5000);
 
-    // ===== Hero Swiper (full-screen fade slider) =====
+    // ===== Hero Swiper =====
     const heroSwiper = new Swiper('.hero-swiper', {
       loop: true,
       speed: 800,
@@ -1951,6 +2548,7 @@
       effect: 'fade',
       fadeEffect: { crossFade: true },
     });
+    window.heroSwiper = heroSwiper;  // shader initから参照するため公開
 
     // ===== Slide Overlay Text =====
     const slideOverlay = document.getElementById('slide-overlay');
@@ -1960,6 +2558,7 @@
     const progressBar = document.getElementById('hero-progress-bar');
     const SLIDE_DURATION = 5000;
     let progressTimer = null;
+    let progressStarted = false;
 
     function updateSlideOverlay(index) {
       const data = heroSlides[index % totalHeroSlides];
@@ -1982,10 +2581,23 @@
       progressBar.style.width = '';
       progressBar.classList.add('is-running');
 
+      progressStarted = true;
       clearTimeout(progressTimer);
-      progressTimer = setTimeout(() => {
-        heroSwiper.slideNext();
-      }, SLIDE_DURATION);
+      progressTimer = setTimeout(advanceSlide, SLIDE_DURATION);
+    }
+
+    // 「途中で止まる」の原因：タブを裏に回す等で前回の切替の transitionend が取りこぼされると
+    //   Swiper の animating フラグが立ったままになり、loop モードの slideNext() は
+    //   （loopPreventsSliding=true のため）黙って何もしない → slideChange が来ない →
+    //   次のタイマーが二度と予約されず停止していた。
+    //   対策：①進める前に animating を必ず下ろす ②進まなかった時は自分で次を予約する
+    //         ③タブが裏の間はタイマーを止め、表に戻った時に仕切り直す
+    function advanceSlide() {
+      if (document.hidden) return;
+      const before = heroSwiper.realIndex;
+      if (heroSwiper.animating) heroSwiper.animating = false;
+      heroSwiper.slideNext();
+      if (heroSwiper.realIndex === before) startProgress();
     }
 
     heroSwiper.on('slideChange', () => {
@@ -1993,15 +2605,37 @@
       startProgress();
     });
 
-    // ===== Nav scroll behavior + Parallax =====
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        clearTimeout(progressTimer);
+      } else if (progressStarted) {
+        if (heroSwiper.animating) heroSwiper.animating = false;
+        startProgress();
+      }
+    });
+
+    // ===== Nav scroll behavior + Hero parallax =====
     const heroEl = document.getElementById('hero');
     const nav = document.getElementById('hero-nav');
     let lastScrollY = 0;
 
-    window.addEventListener('scroll', () => {
-      const scrollY = window.scrollY;
+    // 「早くスクロールするとFVのイラストがチラつく」の原因（2026-08-22）：
+    //   .hero は position:fixed で常に画面の裏に貼り付いたまま（Swiper の拡大アニメとシェーダーも
+    //   回り続ける）。速いスクロールで .main-content のまだ描画されていないタイル（checkerboard）が
+    //   一瞬できると、その穴から裏の固定ヒーローが見える。さらに scroll イベントごとに transform を
+    //   書き換えており、描画タイミングとズレて1フレーム分ヒーローが覗くことがあった。
+    //   対策：①ヒーローを通り過ぎたら visibility:hidden で裏から消す（見えるものを無くす）
+    //         ②transform の更新は rAF で1フレーム1回に間引く ③html の地色を紙色にして穴が黒く光らない
+    let heroOffscreen = false;
+    let scrollRaf = false;
+    window.heroOffscreen = false; // シェーダー側の描画停止判定にも使う
 
-      if (scrollY > window.innerHeight * 0.5) {
+    function onScrollFrame() {
+      scrollRaf = false;
+      const scrollY = window.scrollY;
+      const vh = window.innerHeight;
+
+      if (scrollY > vh * 0.5) {
         nav.classList.add('scrolled');
       } else {
         nav.classList.remove('scrolled');
@@ -2017,46 +2651,31 @@
 
       lastScrollY = scrollY;
 
-      if (scrollY < window.innerHeight * 1.5) {
-        heroEl.style.transform = `translateY(${scrollY * -0.15}px)`;
+      const off = scrollY > vh + 40;
+      if (off !== heroOffscreen) {
+        heroOffscreen = off;
+        window.heroOffscreen = off;
+        heroEl.style.visibility = off ? 'hidden' : '';
       }
-    });
-
-    // ===== Works image parallax on scroll =====
-    const workImages = document.querySelectorAll('.work-img');
-    const workObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
-        }
-      });
-    }, { threshold: 0.2 });
-
-    workImages.forEach(img => {
-      img.style.transform = 'scale(1.08)';
-      workObserver.observe(img);
-    });
+      if (!off) {
+        heroEl.style.transform = `translateY(${Math.min(scrollY, vh * 1.5) * -0.15}px)`;
+      }
+    }
 
     window.addEventListener('scroll', () => {
-      workImages.forEach(img => {
-        const rect = img.getBoundingClientRect();
-        const windowH = window.innerHeight;
-        if (rect.top < windowH && rect.bottom > 0) {
-          const progress = (windowH - rect.top) / (windowH + rect.height);
-          const offset = (progress - 0.5) * -30;
-          const scale = img.classList.contains('is-visible') ? 1 : 1.08;
-          img.style.transform = `scale(${scale}) translateY(${offset}px)`;
-        }
-      });
-    });
-
+      if (scrollRaf) return;
+      scrollRaf = true;
+      requestAnimationFrame(onScrollFrame);
+    }, { passive: true });
+    onScrollFrame();
 
     // ===== Hero responsive images (PC/SP switch) =====
     function setHeroImages() {
       const isMobile = window.innerWidth <= 600;
       document.querySelectorAll('.swiper-slide-inner[data-pc]').forEach(el => {
         const src = isMobile ? el.dataset.sp : el.dataset.pc;
-        el.style.backgroundImage = `url('${src}')`;
+        // data-sp が空＝SPはCSSで組む（ぽちゃもんスライド）
+        el.style.backgroundImage = src ? `url('${src}')` : 'none';
       });
     }
     setHeroImages();
@@ -2086,31 +2705,511 @@
       link.addEventListener('click', closeDrawer);
     });
 
-    // ===== Scroll Reveal (IntersectionObserver) =====
-    const revealObserver = new IntersectionObserver((entries) => {
+    // ===== Scroll Reveal（stagger対応 / irokoto方式：JSは属性/クラス切替、動きはCSS）
+    //   発火は viewport 下端から -22% 上がった位置。スクロールしてる本人の目線が
+    //   要素に近づいてから動き出す→ 1.4s かけて追いつく設計 =====
+    const revealSingleObserver = new IntersectionObserver((entries, obs) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
-        }
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        obs.unobserve(entry.target);
       });
-    }, { threshold: 0.15 });
+    }, { threshold: 0, rootMargin: '0px 0px -18% 0px' });
 
-    document.querySelectorAll('.reveal, .reveal-children').forEach(el => revealObserver.observe(el));
+    // 階段（親[data-stagger]配下の.revealを順に発火）
+    //   ・ネストされた [data-stagger] は自分の管轄。親からは除外
+    //   ・親発火時点で「まだ画面から遠い」要素は個別Observerに委譲
+    //   → 長いセクションでも下段は自分の位置で発火 & ネストで多階層演出
+    const staggerObserver = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const root = entry.target;
+        const step = parseFloat(root.dataset.staggerStep || '0.14');
+        const max = parseFloat(root.dataset.staggerMax || '0.9');
+        // 「root 直下（別の [data-stagger] にラップされていない）」の.revealだけ拾う
+        const items = Array.from(root.querySelectorAll('.reveal')).filter(el => {
+          const parent = el.parentElement;
+          const nearestStagger = parent ? parent.closest('[data-stagger]') : null;
+          return nearestStagger === root;
+        });
+        const nearBoundary = window.innerHeight * 1.15;
+        let staggerIdx = 0;
+        items.forEach(el => {
+          const top = el.getBoundingClientRect().top;
+          if (top < nearBoundary) {
+            el.style.transitionDelay = Math.min(staggerIdx * step, max) + 's';
+            el.classList.add('is-visible');
+            staggerIdx++;
+          } else {
+            revealSingleObserver.observe(el);
+          }
+        });
+        obs.unobserve(root);
+      });
+    }, { threshold: 0, rootMargin: '0px 0px -22% 0px' });
 
-    // ===== Timeline Reveal =====
+    document.querySelectorAll('[data-stagger]').forEach(el => staggerObserver.observe(el));
+    document.querySelectorAll('.reveal').forEach(el => {
+      if (!el.closest('[data-stagger]')) revealSingleObserver.observe(el);
+    });
+
+    // ===== Profile 年表（本番 index.html の「丸と線」を移植）
+    //   線は .profile-timeline が見えた時に上から伸び、各項目は階段状に現れ丸がポンと出る =====
     const timelineObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
-        }
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        timelineObserver.unobserve(entry.target);
       });
     }, { threshold: 0.2 });
-    document.querySelectorAll('.timeline-item').forEach((el, i) => {
+    document.querySelectorAll('.tl-item').forEach((el, i) => {
       el.style.transitionDelay = (i * 0.15) + 's';
       timelineObserver.observe(el);
     });
 
+    // ===== ScrollTrigger scrub パララックス（works イメージ・PCのみ）
+    //   スクロール量＝アニメ進行。指を止めれば絵も止まる。
+    //   overflow:hidden の枠内で 1.08→1 に締まりつつ y も微妙にズレる =====
+    const isDesktop = window.matchMedia('(min-width: 769px)').matches;
+    const anyHover = window.matchMedia('(any-hover: hover)').matches;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (isDesktop && anyHover && !reduceMotion && typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+      gsap.registerPlugin(ScrollTrigger);
+      document.querySelectorAll('.work-img-wrap').forEach(wrap => {
+        const media = wrap.querySelector('.work-img');
+        if (!media) return;
+        gsap.fromTo(media,
+          { yPercent: 6, scale: 1.08 },
+          {
+            yPercent: -6,
+            scale: 1,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: wrap,
+              start: 'top bottom',
+              end: 'bottom top',
+              scrub: 0.6,
+              invalidateOnRefresh: true,
+            }
+          }
+        );
+      });
+    }
 
+    // ヒーローのマウス追従パララックス（文字がカーソルでグリグリ動く）は本人指示で撤去（2026-08-22）。
+    //   文字は固定表示。HTML の data-mouse-parallax 属性は残っているが何も読まない。
+
+    // ===== three.js 版ズレシェーダー（ヒーローの見せ場）
+    //   ghost層1枚：scrollDiffに応じてUV歪み・網点・青Screen合成した版ズレを
+    //   hero-swiperの上に半透明で乗せる。静止時はほぼ透明、スクロール中に発動 =====
+    (function initHeroShader() {
+      if (reduceMotion || typeof THREE === 'undefined') return;
+      const canvas = document.getElementById('hero-shader-canvas');
+      const heroEl = document.querySelector('.hero');
+      if (!canvas || !heroEl) return;
+
+      const isSP = window.matchMedia('(max-width: 835px)').matches;
+      const isWide = window.innerWidth >= 1801;
+
+      window.scrollDiff = 0;
+      let prevScroll = window.scrollY;
+      let smoothedDiff = 0;
+      const smoothCoef = isWide ? 0.05 : (isSP ? 0.1 : 1.0);
+
+      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+      let renderer;
+      try {
+        renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: 'default' });
+      } catch (e) {
+        console.warn('[shader] WebGL init failed', e);
+        return;
+      }
+      renderer.setPixelRatio(dpr);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 10);
+      camera.position.z = 1;
+
+      const uniforms = {
+        uTexture: { value: null },
+        uTime: { value: 0 },
+        uResolution: { value: new THREE.Vector2(0, 0) },
+        uScrollTopDiff: { value: 0 },
+        uDpr: { value: dpr },
+        uDotScreenScale: { value: isSP ? 1.6 : 1.0 },
+        uScrollPower: { value: isSP ? 0.001 : 0.002 },
+        uColor: { value: new THREE.Color(0x004cff) },
+      };
+
+      const vertex = `
+        varying vec2 vUv;
+        uniform float uScrollTopDiff;
+        void main() {
+          vec3 nPos = position;
+          nPos.y += uScrollTopDiff * 0.001;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(nPos, 1.0);
+          vUv = uv;
+        }
+      `;
+
+      const fragment = `
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+        #else
+        precision mediump float;
+        #endif
+        uniform float uTime;
+        uniform vec2 uResolution;
+        uniform float uScrollTopDiff;
+        uniform sampler2D uTexture;
+        uniform float uDpr;
+        uniform float uDotScreenScale;
+        uniform float uScrollPower;
+        uniform vec3 uColor;
+        varying vec2 vUv;
+
+        vec4 mod289(vec4 x){ return x - floor(x * (1.0/289.0)) * 289.0; }
+        vec4 permute(vec4 x){ return mod289(((x*34.0)+10.0)*x); }
+        vec4 taylorInvSqrt(vec4 r){ return 1.79284291400159 - 0.85373472095314 * r; }
+        vec2 fade(vec2 t){ return t*t*t*(t*(t*6.0-15.0)+10.0); }
+        float cnoise(vec2 P) {
+          vec4 Pi = floor(P.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
+          vec4 Pf = fract(P.xyxy) - vec4(0.0, 0.0, 1.0, 1.0);
+          Pi = mod289(Pi);
+          vec4 ix = Pi.xzxz;
+          vec4 iy = Pi.yyww;
+          vec4 fx = Pf.xzxz;
+          vec4 fy = Pf.yyww;
+          vec4 i = permute(permute(ix) + iy);
+          vec4 gx = fract(i * (1.0 / 41.0)) * 2.0 - 1.0;
+          vec4 gy = abs(gx) - 0.5;
+          vec4 tx = floor(gx + 0.5);
+          gx = gx - tx;
+          vec2 g00 = vec2(gx.x, gy.x);
+          vec2 g10 = vec2(gx.y, gy.y);
+          vec2 g01 = vec2(gx.z, gy.z);
+          vec2 g11 = vec2(gx.w, gy.w);
+          vec4 norm = taylorInvSqrt(vec4(dot(g00, g00), dot(g01, g01), dot(g10, g10), dot(g11, g11)));
+          float n00 = norm.x * dot(g00, vec2(fx.x, fy.x));
+          float n01 = norm.y * dot(g01, vec2(fx.z, fy.z));
+          float n10 = norm.z * dot(g10, vec2(fx.y, fy.y));
+          float n11 = norm.w * dot(g11, vec2(fx.w, fy.w));
+          vec2 fade_xy = fade(Pf.xy);
+          vec2 n_x = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
+          return 2.3 * mix(n_x.x, n_x.y, fade_xy.y);
+        }
+        mat2 rotate2d(float angle){ return mat2(cos(angle), -sin(angle), sin(angle), cos(angle)); }
+        float dotScreen(in vec2 uv, in float angle, in float scale) {
+          vec2 p = (uv - vec2(0.5)) * uResolution.xy;
+          vec2 q = rotate2d(angle) * p * scale;
+          return (sin(q.x) * sin(q.y)) * 4.0;
+        }
+        void main(){
+          vec2 uv = (gl_FragCoord.xy * 2.0 - uResolution.xy) / min(uResolution.x, uResolution.y);
+          vec2 nUv = vUv;
+          float val = cnoise(uv * 5.0 * sin(uTime * 0.3));
+          nUv.y += val * uScrollTopDiff * uScrollPower;
+          vec4 colorDiff = texture2D(uTexture, nUv);
+          vec3 col = colorDiff.rgb + vec3(dotScreen(nUv, 0.5, uDotScreenScale / uDpr));
+          vec3 screen = 1.0 - (2.0 * (1.0 - col)) * (1.0 - uColor);
+          float alpha = min(1.0, abs(uScrollTopDiff) * 0.03) * 0.65;
+          gl_FragColor = vec4(screen, alpha);
+        }
+      `;
+
+      const geometry = new THREE.PlaneGeometry(2, 2, 1, 1);
+      const material = new THREE.ShaderMaterial({
+        vertexShader: vertex,
+        fragmentShader: fragment,
+        uniforms,
+        transparent: true,
+        depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+
+      const loader = new THREE.TextureLoader();
+      loader.crossOrigin = 'anonymous';
+      const texCache = new Map();
+      function getTexture(url) {
+        if (texCache.has(url)) return Promise.resolve(texCache.get(url));
+        return new Promise((res, rej) => {
+          loader.load(url, tex => {
+            tex.minFilter = THREE.LinearFilter;
+            tex.magFilter = THREE.LinearFilter;
+            tex.generateMipmaps = false;
+            texCache.set(url, tex);
+            res(tex);
+          }, undefined, rej);
+        });
+      }
+
+      function activeSlideImage() {
+        if (!window.heroSwiper) return null;
+        const slide = window.heroSwiper.slides[window.heroSwiper.activeIndex];
+        if (!slide) return null;
+        const inner = slide.querySelector('.swiper-slide-inner');
+        if (!inner) return null;
+        const spSize = window.matchMedia('(max-width: 600px)').matches;
+        return spSize ? (inner.dataset.sp || inner.dataset.pc) : (inner.dataset.pc || inner.dataset.sp);
+      }
+
+      async function updateTexture() {
+        const url = activeSlideImage();
+        if (!url) return;
+        try {
+          const tex = await getTexture(url);
+          uniforms.uTexture.value = tex;
+          canvas.classList.add('is-ready');
+        } catch (e) {
+          console.warn('[shader] texture load failed', e);
+        }
+      }
+
+      function resize() {
+        const rect = heroEl.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        renderer.setSize(rect.width, rect.height, false);
+        uniforms.uResolution.value.set(rect.width * dpr, rect.height * dpr);
+      }
+
+      // frameloop gate（画面外なら停止）
+      let running = true;
+      const io = new IntersectionObserver(entries => {
+        entries.forEach(e => { running = e.isIntersecting; });
+      }, { rootMargin: '200px 0px' });
+      io.observe(heroEl);
+
+      function updateScrollDiff() {
+        const cur = window.scrollY;
+        const raw = cur - prevScroll;
+        prevScroll = cur;
+        if (smoothCoef < 1.0) {
+          smoothedDiff = smoothedDiff * (1 - smoothCoef) + raw * smoothCoef;
+          window.scrollDiff = smoothedDiff;
+        } else {
+          window.scrollDiff = raw;
+        }
+      }
+
+      const clock = new THREE.Clock();
+      function tick() {
+        updateScrollDiff();
+        if (running && !window.heroOffscreen && uniforms.uTexture.value) {
+          uniforms.uTime.value = clock.getElapsedTime();
+          uniforms.uScrollTopDiff.value = window.scrollDiff;
+          renderer.render(scene, camera);
+        }
+        requestAnimationFrame(tick);
+      }
+
+      resize();
+      window.addEventListener('resize', resize);
+
+      // Swiperと連動：現在のスライド画像→ texture、slideChangeで差し替え
+      function attach() {
+        if (window.heroSwiper) {
+          updateTexture();
+          window.heroSwiper.on('slideChange', updateTexture);
+          return true;
+        }
+        return false;
+      }
+      if (!attach()) {
+        const t = setInterval(() => { if (attach()) clearInterval(t); }, 100);
+        setTimeout(() => clearInterval(t), 10000);
+      }
+
+      tick();
+    })();
+
+    // Lenis 慣性スクロール（Step 5）は今回も遅延問題が再発したため取り外し。
+    //   design_b1 のちらつき既往と同系。他Step は Lenis 非依存で組んだので
+    //   このブロックと CDN の 2箇所削除でネイティブスクロールに完全復帰する。
+
+    // ===== 市松キラキラ（Magic Window の「粒」をカーソル／タップの周辺だけに敷く） =====
+    //   画面に仮想のマス目を敷き、row+col が偶数のマス（＝市松の片側）だけを粒にする。
+    //   カーソル周辺の粒に「エネルギー」を与え、1粒ずつ乱数でずらした位相・速さで瞬かせ、
+    //   離れた粒は徐々に消える（Magic Window の layTiles / pickTwinkle と同じ考え方）。
+    //   色はセクションごと：WORKS=青 / PROFILE=白 / NEWS=マゼンタ / CONTACT=黄 / FOOTER=淡青。
+    //   FV と依頼バーより上には出さない。入力が途切れて粒が消えたらループ停止（アイドル時コストゼロ）。
+    (function initSparkle() {
+      if (reduceMotion) return;
+      const canvas = document.getElementById('spark-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const isSP = window.matchMedia('(max-width: 768px)').matches;
+      // 2026-08-22 本人指示：目を細かく・範囲は広く・全体を薄く・「光る」色味に
+      const CELL = isSP ? 6 : 7;            // マスの大きさ（px）
+      const GAP = 1.5;                       // 粒どうしの隙間（px）
+      const RADIUS = isSP ? 140 : 180;       // 光る範囲（カーソル中心からの半径 px）
+      const TAP_RADIUS = 200;                // タップ時の範囲（少し広め）
+      const FADE_PER_MS = 0.0018;            // 1msあたりの減衰（≒0.55秒で消える）
+      const MAX_ALPHA = 0.42;
+      const LIGHTEN = 0.5;                   // 粒の色を白に寄せる割合（0=元色 / 1=白）＝淡く光る色味
+
+      const sectionColors = [
+        { el: document.getElementById('works'),   rgb: [0, 76, 255],     hueSpread: 40 },   // 青（空色〜青紫に散らす）
+        { el: document.getElementById('profile'), rgb: [255, 255, 255],  hueSpread: 0 },    // 白
+        { el: document.getElementById('news'),    rgb: [255, 70, 170],   hueSpread: 30 },   // マゼンタ
+        { el: document.getElementById('contact'), rgb: [255, 200, 0],    hueSpread: 24 },   // 黄
+        { el: document.querySelector('.footer'),  rgb: [122, 168, 255],  hueSpread: 30 },   // 淡青
+      ].filter(s => s.el);
+      const requestBarEl = document.querySelector('.request-bar');
+
+      function sectionAt(clientY) {
+        if (requestBarEl && clientY < requestBarEl.getBoundingClientRect().bottom) return null;
+        for (const s of sectionColors) {
+          const r = s.el.getBoundingClientRect();
+          if (clientY >= r.top && clientY <= r.bottom) return s;
+        }
+        return null;
+      }
+
+      // RGB → 色相をずらした色文字列（粒ごとに少し色を散らす＝同色で敷き詰めると「面」になる）
+      function tileColor(sec) {
+        const [r, g, b] = sec.rgb;
+        if (!sec.hueSpread) {
+          return { r, g, b };
+        }
+        // HSL 経由で色相だけ ±hueSpread/2 ずらす
+        const rr = r / 255, gg = g / 255, bb = b / 255;
+        const max = Math.max(rr, gg, bb), min = Math.min(rr, gg, bb);
+        let h = 0; const l = (max + min) / 2;
+        const d = max - min;
+        const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+        if (d !== 0) {
+          if (max === rr) h = ((gg - bb) / d) % 6;
+          else if (max === gg) h = (bb - rr) / d + 2;
+          else h = (rr - gg) / d + 4;
+          h *= 60; if (h < 0) h += 360;
+        }
+        h = (h + (Math.random() - 0.5) * sec.hueSpread + 360) % 360;
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+        let r1 = 0, g1 = 0, b1 = 0;
+        if (h < 60) { r1 = c; g1 = x; } else if (h < 120) { r1 = x; g1 = c; }
+        else if (h < 180) { g1 = c; b1 = x; } else if (h < 240) { g1 = x; b1 = c; }
+        else if (h < 300) { r1 = x; b1 = c; } else { r1 = c; b1 = x; }
+        // 白に寄せて「濃い色」でなく「淡く光る色」にする
+        const lt = (v) => Math.round(((v + m) * 255) * (1 - LIGHTEN) + 255 * LIGHTEN);
+        return { r: lt(r1), g: lt(g1), b: lt(b1) };
+      }
+
+      // 粒の台帳。キー "col,row" → { energy, phase, speed, color }
+      const cells = new Map();
+      let running = false;
+      let lastTime = 0;
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = window.innerWidth, h = window.innerHeight;
+        if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+          canvas.width = Math.floor(w * dpr);
+          canvas.height = Math.floor(h * dpr);
+          canvas.style.width = w + 'px';
+          canvas.style.height = h + 'px';
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      // 中心(x,y)から半径 radius の中にある市松マスへエネルギーを与える
+      function excite(x, y, radius, jitter) {
+        const sec = sectionAt(y);
+        if (!sec) return;
+        const c0 = Math.floor((x - radius) / CELL), c1 = Math.ceil((x + radius) / CELL);
+        const r0 = Math.floor((y - radius) / CELL), r1 = Math.ceil((y + radius) / CELL);
+        for (let row = r0; row <= r1; row++) {
+          for (let col = c0; col <= c1; col++) {
+            if ((row + col) % 2) continue;                     // 市松＝1マスおきに空ける
+            const cx = col * CELL + CELL / 2, cy = row * CELL + CELL / 2;
+            const dx = cx - x, dy = cy - y;
+            const dist = Math.sqrt(dx * dx + dy * dy) / radius;
+            if (dist >= 1) continue;
+            // 中央で1、端に向かって落ちる（べき乗＝中央付近は落ちず、端の手前で急に薄くなる）
+            let strength = 1 - Math.pow(dist, 1.7);
+            if (jitter) strength *= 0.55 + Math.random() * 0.45;   // タップは粒ごとにばらけさせて「散る」感じに
+            const key = col + ',' + row;
+            let cell = cells.get(key);
+            if (!cell) {
+              cell = {
+                energy: 0,
+                phase: Math.random(),                          // 光るタイミングを1粒ずつずらす
+                speed: 1 / (1100 + Math.random() * 1500),      // 1周 1.1〜2.6 秒
+                color: tileColor(sec),
+              };
+              cells.set(key, cell);
+            }
+            if (strength > cell.energy) cell.energy = strength;
+          }
+        }
+        wake();
+      }
+
+      function wake() {
+        if (running) return;
+        running = true;
+        lastTime = performance.now();
+        requestAnimationFrame(frame);
+      }
+
+      function frame(now) {
+        if (!running) return;
+        const dt = Math.min(now - lastTime, 50);
+        lastTime = now;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const size = CELL - GAP;
+        for (const [key, cell] of cells) {
+          cell.energy -= FADE_PER_MS * dt;
+          if (cell.energy <= 0) { cells.delete(key); continue; }
+          // 瞬き：底は低く、山は鋭く＝「塗り」でなく「光る」見え方（Magic Window の pickTwinkle の形を鋭くした）
+          const t = (now * cell.speed + cell.phase) % 1;
+          const peak = Math.pow(Math.max(0, Math.sin(t * Math.PI)), 5);
+          const alpha = cell.energy * (0.10 + 0.90 * peak) * MAX_ALPHA;
+          if (alpha < 0.01) continue;
+          const [col, row] = key.split(',').map(Number);
+          ctx.fillStyle = 'rgba(' + cell.color.r + ',' + cell.color.g + ',' + cell.color.b + ',' + alpha.toFixed(3) + ')';
+          ctx.fillRect(col * CELL + GAP / 2, row * CELL + GAP / 2, size, size);
+        }
+        if (cells.size === 0 || document.hidden) {
+          running = false;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          cells.clear();
+          return;
+        }
+        requestAnimationFrame(frame);
+      }
+
+      // --- 入力 ---
+      let rafPending = false, lastPointer = null;
+      function onMove(x, y) {
+        lastPointer = { x, y };
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => {
+          rafPending = false;
+          if (lastPointer) excite(lastPointer.x, lastPointer.y, RADIUS, false);
+        });
+      }
+      if (anyHover) {
+        window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY), { passive: true });
+        window.addEventListener('mousedown', (e) => excite(e.clientX, e.clientY, TAP_RADIUS, true), { passive: true });
+      }
+      // SP：タップした周辺がキラキラ。指を滑らせた時はその軌跡にも出す
+      window.addEventListener('touchstart', (e) => {
+        const t = e.touches[0];
+        if (t) excite(t.clientX, t.clientY, TAP_RADIUS, true);
+      }, { passive: true });
+      window.addEventListener('touchmove', (e) => {
+        const t = e.touches[0];
+        if (t) onMove(t.clientX, t.clientY);
+      }, { passive: true });
+    })();
   </script>
 
 </body>
