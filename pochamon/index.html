@@ -780,6 +780,9 @@ footer{
   font-size:12.5px; font-weight:700;
   position:relative; z-index:2;
 }
+/* ロゴから落ちた「゜」の着地点。フッターの上端に乗る（下端をフッターの上辺に合わせる） */
+.maruLand{ position:absolute; left:14%; top:0; translate:0 -100%; pointer-events:none; transform-origin:50% 50%; }
+.maruLand svg{ width:100%; height:100%; display:block; overflow:visible; transform-origin:50% 50%; }
 
 /* 出現アニメ */
 .reveal{ opacity:0; translate:0 36px; transition:opacity .7s ease, translate .7s cubic-bezier(.22,1,.36,1); }
@@ -1370,11 +1373,30 @@ if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
     document.querySelector('.logo')?.classList.add('logo--svg');  // 着地を「文字ごと」に切り替える印
     document.querySelector('.logo__sheen')?.remove();   // 画像用の光の帯は外す（文字の塗りの中で光らせる）
     // 左から順に番号を振る。横に重なる線（゜や点など）は前の文字と同じ番号
-    const ps=[...svg.querySelectorAll('path')].map(p=>({p,b:p.getBBox()})).sort((a,b)=>a.b.x-b.b.x);
-    let i=-1, prevEnd=-1e9;
-    ps.forEach(o=>{ if(o.b.x > prevEnd - o.b.width*0.35) i++; prevEnd=Math.max(prevEnd, o.b.x+o.b.width); o.p.classList.add('logo__g'); o.p.style.setProperty('--i', i); });
-    // 光の帯：文字の塗りをグラデーションにして、帯の位置だけ動かす（文字が動いても必ず文字に沿う）
     const NS='http://www.w3.org/2000/svg';
+    const ps=[...svg.querySelectorAll('path')].map(p=>({p,b:p.getBBox()})).sort((a,b)=>a.b.x-b.b.x);
+    // いちばん左の「ぽ」だけ、本体（ほ）と「゜」を別の path に分けて <g> でまとめる。
+    // 「゜」は右上にある小さい輪（外周＋穴の2本）。後で「コロンと転がって ゜ が落ちる」仕掛けに使う
+    (function splitPo(){
+      const o=ps[0]; const d=o.p.getAttribute('d')||'';
+      const subs=d.split(/(?=M)/).filter(x=>x.trim());
+      const probe=document.createElementNS(NS,'path'); svg.appendChild(probe);
+      const box=subs.map(x=>{ probe.setAttribute('d',x); return probe.getBBox(); }); probe.remove();
+      const isMaru=(bb)=> bb.y+bb.height < o.b.y+o.b.height*0.34 && bb.x > o.b.x+o.b.width*0.6;   // 上1/3・右4割にある輪
+      const maruD=subs.filter((x,k)=>isMaru(box[k])).join(''), bodyD=subs.filter((x,k)=>!isMaru(box[k])).join('');
+      if(!maruD||!bodyD) return;                                   // 分けられなければ今まで通り1本のまま
+      const mbs=box.filter((bb,k)=>isMaru(bb)); const mx0=Math.min(...mbs.map(q=>q.x)), my0=Math.min(...mbs.map(q=>q.y));
+      window.__maruD={ d:maruD, box:{x:mx0, y:my0, w:Math.max(...mbs.map(q=>q.x+q.width))-mx0, h:Math.max(...mbs.map(q=>q.y+q.height))-my0} };   // フッターに落とす時に使う
+      const g=document.createElementNS(NS,'g'); o.p.parentNode.insertBefore(g,o.p);
+      const body=o.p; body.setAttribute('d',bodyD); body.classList.add('logo__po');
+      const maru=body.cloneNode(false); maru.setAttribute('d',maruD); maru.classList.remove('logo__po'); maru.classList.add('logo__maru');
+      const mw=document.createElementNS(NS,'g'); mw.setAttribute('class','logo__maruWrap'); mw.appendChild(maru);   // 位置は箱（mw）、姿勢と回転は輪（maru）＝横・縦・回転を別々の曲線で動かすため
+      g.appendChild(body); g.appendChild(mw);
+      o.unit=g;
+    })();
+    let i=-1, prevEnd=-1e9;
+    ps.forEach(o=>{ const el=o.unit||o.p; if(o.b.x > prevEnd - o.b.width*0.35) i++; prevEnd=Math.max(prevEnd, o.b.x+o.b.width); el.classList.add('logo__g'); el.style.setProperty('--i', i); });
+    // 光の帯：文字の塗りをグラデーションにして、帯の位置だけ動かす（文字が動いても必ず文字に沿う）
     const vb=svg.viewBox.baseVal, W=vb.width||449;
     const defs=document.createElementNS(NS,'defs');
     const grad=document.createElementNS(NS,'linearGradient');
@@ -1390,7 +1412,7 @@ if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
     an.setAttribute('dur','0.8s'); an.setAttribute('begin','indefinite'); an.setAttribute('fill','freeze');
     grad.appendChild(an); defs.appendChild(grad); svg.insertBefore(defs, svg.firstChild);
     grad.setAttribute('gradientTransform',`translate(${-W*1.3} 0)`);
-    ps.forEach(o=>{ o.p.style.fill='url(#logoSheen)'; });
+    svg.querySelectorAll('path').forEach(p=>{ p.style.fill='url(#logoSheen)'; });
     // 文字が出そろった後に1回だけ光らせる（ローディングが開いた合図から 1.55秒後＝文字は0.7秒後から約0.8秒で出そろう）
     // 同じ光を「ぽちゃもんをタップした時」にも使うので、外から呼べるようにしておく
     window.__logoShine=()=>{ try{ an.beginElement(); }catch(err){} };
@@ -1571,6 +1593,113 @@ function dropLogoLetters(liftPx){
     ], {duration:630, delay:i*45, fill:'backwards'});
   });
 }
+// ===== 仕掛け：最初のびろーんで「ぽ」が着地した瞬間、反時計回りに90°コロンと転がって戻らない。
+// そのあと「゜」が転げ落ち、床を少し転がって、端からピューッと落ちて消える。
+// 2回目以降のびろーんでは、傾いたままの「ぽ」が今まで通り一緒に跳ねる。リロードするまで元に戻らない =====
+let poToppled=false;
+function topplePo(){
+  if(poToppled) return; poToppled=true;
+  const svg=document.querySelector('.logo__svg');
+  if(!svg||!svg.animate) return;
+  const body=svg.querySelector('.logo__po'), maru=svg.querySelector('.logo__maru');
+  if(!body||!maru) return;
+  const g=body.parentNode, gb=g.getBBox(), mb=maru.getBBox();
+  const cx=gb.x+gb.width/2, cy=gb.y+gb.height/2;                 // 回す中心＝「ぽ」全体（本体＋゜）のまん中
+  const floor=(svg.viewBox.baseVal.height||121);                  // 床＝ロゴの下端
+  const r=Math.max(mb.width,mb.height)/2;                         // ゜の半径
+  const SX=-30, SY=1;                                             // 倒れた後の置き場所：隣の「ち」と1文字ぶんの隙間をあける
+  const SHIFT=`translate(${SX}px,${SY}px) rotate(-90deg)`;
+  for(const el of [body,maru]){ el.style.transformBox='view-box'; el.style.transformOrigin=cx+'px '+cy+'px'; }
+  const GRAV_IN='cubic-bezier(.11,0,.5,0)', GRAV_OUT='cubic-bezier(.5,1,.89,1)';   // 落ちる＝加速／上がる＝減速（放物線に近い曲線）
+  // (1) コロンッ：重力で倒れて、床に当たった勢いで少し戻ってから寝る
+  const TIP=560, HIT=.70;
+  body.animate([
+    {transform:'translate(0,0) rotate(0deg)', easing:GRAV_IN},
+    {transform:SHIFT, offset:HIT, easing:'cubic-bezier(.2,.6,.35,1)'},
+    {transform:`translate(${SX}px,${SY}px) rotate(-82deg)`, offset:.82, easing:'cubic-bezier(.6,0,.9,.5)'},
+    {transform:SHIFT}
+  ],{duration:TIP, fill:'forwards'});
+  // ゜は床に当たる瞬間まで一緒に回り、当たった衝撃で外れる（ここから先は自分の重さで落ちる）
+  const ride=maru.animate([{transform:'translate(0,0) rotate(0deg)', easing:GRAV_IN},{transform:SHIFT}],{duration:TIP*HIT, fill:'forwards'});
+  ride.onfinish=()=>{
+    // 倒れた後の ゜ の中心（回転の中心からの相対）。反時計回り90°：(x,y)→(y,-x)
+    const v=[mb.x+mb.width/2-cx, mb.y+mb.height/2-cy];
+    const q={x:v[1]+SX, y:-v[0]+SY};
+    const cyNow=cy+q.y, dropY=(floor-r)-cyNow;                    // 床に着く高さまでの距離
+    const wrap=maru.parentNode;                                   // 位置はこの箱を動かす（横と縦を別々のアニメにして、跳ねの頂点で横が止まらないようにする）
+    const R=(deg)=>`translate(${q.x}px,${q.y}px) rotate(${deg.toFixed(1)}deg) translate(${-q.x}px,${-q.y}px) ${SHIFT}`;   // 輪を自分の中心で回す
+    // 物理：重力 G（viewBox単位/s²）・跳ね返り係数 E・横は空中で一定速度 VX、床では摩擦 A で減速、端から先は落ちながら同じ速さで進む
+    const G=1600, E=0.42, FALL=700, DEG=180/Math.PI;
+    let VX=-64, A=20, TROLL=1.05;                                 // 横の速さ（単位/s）・床の摩擦による減速・床を転がる時間
+    const t1=Math.sqrt(2*dropY/G), h1=E*E*dropY, tu1=Math.sqrt(2*h1/G), h2=E*E*h1, tu2=Math.sqrt(2*h2/G), t5=Math.sqrt(2*FALL/G);
+    const tFlight=t1+2*tu1+2*tu2;
+    // 画面の左端を「落ちる端」にする（スマホはロゴの左の空きが狭い）。速さは変えず、転がる時間を縮めて端で落とす。
+    // 空中の分だけで端に着いてしまう時は、そこで即落ちる（速さはその分だけ少し落とす）
+    const unit=svg.getBoundingClientRect().width/(svg.viewBox.baseVal.width||449);          // 1単位＝何px
+    const edgeRoom=(cx+q.x)+svg.getBoundingClientRect().left/unit;                            // 輪の中心から画面の左端までの距離（単位）
+    if(edgeRoom>0){
+      const flight=-VX*tFlight, full=-(VX*TROLL+0.5*A*TROLL*TROLL);
+      if(flight>=edgeRoom){ const k=edgeRoom/flight; VX*=k; A*=k; TROLL=0.02; }
+      else if(flight+full>edgeRoom){ const roomRoll=edgeRoom-flight; TROLL=(-VX-Math.sqrt(Math.max(0,VX*VX-2*A*roomRoll)))/A; }
+    }
+    const xFlight=VX*tFlight;                                     // 空中：一定速度
+    const xRoll=VX*TROLL+0.5*A*TROLL*TROLL, vEnd=VX+A*TROLL;        // 床：一定の割合で減速（VX は負なので A は正で減速）
+    const xFall=vEnd*t5;                                          // 端から先：その速さのまま落ちる
+    const total=tFlight+TROLL+t5, k1=tFlight/total, k2=(tFlight+TROLL)/total;
+    // 床での減速曲線：始めの速さ→終わりの速さ の比から cubic-bezier を作る（傾き＝速さ×時間÷距離）
+    const s0=VX*TROLL/xRoll, s1=vEnd*TROLL/xRoll;
+    const ROLL_EASE=`cubic-bezier(${(1/3).toFixed(3)},${(s0/3).toFixed(3)},${(2/3).toFixed(3)},${(1-s1/3).toFixed(3)})`;
+    const X=[0, xFlight, xFlight+xRoll, xFlight+xRoll+xFall];
+    const xs=[[0,'linear'],[k1,ROLL_EASE],[k2,'linear'],[1,null]];
+    const kx=xs.map(([o,e],i)=>Object.assign({transform:`translate(${X[i].toFixed(2)}px,0)`, offset:o}, e?{easing:e}:{}));
+    const kr=xs.map(([o,e],i)=>Object.assign({transform:R((X[i]/r)*DEG), offset:o}, e?{easing:e}:{}));   // 回転＝進んだ距離÷半径（滑らない）
+    // 縦：落ちる→跳ねる×2→床→端から落ちる
+    const GRAV_IN='cubic-bezier(.11,0,.5,0)', GRAV_OUT='cubic-bezier(.5,1,.89,1)';
+    const ys=[[0,0,GRAV_IN],[t1,dropY,GRAV_OUT],[tu1,dropY-h1,GRAV_IN],[tu1,dropY,GRAV_OUT],[tu2,dropY-h2,GRAV_IN],[tu2,dropY,'linear'],[TROLL,dropY,GRAV_IN],[t5,dropY+FALL,null]];
+    let t=0; const ky=ys.map(([dt,y,e])=>{ t+=dt; return Object.assign({transform:`translate(0,${y.toFixed(2)}px)`, offset:Math.min(1,t/total)}, e?{easing:e}:{}); });
+    const opt={duration:Math.round(total*1000), delay:30, fill:'forwards'};
+    wrap.animate(kx, Object.assign({composite:'add'},opt));
+    const fall=wrap.animate(ky, Object.assign({composite:'add'},opt));
+    maru.animate(kr, opt);
+    fall.onfinish=()=>{ maru.style.display='none'; window.__maruFell=true; armFooterLanding(); };   // ロゴからは消える。行き先はフッター
+  };
+}
+// ===== オチ：落ちた「゜」は、フッターまでスクロールした時に上から降ってきてフッターの上に着地する =====
+function armFooterLanding(){
+  const foot=document.querySelector('footer'); if(!foot||!window.__maruD||window.__maruLanded) return;
+  const io=new IntersectionObserver(es=>{ if(!es.some(e=>e.isIntersecting)) return; io.disconnect(); landMaruOnFooter(foot); },{rootMargin:'0px'});   // フッターは背が低いので、画面下を除外すると一度も当たらない
+  io.observe(foot);
+}
+function landMaruOnFooter(foot){
+  if(window.__maruLanded) return; window.__maruLanded=true;
+  const {d,box}=window.__maruD;
+  const logo=document.querySelector('.logo__svg'); const vbw=(logo&&logo.viewBox.baseVal.width)||449;
+  const scale=((logo&&logo.getBoundingClientRect().width)||560)/vbw;      // ロゴと同じ大きさで出す
+  const el=document.createElement('div'); el.className='maruLand'; el.setAttribute('aria-hidden','true');
+  el.style.width=(box.w*scale).toFixed(1)+'px'; el.style.height=(box.h*scale).toFixed(1)+'px';
+  el.innerHTML=`<svg viewBox="${box.x} ${box.y} ${box.w} ${box.h}" overflow="visible"><path d="${d}" fill="#e3ecf4"/></svg>`;
+  foot.appendChild(el);
+  if(!el.animate) return;
+  const ring=el.firstElementChild;                                        // 位置は el、回転は中の輪。別々に動かす（落下は加速・回転は一定、と曲線を分けるため）
+  const r=(box.w*scale)/2, H=Math.max(260, innerHeight*0.7);              // 画面の上の方から落ちてくる
+  const G=2000, DEG=180/Math.PI, GRAV_IN='cubic-bezier(.11,0,.5,0)', DECEL='cubic-bezier(.5,1,.89,1)';   // DECEL＝一定の割合で減速（摩擦）
+  // 跳ねさせない（そこまで硬い物ではない）。惰性：落ちている間に回っていて、着地の瞬間の回転の速さがそのまま転がる速さになる
+  const t1=Math.sqrt(2*H/G);                                               // 落下時間
+  const V0=95, D=64, TROLL=2*D/V0;                                         // 着地時の速さ(px/s)・惰性で転がる距離(px)・止まるまでの時間（v²=2aD → t=2D/v）
+  const SPIN=-(V0/r)*DEG*t1;                                               // 落ちている間の回転量＝その角速度で着地→そのまま転がる（滑らない）
+  const ROT=-(D/r)*DEG;                                                    // 転がりで回る量
+  const total=t1+TROLL, k1=t1/total;
+  el.animate([
+    {transform:'translate(0px,'+(-H).toFixed(1)+'px)', offset:0,  easing:GRAV_IN},
+    {transform:'translate(-4px,0px)',                          offset:k1, easing:DECEL},
+    {transform:'translate('+(-4-D).toFixed(1)+'px,0px)',   offset:1}
+  ],{duration:Math.round(total*1000), fill:'forwards'});
+  ring.animate([
+    {transform:'rotate(-30deg)',                    offset:0,  easing:'linear'},
+    {transform:'rotate('+(-30+SPIN).toFixed(1)+'deg)',     offset:k1, easing:DECEL},
+    {transform:'rotate('+(-30+SPIN+ROT).toFixed(1)+'deg)', offset:1}
+  ],{duration:Math.round(total*1000), fill:'forwards'});
+}
 function playBiroon(){
   if(gifState!=='idle') return;
   gifState='waitLoopEnd';
@@ -1595,6 +1724,7 @@ function playBiroon(){
         inner.classList.remove('lifted');
         inner.classList.add('landing');            // 重力で落ちる（@keyframes dropBack）
         dropLogoLetters(m.m42);                    // ロゴだけは文字1つずつ
+        setTimeout(topplePo, 420);                 // 「ぽ」が床に着いた瞬間にコロン（最初の1回だけ中で判定）
         setTimeout(()=>inner.classList.remove('landing'), 700);
       }, 1280);
       setTimeout(()=>{
