@@ -11,8 +11,8 @@
 <meta property="og:site_name" content="ぽちゃもん OFFICIAL">
 <meta property="og:title" content="ぽちゃもん OFFICIAL">
 <meta property="og:description" content="ぽちゃっとまるいモモンガ「ぽちゃもん」の公式サイト。ステッカー・アニメ・ゲームで、がんばらない日もちゃんとかわいい。">
-<meta property="og:url" content="https://pochamon.jojima-george.com/">
-<meta property="og:image" content="https://pochamon.jojima-george.com/og-image.png">
+<meta property="og:url" content="https://pochamon.com/">
+<meta property="og:image" content="https://pochamon.com/og-image.png">
 <meta property="og:image:width" content="2400">
 <meta property="og:image:height" content="1260">
 <meta property="og:image:alt" content="ぽちゃもん OFFICIAL">
@@ -21,8 +21,8 @@
 <meta name="twitter:site" content="@jojima_george">
 <meta name="twitter:title" content="ぽちゃもん OFFICIAL">
 <meta name="twitter:description" content="ぽちゃっとまるいモモンガ「ぽちゃもん」の公式サイト。">
-<meta name="twitter:image" content="https://pochamon.jojima-george.com/og-image.png">
-<link rel="canonical" href="https://pochamon.jojima-george.com/">
+<meta name="twitter:image" content="https://pochamon.com/og-image.png">
+<link rel="canonical" href="https://pochamon.com/">
 <!-- 3Dカード用 Three.js（実際に読み込まれるのはカードが必要になった時だけ。importmap は対応表のみ） -->
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.min.js" } }
@@ -1757,6 +1757,15 @@ function getEngine(){
 }
 
 // --- 「ぽちゃもんカード」セクション：画面に近づいたら読み込んで2枚載せる ---
+// スクロールが止まるまで待つ（重い準備を動いている最中に走らせない＝「固まった」に見える正体）
+function afterScrollIdle(ms){
+  return new Promise(res=>{
+    let t=setTimeout(done,ms);
+    const bump=()=>{ clearTimeout(t); t=setTimeout(done,ms); };
+    function done(){ removeEventListener('scroll',bump); res(); }
+    addEventListener('scroll',bump,{passive:true});
+  });
+}
 const stages=[...document.querySelectorAll('.cardStage')];
 const FALLBACK={amayadori:'assets/img/umbrella.webp', ukiwa:'assets/img/pochamon-main.webp'};
 function showFallback(stage){ stage.innerHTML=`<img class="fallback" src="${FALLBACK[stage.dataset.card]}" alt="" loading="lazy">`; }
@@ -1765,6 +1774,7 @@ else{
   const sio=new IntersectionObserver(async es=>{
     if(!es.some(e=>e.isIntersecting)) return;
     sio.disconnect();
+    await afterScrollIdle(180);   // 指が止まってから
     let E; try{ E=await getEngine(); }catch(err){ console.warn('3Dカードの読み込みに失敗', err); stages.forEach(showFallback); return; }
     if(!E.webglOk()){ stages.forEach(showFallback); return; }
     // 2枚を同時に作らず順番に（1枚ぶんの画像デコードとシェーダー準備が終わってから次へ）。スクロール中の固まりを避ける
@@ -1773,6 +1783,7 @@ else{
       const m=E.mountCard(stage.querySelector('canvas'),{fill:.88});
       try{ await m.load(spec); }catch(err){ console.warn(err); m.dispose(); showFallback(stage); }
       await new Promise(r=>setTimeout(r, 350));
+      await afterScrollIdle(180);   // 2枚目も、動いていない時に
     }
     const gb=document.getElementById('gyroBtn');
     if(E.gyroAvailable){
@@ -1783,7 +1794,7 @@ else{
         if(await E.enableGyro()){ gyroOn=true; gb.classList.add('active'); gb.textContent='かたむきセンサー ON（もういちど押すと OFF）'; }
       });
     }
-  },{rootMargin:'900px 0px'});
+  },{rootMargin:'250px 0px'});
   stages.forEach(s=>sio.observe(s));
   // Three.js 本体とカードのコードは、ページ表示後の暇な時間に先に取りに行っておく（700KB の読み込み・解析をスクロール中にしない）
   const prefetch=()=>{ getEngine().catch(()=>{}); };
