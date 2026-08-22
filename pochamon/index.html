@@ -6,6 +6,23 @@
 <title>ぽちゃもん OFFICIAL</title>
 <meta name="description" content="ぽちゃっとまるいモモンガ「ぽちゃもん」の公式サイト。ステッカー・アニメ・ゲームで、がんばらない日もちゃんとかわいい。">
 <link rel="icon" type="image/png" href="favicon.png">
+<!-- OGP（X・LINE・Discord等で共有した時のカード） -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ぽちゃもん OFFICIAL">
+<meta property="og:title" content="ぽちゃもん OFFICIAL">
+<meta property="og:description" content="ぽちゃっとまるいモモンガ「ぽちゃもん」の公式サイト。ステッカー・アニメ・ゲームで、がんばらない日もちゃんとかわいい。">
+<meta property="og:url" content="https://pochamon.jojima-george.com/">
+<meta property="og:image" content="https://pochamon.jojima-george.com/og-image.png">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta property="og:image:alt" content="ぽちゃもん OFFICIAL">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@jojima_george">
+<meta name="twitter:title" content="ぽちゃもん OFFICIAL">
+<meta name="twitter:description" content="ぽちゃっとまるいモモンガ「ぽちゃもん」の公式サイト。">
+<meta name="twitter:image" content="https://pochamon.jojima-george.com/og-image.png">
+<link rel="canonical" href="https://pochamon.jojima-george.com/">
 <!-- 3Dカード用 Three.js（実際に読み込まれるのはカードが必要になった時だけ。importmap は対応表のみ） -->
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.min.js" } }
@@ -357,25 +374,49 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
 }
 .hero__char:hover{ transform:scale(1.03); }
 
-/* まわりに浮かぶステッカー（PCのみ。ヒーロー全面に散らす・奥行き違いで漂う・マウスで視差） */
-.floaters{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
-.floater{
-  position:absolute; width:var(--w,110px); height:auto;
+/* 散らばる星（OGP画像と同じ3種のSVG。影はつけない。色はテーマ＝背景色に合わせて遷移）
+   置き場は固定背景 .bg の中＝ブロブ・月と同じ層。どのセクションでも見え、スクロール・マウスの視差にも参加する */
+#starLayer{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.star{
+  position:absolute; width:var(--w,40px); height:auto; overflow:visible;
   translate:0 0;  /* 視差はJSが translate で動かす */
+  rotate:var(--spin,0deg);                       /* テーマ切替の「クルン」（360°ずつ足す） */
+  margin-left:var(--dx,0px); margin-top:var(--dy,0px);   /* テーマ切替の位置ズレ（left/top は動かさず margin で） */
   animation:floaty var(--dur,5s) ease-in-out infinite; animation-delay:var(--delay,0s);
-  filter:drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 10px 14px rgba(0,0,0,.18));
-  opacity:var(--op,1);
+  fill:var(--star-c,#fff);
+  filter:blur(var(--blur,0px));                  /* 奥（小さい）星ほどぼける＝視差の遠近に合わせる */
+  transform-origin:50% 50%;                      /* 星の中心で回る */
+  /* クルンは「行き過ぎて戻る」バネ（--ease-puni）を使わない＝減速だけ。戻りモーションが出ない */
+  transition:fill 1.4s ease,                     /* 背景色の遷移（1.4s）と同じ速さで星の色も変わる */
+             rotate 1s cubic-bezier(.2,.75,.2,1), margin 1s cubic-bezier(.2,.75,.2,1) .1s;
 }
+.star--w{ --star-c:var(--star-w); }
+.star--b{ --star-c:var(--star-b); }
+.star--y{ --star-c:var(--star-y); }
 @keyframes floaty{ 0%,100%{ transform:translateY(0) rotate(var(--rot,0deg)); } 50%{ transform:translateY(-14px) rotate(calc(var(--rot,0deg) + 3deg)); } }
-@media (max-width:899px){ .floaters{ display:none; } }
+/* 星の色（w=白・b=背景の薄い色・y=薄い黄色）。blue は OGP 画像と同じ値 */
+body.theme-blue  { --star-w:#ffffff; --star-b:#b3d9f3; --star-y:#fffcbd; }
+body.theme-teal  { --star-w:#ffffff; --star-b:#a8e6e3; --star-y:#fff7c2; }
+body.theme-green { --star-w:#ffffff; --star-b:#c3e9c2; --star-y:#fbf8b8; }
+body.theme-purple{ --star-w:#ffffff; --star-b:#d0bfe8; --star-y:#ffe8b8; }
+body.theme-orange{ --star-w:#fffdf4; --star-b:#ffd9b2; --star-y:#fff3a8; }
+body.theme-pink  { --star-w:#ffffff; --star-b:#ffc8da; --star-y:#fff1c2; }
 
 /* まわる円形バッジ */
 .orbitBadge{
   position:absolute; z-index:3;
   width:clamp(84px,10vw,124px); height:clamp(84px,10vw,124px);
   left:18px; top:14px;            /* 画面の左上（じょじを指定） */
-  pointer-events:none;
+  background:none; border:0; padding:0; cursor:pointer; border-radius:50%;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .2s var(--ease-puni);
 }
+.orbitBadge:hover{ transform:scale(1.06); }
+/* タップ：円ごと2回転しながらぷにっと膨らんで戻る（ギュルン）
+   回転は1区間（途中のキーフレームを置くと区間ごとに減速して一度止まって見える）。膨らみは scale を別アニメで重ねる */
+.orbitBadge.whirl{ animation:whirl 1.4s cubic-bezier(.15,.7,.2,1) both, badgePuni 1.4s ease both; }
+@keyframes whirl{ from{ transform:rotate(0deg); } to{ transform:rotate(720deg); } }
+@keyframes badgePuni{ 0%,100%{ scale:1; } 18%{ scale:1.18; } }
 .orbitBadge svg{ width:100%; height:100%; animation:spin 16s linear infinite; }
 .orbitBadge text{
   font-family:var(--font-logo); font-size:10px; letter-spacing:.1em;
@@ -603,6 +644,20 @@ body.revealed .logo__sheen{ animation:sheen 1.6s ease-in-out 2.7s 1 both; }
 .sticker:hover img{ --ss:1.07; filter:drop-shadow(0 10px 10px rgba(0,0,0,.18)); }
 .sticker .glare{ z-index:2; }
 .sticker .name{ position:relative; z-index:3; }
+/* 「タップで おはなし」のふきだしピル（右上でふわふわ。さわると色が反転して押せる感を出す） */
+.sticker .tap{
+  position:absolute; right:10px; top:10px; z-index:3;
+  font-size:11px; font-weight:700; line-height:1.2; white-space:nowrap;
+  color:#e8628c; background:#fff; border:2px solid #ffd3e0; border-radius:999px; padding:4px 10px;
+  box-shadow:0 2px 0 rgba(0,0,0,.08);
+  animation:tapBob 1.8s ease-in-out infinite; pointer-events:none;
+}
+.sticker .tap::after{ content:''; position:absolute; left:14px; bottom:-7px; border:6px solid transparent; border-top-color:#ffd3e0; border-bottom:0; }
+.sticker .tap::before{ content:''; position:absolute; left:16px; bottom:-3px; border:4px solid transparent; border-top-color:#fff; border-bottom:0; z-index:1; }
+@keyframes tapBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-4px); } }
+.sticker:hover .tap,.sticker:active .tap{ color:#fff; background:#e8628c; border-color:#e8628c; }
+.sticker:hover .tap::after{ border-top-color:#e8628c; } .sticker:hover .tap::before{ border-top-color:#e8628c; }
+.sticker:active{ transform:scale(.97); }
 .sticker .name{ font-weight:700; font-size:13px; margin-top:8px; color:var(--ink); display:block;}
 
 /* ============================================================
@@ -740,6 +795,7 @@ footer{
   .about__figure img{ width:min(52vw,240px); }
   .about__figure .taedoki{ width:min(52vw,240px); }
   .gallery{ grid-template-columns:repeat(2, 1fr); gap:14px; }
+  .sticker .tap{ font-size:10px; padding:3px 8px; right:8px; top:8px; }
   .cardsGrid{ grid-template-columns:1fr; max-width:320px; gap:18px; }
   /* 背景の模様：px の下限（min-width/min-height）が効いて、スマホでも大きいまま文字に乗っていた。
      下限を外して画面幅に比例させ、さらに「ロゴ〜英字」の帯（おおよそ y150〜320px）の外へ逃がす。
@@ -775,6 +831,28 @@ footer{
   .logo__g{ opacity:1 !important; }
   .reveal{opacity:1; translate:0 0;}
   .sparkle,.twinkdot{opacity:.5;}
+}
+
+/* ============================================================
+   作者プロフィール（#author）
+   ============================================================ */
+.author{
+  background:rgba(255,255,255,.94); border-radius:26px;
+  padding:32px 32px 28px; box-shadow:0 8px 0 rgba(0,0,0,.12);
+  display:grid; grid-template-columns:200px 1fr; gap:32px; align-items:start;
+}
+.author__icon img{ width:100%; border-radius:50%; box-shadow:0 6px 0 rgba(0,0,0,.1); }
+.author__name{ font-family:var(--font-logo); font-size:clamp(22px,3.4vw,28px); line-height:1.3; }
+.author__en{ font-size:12px; letter-spacing:.22em; color:#8a8a96; margin:2px 0 14px; }
+.author__body p{ font-size:clamp(13.5px,2.2vw,15px); font-weight:700; line-height:1.95; margin-bottom:12px; }
+.author__tags{ list-style:none; display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 16px; }
+.author__tags li{ font-size:11px; font-weight:700; letter-spacing:.1em; color:#6f3f9e; border:2px solid #dcc9ef; border-radius:999px; padding:4px 10px; }  /* セクションの紫に合わせる */
+.author__link{ background:#7b4fb0; margin-top:0; }
+@media (max-width:760px){
+  .author{ grid-template-columns:1fr; padding:24px 20px 22px; gap:18px; text-align:center; }
+  .author__icon{ width:min(46vw,170px); margin:0 auto; }
+  .author__body p{ text-align:left; }
+  .author__tags{ justify-content:center; }
 }
 </style>
 </head>
@@ -851,6 +929,13 @@ footer{
   <div class="blobWrap wrap--d" data-depth="9"><div class="blob blob--d"></div></div>
   <div class="moonWrap" data-depth="5"><div class="moon"></div></div>
   <div id="skyLayer"></div>
+  <!-- 星の形（E:\イラスト\ももんが\3_web\star_w/b/y.svg）。ここで1回定義して <use> で使い回す -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="star-w"><path d="M76.62164,88.26436l-24.66433-7.1451c-.90956-.26349-1.88331-.19351-2.74584.19735l-23.38922,10.59892c-2.58045,1.16934-5.52073-.66004-5.6119-3.49161l-.82633-25.66517c-.03047-.94649-.39795-1.85098-1.03623-2.55052L1.03991,41.23913c-1.90954-2.09282-1.07829-5.45454,1.58655-6.41625l24.15381-8.71689c.89078-.32147,1.63747-.9505,2.10556-1.77374L41.57792,2.00981c1.4003-2.4628,4.85434-2.71106,6.59246-.47385l15.75416,20.2779c.58098.74781,1.40993,1.26356,2.33749,1.45434l25.15204,5.17311c2.77497.57074,4.07844,3.77901,2.48783,6.12341l-14.417,21.24925c-.53166.78362-.76601,1.73135-.66082,2.67244l2.8525,25.51964c.31471,2.81554-2.33376,5.04663-5.05495,4.25832Z"/></symbol>
+    <symbol id="star-b"><path d="M28.50622,32.83781l-9.17609-2.65827c-.33841-.09803-.7007-.072-1.02161.07343l-8.70178,3.9433c-.96001.43504-2.05389-.24556-2.0878-1.29899l-.30735-9.54856c-.01133-.35212-.14805-.68862-.38551-.94887L.38688,15.3426c-.7104-.77859-.40116-2.02923.59023-2.38703l8.98615-3.24313c.33142-.11961.60923-.35364.78338-.65993L15.46864.7477c.52096-.91623,1.80597-1.00859,2.45259-.17627l5.86112,7.54426c.21616.27823.52457.47012.86968.5411l9.35754,1.92448c1.03239.21232,1.51733,1.40591.92558,2.2781l-5.36373,7.9057c-.19781.29155-.285.64416-.24586.99431l1.06127,9.49419c.11709,1.04748-.86824,1.87752-1.88061,1.58424Z"/></symbol>
+    <symbol id="star-y"><path d="M27.05859,58.21344l-8.6141-15.64056c-.16997-.30861-.44456-.54638-.77431-.67046L.95823,35.61352c-.98645-.37121-1.27869-1.62596-.55777-2.39483l12.21334-13.02575c.24097-.257.38224-.59161.39836-.94355l.81682-17.83712c.04821-1.05287,1.15122-1.71855,2.10524-1.27053l16.16245,7.59009c.31892.14977.68085.18073,1.02058.08729l17.21652-4.73511c1.01625-.2795,1.99019.56383,1.85889,1.60961l-2.22447,17.71681c-.04389.34959.0385.70335.23234.99757l9.82369,14.91056c.57987.88014.07879,2.06704-.95638,2.26534l-17.53714,3.35951c-.34603.06629-.65702.25397-.87693.52923l-11.14513,13.95035c-.65789.82347-1.94155.71367-2.45002-.20957Z"/></symbol>
+  </svg>
+  <div id="starLayer"></div>
 </div>
 
 <header>
@@ -861,18 +946,19 @@ footer{
     <a href="#cards">カード</a>
     <a href="#animes">うごく</a>
     <a href="#goods">グッズ</a>
+    <a href="#author">さくしゃ</a>
   </nav>
 </header>
 
 <!-- ========== 1. ヒーロー ========== -->
 <section class="hero" id="top" data-theme="theme-blue" data-fx="sparkle">
-  <div class="floaters" id="floaters" aria-hidden="true"></div>
   <!-- まわる円形バッジ（画面の左上） -->
-  <span class="orbitBadge"><svg viewBox="0 0 100 100">
+  <!-- まわる円形バッジ。文字は読み込み後にJSが文字間隔を計算して円1周ぴったりに均す（途中で切れない）。タップで円ごと回る -->
+  <button type="button" class="orbitBadge" id="orbitBadge" aria-label="POCHAMON OFFICIAL SITE"><svg viewBox="0 0 100 100" aria-hidden="true">
     <defs><path id="circlePath" d="M50,50 m-36,0 a36,36 0 1,1 72,0 a36,36 0 1,1 -72,0"/></defs>
     <circle cx="50" cy="50" r="46"/>
-    <text><textPath href="#circlePath">POCHAMON・OFFICIAL・POCHAMON・</textPath></text>
-  </svg><img class="badgeImg" src="assets/img/metallic-biroon.webp" alt=""></span>
+    <text><textPath href="#circlePath">POCHAMON OFFICIAL SITE ・ </textPath></text>
+  </svg><img class="badgeImg" src="assets/img/metallic-biroon.webp" alt=""></button>
   <div class="hero__inner">
     <h1 class="logo" aria-label="ぽちゃもん">
       <span class="logo__tilt" id="logoTilt">
@@ -943,19 +1029,19 @@ footer{
       <div class="about__text reveal">
         <p>
           ぽちゃっとまるいモモンガ、ぽちゃもん。<br>
-          飛びたい気持ちはあるけど、<br>
-          きょうも食べて、のびて、ねむい。
+          とびたい きもちは あるけど、<br>
+          きょうも たべて、のびて、ねむい。
         </p>
         <ul class="profile">
           <li><span class="k">なまえ</span><span class="v">ぽちゃもん</span></li>
-          <li><span class="k">しゅるい</span><span class="v">エゾモモンガ（ぽちゃっと多め）</span></li>
+          <li><span class="k">しゅるい</span><span class="v">エゾモモンガ（ぽちゃっと おおめ）</span></li>
           <!-- たんじょうびは日付を変える予定のため一旦非表示（2026-08-21 じょじを指示）。決まったらコメントを外す
           <li><span class="k">たんじょうび</span><span class="v">8月8日（いちばんまるい数字がならぶ日）</span></li>
           -->
-          <li><span class="k">すきなもの</span><span class="v">はっぱ・ソフトクリーム・あったかい湯船</span></li>
-          <li><span class="k">ちょっとにがて</span><span class="v">ダイエット・げきからラーメン（なのに挑戦しちゃう）</span></li>
+          <li><span class="k">すきなもの</span><span class="v">はっぱ・ソフトクリーム・あったかい ゆぶね</span></li>
+          <li><span class="k">ちょっとにがて</span><span class="v">ダイエット・げきからラーメン（なのに ちょうせんしちゃう）</span></li>
           <li><span class="k">とくぎ</span><span class="v">びろーん（おもったよりのびる）</span></li>
-          <li><span class="k">ゆめ</span><span class="v">かっこよく滑空すること（いまはまだ落ちてるだけ）</span></li>
+          <li><span class="k">ゆめ</span><span class="v">かっこよく そらを とぶこと（いまは まだ おちてるだけ）</span></li>
         </ul>
       </div>
     </div>
@@ -985,7 +1071,7 @@ footer{
 </section>
 
 <!-- ========== 5. うごくぽちゃもん ========== -->
-<section id="animes" data-theme="theme-orange" data-fx="firefly">
+<section id="animes" data-theme="theme-pink" data-fx="petal">
   <div class="inner">
     <h2 class="sec-title reveal">うごくぽちゃもん</h2>
     <p class="sec-lead reveal">てがきアニメで きょうも うごく。</p>
@@ -1001,7 +1087,7 @@ footer{
 </section>
 
 <!-- ========== 7. グッズ ========== -->
-<section id="goods" data-theme="theme-teal" data-fx="sparkle">
+<section id="goods" data-theme="theme-orange" data-fx="firefly">
   <div class="inner">
     <h2 class="sec-title reveal">グッズ</h2>
     <p class="sec-lead reveal">ぽちゃもんを つれてかえろう。</p>
@@ -1051,7 +1137,7 @@ footer{
 </section>
 
 <!-- ========== 8. おみやげ ========== -->
-<section id="gift" data-theme="theme-blue" data-fx="bubble">
+<section id="gift" data-theme="theme-green" data-fx="leaf">
   <div class="inner">
     <h2 class="sec-title reveal">おみやげ</h2>
     <p class="sec-lead reveal">むりょうの かべがみ。ダウンロードして つかってね。</p>
@@ -1070,6 +1156,30 @@ footer{
       </div>
     </div>
     <p class="gift-note reveal">むりょうで ダウンロードして、こじんの はんいで たのしんでね🐾<br><span style="opacity:.8;font-size:.92em">iPhone は ひらいた がぞうを ながおし → 「"しゃしん"に ほぞん」</span><br>（再配布・販売・加工しての公開はご遠慮ください）</p>
+  </div>
+</section>
+
+<!-- ========== 作者プロフィール（文章とアイコンは jojima-george.com の PROFILE と同じ） ========== -->
+<section id="author" data-theme="theme-purple" data-fx="sparkle">
+  <div class="inner">
+    <h2 class="sec-title reveal">さくしゃ</h2>
+    <p class="sec-lead reveal">ぽちゃもんを かいている ひと。</p>
+    <div class="author reveal">
+      <div class="author__icon">
+        <img src="assets/img/author.webp" alt="城島ジョージのアイコン（サングラスをかけたすしだるま）" width="400" height="400" loading="lazy">
+      </div>
+      <div class="author__body">
+        <div class="author__name">城島ジョージ</div>
+        <div class="author__en">JOJIMA GEORGE</div>
+        <p>2016年に独学で絵を始め、アニメ調からリアル厚塗りまで幅広いテイストを武器にクライアントワークを展開。全国イラストコンテスト（ヒューマンアカデミー主催）最優秀賞を受賞し、本格的に商業制作へ。</p>
+        <p>ゲームイラスト、アパレルコラボ、ブロックチェーンプロジェクトのキャラクターデザインなど、ジャンルを越えた制作実績を持つ。１級色彩コーディネーターの資格を活かした配色設計も強み。</p>
+        <p>オリジナルキャラクター「すしだるま」「ぽちゃもん」はSNS・イベントで展開中。イラストにとどまらず、Webサイト制作・アプリ開発・グッズ・イベントまで、企画からデザイン・コーディングまで一貫して手がける総合クリエイター。</p>
+        <ul class="author__tags" aria-label="できること">
+          <li>ILLUSTRATION</li><li>CHARACTER DESIGN</li><li>WEB DESIGN</li><li>APP DEVELOPMENT</li><li>COLOR COORDINATION</li>
+        </ul>
+        <a class="dlBtn author__link" href="https://www.jojima-george.com/" target="_blank" rel="noopener noreferrer">作者ホームページへ →</a>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1092,10 +1202,10 @@ footer{
 const SPARK_SVG='<svg viewBox="0 0 24 24"><path d="M12 0 C13.2 7 17 10.8 24 12 C17 13.2 13.2 17 12 24 C10.8 17 7 13.2 0 12 C7 10.8 10.8 7 12 0 Z"/></svg>';
 const sky=document.getElementById('skyLayer');
 const SIZES=[
-  {n:3, min:30, max:46},   // 大：主役キラ
-  {n:6, min:16, max:24},   // 中
-  {n:9, min:8,  max:13},   // 小
-];
+  {n:2, min:30, max:46},   // 大：主役キラ
+  {n:4, min:16, max:24},   // 中
+  {n:6, min:8,  max:13},   // 小
+]; // 星を置いたぶん約35%減
 const parts=[]; // 視差用 {el, depth}
 // 背景エフェクトを Three.js で出せるか（出せる時は旧キラキラを作らない）
 const USE_FX=(()=>{
@@ -1137,7 +1247,7 @@ SIZES.forEach(g=>{
     parts.push({el:s, depth:size*0.9}); // 大きいほど手前＝よく動く
   }
 });
-for(let i=0;i<10;i++){
+for(let i=0;i<6;i++){
   const d=document.createElement('span');
   d.className='twinkdot';
   const size=3+Math.random()*4;
@@ -1152,29 +1262,95 @@ for(let i=0;i<10;i++){
 }
 } // !USE_FX
 
-// ===== ヒーロー：まわりに浮かぶステッカー（PCだけ。画像もPCの時しか読まない） =====
-if(matchMedia('(min-width:900px)').matches){
-  // 横位置は「中央から何px」（side=左右・off=中央からの距離）。%だと横長の画面で端に張り付くため
-  // 画面が狭い時は端から最低 2% は空ける。depth が大きいほど手前＝大きく・マウスでよく動く
-  const FLOATERS=[
-    {img:'ringo',     side:'left',  off:520, y:14, w:78, rot:-10, depth:30, dur:5.2, delay:0},
-    {img:'softcream', side:'left',  off:470, y:46, w:110, rot:8,   depth:18, dur:6.1, delay:.8},
-    {img:'koinobori', side:'left',  off:590, y:70, w:120, rot:-6,  depth:40, dur:5.6, delay:1.6},
-    {img:'banana',    side:'right', off:450, y:12, w:80, rot:10,  depth:26, dur:5.9, delay:.4},
-    {img:'umbrella',  side:'right', off:400, y:42, w:132, rot:-8,  depth:16, dur:6.6, delay:1.2},
-    {img:'happa',     side:'right', off:500, y:72, w:72, rot:6,   depth:36, dur:5.4, delay:2.0},
-  ];
-  const fl=document.getElementById('floaters');
-  FLOATERS.forEach(f=>{
-    const im=document.createElement('img');
-    im.className='floater'; im.src=`assets/img/${f.img}.webp`; im.alt=''; im.decoding='async';
-    im.style[f.side]=`max(2%, calc(50% - ${f.off}px))`; im.style.top=f.y+'%';
-    im.style.setProperty('--w', f.w+'px'); im.style.setProperty('--rot', f.rot+'deg');
-    im.style.setProperty('--dur', f.dur+'s'); im.style.setProperty('--delay', f.delay+'s');
-    im.style.setProperty('--op', f.depth>30 ? '1' : '.92');
-    fl.appendChild(im);
-    parts.push({el:im, depth:f.depth*1.6}); // 手前（depth大）ほどマウスで大きく動く
+// ===== 円バッジ：文字を円1周ぴったりに均す＋タップでギュルン =====
+{
+  const badge=document.getElementById('orbitBadge');
+  const fit=()=>{
+    const t=badge?.querySelector('text'), tp=badge?.querySelector('textPath'), path=document.getElementById('circlePath');
+    if(!t||!tp||!path) return;
+    const L=path.getTotalLength();
+    t.style.letterSpacing='0px';
+    const w=t.getComputedTextLength();
+    const n=tp.textContent.length;
+    t.style.letterSpacing=Math.max(0,(L-w)/n).toFixed(2)+'px';   // 余りを文字数で割って均等に配る
+  };
+  fit();
+  if(document.fonts) document.fonts.ready.then(fit);   // Webフォントが来てから測り直す
+  badge?.addEventListener('click',()=>{
+    badge.classList.remove('whirl'); void badge.offsetWidth;   // 連打でも毎回最初から回す
+    badge.classList.add('whirl');
   });
+  badge?.addEventListener('animationend',e=>{ if(e.animationName==='whirl') badge.classList.remove('whirl'); });
+}
+
+// ===== 背景の星（OGP画像と同じ3種。固定背景 .bg に置くので全セクションで見える。大きさ・傾き・位置は読み込むたびに少しランダム） =====
+{
+  const PC=matchMedia('(min-width:900px)').matches;
+  // k=種類（w=大きい白・b=水色・y=黄色）/ s=基準の大きさpx / y=上から%（画面基準）/ off=中央から何px（負=左。狭い画面では端2%〜96%に収める）/ pct=左端から%
+  // 置き場所は真ん中の文字・キャラを避けた枠。大きさは±25%・傾きは±40°・位置は少し揺らす
+  const SLOTS = PC ? [
+    {k:'w', off:-760, y:46, s:110},
+    {k:'b', off:-640, y:8,  s:44},
+    {k:'y', off:-540, y:22, s:30},
+    {k:'b', off:-430, y:40, s:34},
+    {k:'b', off:-400, y:66, s:26},
+    {k:'y', off:-480, y:86, s:36},
+    {k:'b', off:-880, y:80, s:52},
+    {k:'b', off:-1150,y:28, s:40},
+    {k:'y', off:560,  y:8,  s:28},
+    {k:'b', off:720,  y:22, s:48},
+    {k:'y', off:660,  y:54, s:84},
+    {k:'b', off:430,  y:36, s:30},
+    {k:'y', off:470,  y:80, s:32},
+    {k:'b', off:840,  y:88, s:44},
+    {k:'w', off:940,  y:12, s:60},
+    {k:'y', off:1120, y:42, s:34},
+  ] : [   // スマホ：7個（文字・キャラ・ふきだしを避けた位置）
+    {k:'y', pct:8,  y:14, s:22},
+    {k:'b', pct:84, y:10, s:26},
+    {k:'y', pct:90, y:38, s:20},
+    {k:'w', pct:4,  y:44, s:44},
+    {k:'b', pct:88, y:56, s:24},
+    {k:'b', pct:10, y:72, s:20},
+    {k:'y', pct:80, y:84, s:28},
+  ];
+  const VB={w:'0 0 94.59055 92.27398', b:'0 0 35.19134 34.32962', y:'0 0 60.2693 58.97871'};
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  const NS='http://www.w3.org/2000/svg';
+  const layer=document.getElementById('starLayer');
+  SLOTS.forEach(sl=>{
+    const el=document.createElementNS(NS,'svg');
+    el.setAttribute('viewBox',VB[sl.k]); el.setAttribute('class','star star--'+sl.k);
+    const u=document.createElementNS(NS,'use'); u.setAttribute('href','#star-'+sl.k); el.appendChild(u);
+    const size=Math.round(sl.s*rnd(.75,1.25));
+    el.style.left = sl.pct!=null ? (sl.pct+rnd(-2,2)).toFixed(1)+'%'
+                                 : 'clamp(2%, calc(50% + '+Math.round(sl.off+rnd(-40,40))+'px), 96%)';
+    el.style.top=(sl.y+rnd(-3,3)).toFixed(1)+'%';
+    el.style.setProperty('--w', size+'px');
+    el.style.setProperty('--rot', rnd(-40,40).toFixed(0)+'deg');
+    el.style.setProperty('--dur', rnd(4.5,7.5).toFixed(1)+'s');
+    el.style.setProperty('--delay', (-rnd(0,6)).toFixed(1)+'s');  // 負の遅れ＝最初からバラバラの位相で漂う
+    // 奥行き＝大きさ。小さい星は遠い＝ぼかす（大きい星はくっきり）
+    const far = size < (PC?30:22) ? 1.4 : size < (PC?48:32) ? .6 : 0;
+    el.style.setProperty('--blur', far+'px');
+    layer.appendChild(el);
+    parts.push({el, depth: (PC?12:6) + size*0.3});   // 大きい星ほど手前＝マウス・スクロールでよく動く
+  });
+  // テーマ（背景色）が切り替わった時：星がそれぞれクルンと1回転して、位置も少しズレる（themeIO から呼ぶ）
+  const SHIFT = PC ? 30 : 14;   // ズレの最大px（大きいと回転の中心がズレて見える）
+  let lastSpin=-1e9;
+  window.__spinStars = () => {
+    const now=performance.now();
+    if(now-lastSpin<700) return;   // 速いスクロールでセクションが連続で切り替わっても回転を積み上げない
+    lastSpin=now;
+    layer.querySelectorAll('.star').forEach(el=>{
+      const cur=parseFloat(el.style.getPropertyValue('--spin'))||0;
+      const dir = Math.random()<.5 ? -1 : 1;
+      el.style.setProperty('--spin', (cur + dir*rnd(200,320)).toFixed(0)+'deg');   // 1回クルン（半回転〜1回転弱）で新しい向きに止まる
+      el.style.setProperty('--dx', rnd(-SHIFT,SHIFT).toFixed(0)+'px');
+      el.style.setProperty('--dy', rnd(-SHIFT,SHIFT).toFixed(0)+'px');
+    });
+  };
 }
 
 // ===== ヒーロー：ロゴを1文字ずつ動かす（logo.svg を読み込んでページに直接埋め、文字ごとに番号を振る） =====
@@ -1292,8 +1468,10 @@ const themeIO=new IntersectionObserver(es=>{
   es.forEach(en=>{
     if(en.isIntersecting){
       // className を丸ごと書き換えると revealed 等の別クラスまで消える（ロゴが消えるバグの原因だった）ので足し引きで
+      const next=en.target.dataset.theme, changed=!document.body.classList.contains(next);
       document.body.classList.remove('theme-blue','theme-teal','theme-green','theme-purple','theme-orange','theme-pink');
-      document.body.classList.add(en.target.dataset.theme);
+      document.body.classList.add(next);
+      if(changed) window.__spinStars?.();   // 色が変わる瞬間に星がクルンと回って位置もズレる
       document.body.dataset.fx=en.target.dataset.fx||'sparkle';   // 背景エフェクトの種類（bgfx.js が見る）
     }
   });
@@ -1523,9 +1701,9 @@ const CAN_TILT=!matchMedia('(prefers-reduced-motion: reduce)').matches;
 STICKERS.forEach((st,i)=>{
   const b=document.createElement('button');
   b.className='sticker reveal';
-  b.innerHTML=`<img src="assets/img/${st.img}.webp" alt="${st.name}" loading="lazy"><span class="name">${st.name}</span>`;
+  b.innerHTML=`<span class="tap" aria-hidden="true">タップで おはなし</span><img src="assets/img/${st.img}.webp" alt="${st.name}" loading="lazy"><span class="name">${st.name}</span>`;
   b.addEventListener('click',()=>openLb(st));
-  if(CAN_TILT) tilt3d(b, 13);
+  // 3D傾き（tilt3d）はスマホで重かったので外した（2026-08-22 じょじを指示）。お品書きの扇には残している
   gallery.appendChild(b);
 });
 
@@ -1545,11 +1723,19 @@ function openImage(src,name,cap,wide){
   document.getElementById('lbName').textContent=name;
   document.getElementById('lbCap').textContent=cap||'';
   lb.classList.add('open');
+  // スマホの「戻る」で窓だけ閉じるため、開く時に履歴を1段積む（戻る＝この段を消す＝popstate で閉じる）
+  if(!(history.state && history.state.lb)) history.pushState({lb:1}, '');
 }
 function openLb(st){ openImage(`assets/img/${st.img}.webp`, st.name, st.cap, false); }
-document.getElementById('lbClose').addEventListener('click',()=>lb.classList.remove('open'));
-lb.addEventListener('click',e=>{ if(e.target===lb) lb.classList.remove('open'); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') lb.classList.remove('open'); });
+function closeLb(){
+  if(!lb.classList.contains('open')) return;
+  lb.classList.remove('open');
+  if(history.state && history.state.lb) history.back();   // 自分で積んだ1段を消す（ページは戻らない）
+}
+document.getElementById('lbClose').addEventListener('click',closeLb);
+lb.addEventListener('click',e=>{ if(e.target===lb) closeLb(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeLb(); });
+addEventListener('popstate',()=>{ if(lb.classList.contains('open')) lb.classList.remove('open'); });   // 戻るボタン → 窓だけ閉じる
 
 // ===== 出現アニメ =====
 const io=new IntersectionObserver(es=>{
@@ -1607,7 +1793,7 @@ else{
 // --- 背景の粒子エフェクト（セクションの色ごとに種類が変わる）。ページの表示が終わってから読み込む ---
 if(window.__USE_FX){
   const start=()=>import('./assets/fx/bgfx.js')
-    .then(m=>{ window.__bgfx=m.startBgFx(document.querySelector('.bg')); })
+    .then(m=>{ window.__bgfx=m.startBgFx(document.querySelector('.bg'), { count: matchMedia('(max-width:760px)').matches ? 60 : 100 }); })  // 星を置いたぶん粒は減らす（元は105/150）
     .catch(err=>console.warn('背景エフェクトの読み込みに失敗', err));
   if(document.readyState==='complete') start(); else addEventListener('load', start, {once:true});
 }
