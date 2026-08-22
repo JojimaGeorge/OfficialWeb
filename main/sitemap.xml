@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.jojima-george.com/</loc>
+    <lastmod>2026-08-23</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.jojima-george.com/news.html</loc>
+    <lastmod>2026-08-22</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.jojima-george.com/illustration.html</loc>
+    <lastmod>2026-06-16</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.jojima-george.com/kouhaku2023/</loc>
+    <lastmod>2026-06-21</lastmod>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.jojima-george.com/ginpika2nd/</loc>
+    <lastmod>2026-03-15</lastmod>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.jojima-george.com/tokimekibb/</loc>
+    <lastmod>2026-03-15</lastmod>
+    <priority>0.5</priority>
+  </url>
+</urlset>
