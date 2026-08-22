@@ -724,6 +724,9 @@
       text-decoration: none;
       min-height: 210px;
       transition: background 0.3s;
+      /* スマホでスクロールしようと指を置いただけで灰色の膜が乗るのを止める
+         （モバイルブラウザ既定のタップハイライト） */
+      -webkit-tap-highlight-color: transparent;
     }
 
     @media (any-hover: hover) {
@@ -1896,6 +1899,15 @@
       .news-list .news-date { display: none; }
       .news-list-title { white-space: normal; font-size: 13px; }
 
+      /* タグ枠が EXHIBITION でキツキツになるので、SPは文字を小さくして枠幅いっぱいに置く */
+      .news-list .news-tag {
+        display: block;
+        width: 100%;
+        font-size: 9px;
+        letter-spacing: 0.5px;
+        padding: 4px 2px;
+      }
+
       /* Contact: パネルを縦積み・CTAは全幅で押しやすく */
       .contact-hero {
         flex-direction: column;
@@ -2170,10 +2182,10 @@
           <div class="work-body ink-guard">
             <div class="work-num reveal">Work 04 &mdash; Character Project</div>
             <div class="work-title reveal">時女 守愛(72)<br>Cute Girls Collection</div>
-            <p class="work-desc reveal">通称「ばーば」で親しまれている、とっても可愛らしい72歳の乙女。Xではその愛くるしさで大人気になりました。コレクション「ギンピカ」や、国内最大規模のオンラインイベント「NFT紅白」など、キャラクターを軸にした企画・特設サイトの制作・運営まで一貫して手がけました。</p>
+            <p class="work-desc reveal">通称「ばーば」で親しまれている、とっても可愛らしい72歳の乙女。Xではその愛くるしさで大人気になりました。アニバーサリー企画「ギンピカ」や、国内最大規模のオンラインイベント「NFT紅白」など、キャラクターを軸にした企画・特設サイトの制作・運営まで一貫して手がけました。</p>
             <ul class="offer-tags reveal">
               <li>キャラクターデザイン・世界観設計</li>
-              <li>コレクション・オンラインイベントの企画運営</li>
+              <li>NFTコレクション・オンラインイベントの企画運営</li>
               <li>特設サイトのデザイン・コーディング</li>
             </ul>
             <p class="offer-tags-note reveal">&#8251; このジャンルでご依頼いただける内容です</p>
@@ -2226,11 +2238,11 @@
           <div class="work-body ink-guard">
             <div class="work-num reveal">Work 05 &mdash; App &amp; Service</div>
             <div class="work-title reveal">アプリ開発・サービス企画</div>
-            <p class="work-desc reveal">「あったらいいな」を企画して、画面設計からコーディング、公開まで自分の手で。Webアプリ・PWA・キャラクターサイトなど、自作のプロダクトを複数公開しています。イラストとデザインの経験を活かした、見た目と使い心地を両立する実装が強みです。</p>
+            <p class="work-desc reveal">「あったらいいな」を形にするところから、広げるところまで。企画の立案と要件の整理にはじまり、画面側（フロントエンド）とサーバー側（バックエンド）の実装、公開先のサーバーまわりの調整まで一貫して自分の手で行います。公開して終わりにせず、その先のマーケティング施策も打ち、サービスを広める活動まで担っています。</p>
             <ul class="offer-tags reveal">
-              <li>Webアプリ・サービスの企画・プロトタイプ制作</li>
-              <li>UI・UXデザイン（画面設計・使い心地の改善相談）</li>
-              <li>フロントエンド実装・PWA化・公開まで</li>
+              <li>企画立案・要件定義（何を作るか決めるところから）</li>
+              <li>フロントエンド・バックエンド実装／サーバー構築・公開</li>
+              <li>公開後のマーケティング施策・サービスの拡大</li>
             </ul>
             <p class="offer-tags-note reveal">&#8251; このジャンルでご依頼いただける内容です</p>
             <div class="work-links reveal">
@@ -2301,19 +2313,19 @@
             <div class="tl-desc">アニメ調からリアル厚塗りまで幅広いテイストを独学で習得</div>
           </div>
           <div class="tl-item">
-            <div class="tl-year">2019</div>
+            <div class="tl-year">2021</div>
             <div class="tl-title">全国イラストコンテスト 最優秀賞受賞</div>
             <div class="tl-desc">ヒューマンアカデミー主催コンテストで最優秀賞を受賞し、商業制作へ本格参入。ゲームイラスト・アパレルコラボなどクライアントワークを展開</div>
           </div>
           <div class="tl-item">
-            <div class="tl-year">2021</div>
+            <div class="tl-year">2023</div>
             <div class="tl-title">Webデザイン・企画運営へ領域を拡大</div>
-            <div class="tl-desc">コレクション「ギンピカ」や国内最大規模のオンラインイベント「NFT紅白」を企画・主催。特設サイトのデザインからコーディングまで自分の手で制作</div>
+            <div class="tl-desc">NFTコレクション「すしだるま」「人物イラスト」を展開。国内最大規模のオンラインイベント「NFT紅白」やアニバーサリー企画「ギンピカ」を主催し、特設サイトのデザインからコーディングまで自分の手で制作</div>
           </div>
           <div class="tl-item">
-            <div class="tl-year">2023</div>
-            <div class="tl-title">オリジナルキャラクター「すしだるま」展開</div>
-            <div class="tl-desc">SNS・グッズ・リアルイベントで展開。キャラクターサイトの制作やグランプリ企画も手がける</div>
+            <div class="tl-year">2025</div>
+            <div class="tl-title">「すしだるま」をリアルイベントへ展開</div>
+            <div class="tl-desc">グッズ制作やイベント出展に本格参戦。キャラクターサイトやグランプリ企画も手がけ、この時期からWeb・アプリ制作も本格的に取り組みはじめる</div>
           </div>
           <div class="tl-item">
             <div class="tl-year">2026</div>
@@ -2509,10 +2521,11 @@
   <script>
     // ===== Slide Data =====
     let heroSlides = [
-      { tag: 'ILLUSTRATION', title: '色彩で紡ぐ、夏の記憶', caption: '人物イラスト / オリジナル作品' },
-      { tag: 'ILLUSTRATION', title: '日常に宿る、静かな旋律', caption: '人物イラスト / オリジナル作品' },
-      { tag: 'PROJECT', title: 'ギンピカ 2nd Anniversary', caption: 'コレクション / イベント企画' },
-      { tag: 'ILLUSTRATION', title: '光と水のあいだに', caption: '人物イラスト / オリジナル作品' },
+      // タイトル・説明は illustration.html の data-caption に合わせる
+      { tag: 'ILLUSTRATION', title: '潮騒のクリームソーダ', caption: 'NFT展示会「夏のかけら」出展作品' },
+      { tag: 'ILLUSTRATION', title: 'ハミングバード', caption: '人物イラスト / オリジナル作品' },
+      { tag: 'PROJECT', title: 'ギンピカ食堂', caption: 'NFT活動2周年記念イラスト' },
+      { tag: 'ILLUSTRATION', title: 'プールサイドの秘密', caption: '人物イラスト / オリジナル作品' },
       { tag: 'CHARACTER', title: 'ぽちゃもん', caption: 'オリジナルキャラクター / 公式サイト' },
     ];
 
