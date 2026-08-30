@@ -1,3 +1,5 @@
+/* 自動暗転の拒否（meta と同じ意味をCSS側にも。ぽちゃもんと同じ形） */
+html{color-scheme:only light;}
 /* ベーススタイル */
 body {
     font-family: Arial, sans-serif;

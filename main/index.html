@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- 自動暗転の拒否。Androidのアプリ内ブラウザ（X等）は白背景を勝手に黒へ反転させる。
+       "light" だけでは「ダーク非対応」と解釈され止まらない。拒否には only が要る（実測で確認・2026-08-29） -->
+  <meta name="color-scheme" content="only light">
   <meta name="theme-color" content="#004CFF">
   <title>Jojima George Official Web</title>
   <meta name="description" content="イラストレーター・城島ジョージ公式HPです。人物イラスト、すしだるまなど幅広いテイストで作品展開しています。">
@@ -33,6 +36,9 @@
     gtag('config', 'G-F6LJY0JQPR');
   </script>
   <style>
+/* 自動暗転の拒否（meta と同じ意味をCSS側にも。ぽちゃもんと同じ形） */
+html{color-scheme:only light;}
+
     /* ============================================
        DESIGN TOKENS
        「ベタ青=情報 / グラデ=装飾とCTA / 淡ブルー=イラストの地」の3階調で

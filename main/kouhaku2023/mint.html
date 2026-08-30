@@ -16,6 +16,9 @@
     <!-- Required meta tags -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <!-- 自動暗転の拒否。Androidのアプリ内ブラウザ（X等）は白背景を勝手に黒へ反転させる。
+         "light" だけでは「ダーク非対応」と解釈され止まらない。拒否には only が要る（実測で確認・2026-08-29） -->
+    <meta name="color-scheme" content="only light">
     <!-- Favicon -->
     <!-- Bootstrap CSS -->
     <link
