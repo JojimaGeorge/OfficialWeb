@@ -1742,6 +1742,15 @@ html{color-scheme:only light;}
         gap: 40px;
       }
 
+      /* ==1列になったら写真と説明を中央へ揃える。==
+         2列の時は写真の左端が見出しの左端と揃っていて正しい。だが1列だと枠が
+         画面いっぱいに広がるので、左端を合わせても==「丸の中心」と「文字の中心」が
+         ずれて見える==（丸は左右が丸いので特に目立つ）。
+         実測のズレ＝393pxで77px・806px（Foldを開いた幅）で179px
+         （2026-08-30・本人指摘）。2列（PC）は7pxしかずれていないので触らない。 */
+      .profile-photo img { margin-inline: auto; }
+      .profile-photo figcaption { text-align: center; }
+
       .news-grid {
         grid-template-columns: 1fr;
         gap: 48px;
@@ -2833,9 +2842,13 @@ html{color-scheme:only light;}
     //   スクロール量＝アニメ進行。指を止めれば絵も止まる。
     //   overflow:hidden の枠内で 1.08→1 に締まりつつ y も微妙にズレる =====
     const isDesktop = window.matchMedia('(min-width: 769px)').matches;
-    const anyHover = window.matchMedia('(any-hover: hover)').matches;
+    /* ==「PCのみ」を意図しているので `hover` で見る。== `any-hover` は
+       「**どれか一つでも**乗せる操作ができるか」なので、ペンやマウスを繋げられる
+       スマホでも真になり、==Galaxy Fold を開くと演出が動いてしまう==
+       （2026-08-30・本人確認）。見るべきは「**主に使う操作**が乗せる操作か」。 */
+    const canHover = window.matchMedia('(hover: hover)').matches;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (isDesktop && anyHover && !reduceMotion && typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+    if (isDesktop && canHover && !reduceMotion && typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
       gsap.registerPlugin(ScrollTrigger);
       document.querySelectorAll('.work-img-wrap').forEach(wrap => {
         const media = wrap.querySelector('.work-img');
