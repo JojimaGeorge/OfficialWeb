@@ -576,7 +576,13 @@ html{color-scheme:only light;}
       transition: transform 0.3s var(--ease);
     }
 
-    @media (any-hover: hover) {
+    /* ==指で操作する機器では乗せた時の色を出さない。==
+       `any-hover` は「**どれか一つでも**乗せる操作ができる機器か」を見るので、
+       ペンやマウスを繋げられるスマホ（Galaxy Fold 等）では真になり、
+       ==指で撫でた所に色が貼り付いたまま残る==（2026-08-30・本人申告）。
+       見るべきは「**主に使う操作**が乗せる操作か」＝`hover` のほう。
+       PCでは今までどおり真なので見た目は変わらない。 */
+    @media (hover: hover) {
       .request-bar:hover {
         background: var(--main);
         color: #fff;
@@ -736,10 +742,14 @@ html{color-scheme:only light;}
       -webkit-tap-highlight-color: transparent;
     }
 
-    @media (any-hover: hover) {
+    @media (hover: hover) {
       .app-card[href]:hover { background: rgba(0, 76, 255, 0.05); }
       .app-card[href]:hover .app-card-arrow { transform: translateX(4px); }
     }
+
+    /* 指で押している間だけ色を変える（離すと戻る）。乗せた時の色と違い、
+       ==押している間しか続かないので居座らない==。 */
+    .app-card[href]:active { background: rgba(0, 76, 255, 0.09); }
 
     .app-icon {
       width: 44px;
@@ -940,11 +950,17 @@ html{color-scheme:only light;}
       margin-bottom: 90px;
     }
 
-    /* 円形をやめ角版で(雑誌の人物写真)。キャプション付き */
+    /* 丸く抜く（2026-08-30・本人の指定で角版から戻した。
+       元は雑誌の人物写真に寄せて角版にしていた）。キャプション付き。
+       ==縦横比を明示して cover で抜く==＝将来正方形でない画像に差し替えても
+       楕円に潰れない（今の PFP.png は 400x400）。 */
     .profile-photo img {
       display: block;
       width: 100%;
       max-width: 320px;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 50%;
     }
 
     .profile-photo figcaption {
@@ -1170,7 +1186,7 @@ html{color-scheme:only light;}
       transition: transform 0.6s var(--ease);
     }
 
-    @media (any-hover: hover) {
+    @media (hover: hover) {
       .news-feature:hover img { transform: scale(1.04); }
     }
 
@@ -1221,7 +1237,7 @@ html{color-scheme:only light;}
       transition: background 0.3s;
     }
 
-    @media (any-hover: hover) {
+    @media (hover: hover) {
       .news-list a:hover { background: rgba(0, 76, 255, 0.05); }
     }
 
@@ -1267,7 +1283,7 @@ html{color-scheme:only light;}
       transition: border-color 0.3s, color 0.3s;
     }
 
-    @media (any-hover: hover) {
+    @media (hover: hover) {
       .more-btn:hover {
         border-color: var(--main);
         color: var(--main);
@@ -1352,7 +1368,7 @@ html{color-scheme:only light;}
       transition: background 0.3s, color 0.3s;
     }
 
-    @media (any-hover: hover) {
+    @media (hover: hover) {
       .contact-btn-primary:hover { opacity: 0.88; transform: translateY(-2px); }
       .contact-btn-secondary:hover { background: var(--main); color: #fff; }
     }
@@ -1527,7 +1543,7 @@ html{color-scheme:only light;}
       transition: color 0.3s;
     }
 
-    @media (any-hover: hover) {
+    @media (hover: hover) {
       .footer-links a:hover { color: #7aa8ff; }
     }
 
@@ -1559,7 +1575,7 @@ html{color-scheme:only light;}
       text-decoration: none;
     }
 
-    @media (any-hover: hover) {
+    @media (hover: hover) {
       .footer-request:hover { color: #fff; }
     }
 
