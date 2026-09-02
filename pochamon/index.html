@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- 自動暗転の拒否。Androidのアプリ内ブラウザ（X等）は白背景を勝手に黒へ反転させる。
+     "light" だけでは「ダーク非対応」と解釈され止まらない。拒否には only が要る（実測で確認・2026-08-29） -->
+<meta name="color-scheme" content="only light">
 <title>ぽちゃもん 公式うぇぶ</title>
 <meta name="description" content="ぽちゃっとまるいモモンガ「ぽちゃもん」の公式サイト。ステッカー・アニメ・ゲームで、がんばらない日もちゃんとかわいい。">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -41,7 +44,7 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 /* 横のはみ出しは html から切る（body だけだとスマホでページ幅が広がり、右に隙間ができて横にスワイプできてしまう） */
-html{scroll-behavior:smooth; background:#1e9bf0; overflow-x:hidden; overflow-x:clip;}
+html{color-scheme:only light; scroll-behavior:smooth; background:#1e9bf0; overflow-x:hidden; overflow-x:clip;}
 body{
   font-family:var(--font-body);
   color:var(--ink);
