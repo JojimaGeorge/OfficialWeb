@@ -818,9 +818,15 @@ footer{
   font-size:12.5px; font-weight:700;
   position:relative; z-index:2;
 }
-/* ロゴから落ちた「゜」の着地点。フッターの上端に乗る（下端をフッターの上辺に合わせる） */
+/* ロゴから落ちた「゜」の着地点。フッターの上端に乗る（下端をフッターの上辺に合わせる）
+   ==タップすると飛び上がってトップへ戻り、ロゴにハマり直す==（2026-09-02 じょじを指示）。
+   落ちてくる間は触れない（.is-rest が付いてから受ける）。輪は小さいので当たり判定を ::before で広げる（最小44px） */
 .maruLand{ position:absolute; left:14%; top:0; translate:0 -100%; pointer-events:none; transform-origin:50% 50%; }
 .maruLand svg{ width:100%; height:100%; display:block; overflow:visible; transform-origin:50% 50%; }
+.maruLand.is-rest{ pointer-events:auto; cursor:pointer; touch-action:manipulation; }
+.maruLand.is-rest::before{ content:''; position:absolute; left:50%; top:50%; translate:-50% -50%; width:max(100%,44px); height:max(100%,44px); }
+.maruLand.is-rest:hover svg{ animation:maruWiggle .6s ease-in-out infinite; }
+@keyframes maruWiggle{ 0%,100%{ translate:0 0; } 50%{ translate:0 -4px; } }
 
 /* 出現アニメ */
 .reveal{ opacity:0; translate:0 36px; transition:opacity .7s ease, translate .7s cubic-bezier(.22,1,.36,1); }
@@ -1657,6 +1663,8 @@ function dropLogoLetters(liftPx){
 // そのあと「゜」が転げ落ち、床を少し転がって、端からピューッと落ちて消える。
 // 2回目以降のびろーんでは、傾いたままの「ぽ」が今まで通り一緒に跳ねる。リロードするまで元に戻らない =====
 let poToppled=false;
+const PO_SX=-30, PO_SY=1;                                         // 倒れた後の置き場所：隣の「ち」と1文字ぶんの隙間をあける
+const PO_SHIFT=`translate(${PO_SX}px,${PO_SY}px) rotate(-90deg)`;
 function topplePo(){
   if(poToppled) return; poToppled=true;
   const svg=document.querySelector('.logo__svg');
@@ -1667,8 +1675,7 @@ function topplePo(){
   const cx=gb.x+gb.width/2, cy=gb.y+gb.height/2;                 // 回す中心＝「ぽ」全体（本体＋゜）のまん中
   const floor=(svg.viewBox.baseVal.height||121);                  // 床＝ロゴの下端
   const r=Math.max(mb.width,mb.height)/2;                         // ゜の半径
-  const SX=-30, SY=1;                                             // 倒れた後の置き場所：隣の「ち」と1文字ぶんの隙間をあける
-  const SHIFT=`translate(${SX}px,${SY}px) rotate(-90deg)`;
+  const SX=PO_SX, SY=PO_SY, SHIFT=PO_SHIFT;
   for(const el of [body,maru]){ el.style.transformBox='view-box'; el.style.transformOrigin=cx+'px '+cy+'px'; }
   const GRAV_IN='cubic-bezier(.11,0,.5,0)', GRAV_OUT='cubic-bezier(.5,1,.89,1)';   // 落ちる＝加速／上がる＝減速（放物線に近い曲線）
   // (1) コロンッ：重力で倒れて、床に当たった勢いで少し戻ってから寝る
@@ -1810,8 +1817,77 @@ function landMaruOnFooter(foot){
     pos.push({transform:'translate('+(-4-D+B).toFixed(1)+'px,0px)', offset:1});
     rot.push({transform:'rotate('+(-30+SPIN+ROT+RB).toFixed(1)+'deg)', offset:1});
   }
-  el.animate(pos,{duration:Math.round(total*1000), fill:'forwards'});
+  el.animate(pos,{duration:Math.round(total*1000), fill:'forwards'}).onfinish=()=>armMaruReturn(el);
   ring.animate(rot,{duration:Math.round(total*1000), fill:'forwards'});
+}
+// ===== 戻り：着地した「゜」をタップ → 飛び上がって消える → トップへ → 「ぽ」が起き上がり、「゜」が降ってきてハマる（2026-09-02 じょじを指示）
+// 戻った後はもうコケない（1度きりのオチ。poToppled は true のまま） =====
+function armMaruReturn(el){
+  el.classList.add('is-rest');
+  el.addEventListener('click', ()=>returnMaruHome(el), {once:true});
+}
+function returnMaruHome(el){
+  if(window.__maruHome) return; window.__maruHome=true;
+  el.classList.remove('is-rest');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // (1) ピョンと飛び上がって画面の上へ（今の位置に足し算で重ねる）
+  if(el.animate && !reduce){
+    const up=el.animate([
+      {transform:'translate(0,0)', opacity:1, easing:'cubic-bezier(.2,.8,.4,1)'},
+      {transform:'translate(0,'+(-Math.max(240, innerHeight*0.6)).toFixed(0)+'px)', opacity:0}
+    ],{duration:560, composite:'add', fill:'forwards'});
+    up.onfinish=()=>el.remove();
+  } else el.remove();
+  // (2) トップへ
+  window.scrollTo({top:0, behavior: reduce ? 'auto' : 'smooth'});
+  // (3) 着いたら合体。scrollend は対応がまちまちなので位置を見て待つ（上限1.6秒）
+  const t0=performance.now();
+  (function wait(){
+    if(scrollY<=1 || performance.now()-t0>2500) return reattachMaru();
+    requestAnimationFrame(wait);
+  })();
+}
+// 部品を新品に差し替えて、付いていたアニメの残りをゼロにする。
+// ==倒した時・落とした時の fill:forwards のアニメは、一覧（getAnimations）から消えた後も姿勢だけ残り、cancel() では消せなかった==
+// （2026-09-02 実測：起こすアニメを消した瞬間に古い倒れ姿勢が戻る）。クローンには姿勢が付いてこないので、これで素に戻る
+function freshen(el){ const c=el.cloneNode(true); c.style.transformBox=''; c.style.transformOrigin=''; el.parentNode.replaceChild(c,el); return c; }
+function reattachMaru(){
+  const svg=document.querySelector('.logo__svg');
+  let body=svg&&svg.querySelector('.logo__po'), maru=svg&&svg.querySelector('.logo__maru');
+  const hunt=document.querySelector('.maruHunt');
+  if(!body||!maru) return;
+  // 「ぽ」と「゜の箱」を新品にする（「゜」は元の位置に戻る。「ぽ」は下で倒れた姿勢から起こす）
+  body=freshen(body); const wrap=freshen(maru.parentNode); maru=wrap.querySelector('.logo__maru');
+  maru.style.display='';
+  if(!svg.animate || matchMedia('(prefers-reduced-motion: reduce)').matches){ if(hunt) hunt.remove(); return; }
+  // 回す中心は倒した時と同じ「ぽ」全体のまん中（新品には付いていないので付け直す）
+  const g0=body.parentNode, gb0=g0.getBBox(), cx0=gb0.x+gb0.width/2, cy0=gb0.y+gb0.height/2;
+  for(const el of [body,maru]){ el.style.transformBox='view-box'; el.style.transformOrigin=cx0+'px '+cy0+'px'; }
+  const GRAV_IN='cubic-bezier(.11,0,.5,0)', GRAV_OUT='cubic-bezier(.5,1,.89,1)';
+  // (a) 「ぽ」が起き上がる：倒れた姿勢から、少し行き過ぎてから立つ
+  const stand=body.animate([
+    {transform:PO_SHIFT, easing:'cubic-bezier(.34,1.56,.64,1)'},
+    {transform:'translate(0,0) rotate(0deg)'}
+  ],{duration:520, fill:'forwards'});
+  // (b) 「゜」が上から降ってきてハマる（小さく1回跳ねる）。落下は viewBox 単位・重力は転げ落ちる時と同じ G
+  const H=170, G=1600, E=0.3;
+  const t1=Math.sqrt(2*H/G), h1=E*E*H, tu1=Math.sqrt(2*h1/G), total=t1+2*tu1;
+  const ky=[
+    {transform:'translate(0,'+(-H)+'px)', offset:0, easing:GRAV_IN},
+    {transform:'translate(0,0)', offset:t1/total, easing:GRAV_OUT},
+    {transform:'translate(0,'+(-h1).toFixed(2)+'px)', offset:(t1+tu1)/total, easing:GRAV_IN},
+    {transform:'translate(0,0)', offset:1}
+  ];
+  const drop=wrap.animate(ky,{duration:Math.round(total*1000), delay:260, fill:'forwards'});
+  // 落ちながら自分の中心で回る（回転の中心は倒した時に「ぽ」全体の中心へ変えてあるので、輪の中心へずらして回す）
+  const g=body.parentNode, gb=g.getBBox(), mb=maru.getBBox();
+  const cx=gb.x+gb.width/2, cy=gb.y+gb.height/2, qx=mb.x+mb.width/2-cx, qy=mb.y+mb.height/2-cy;
+  const R=(deg)=>`translate(${qx}px,${qy}px) rotate(${deg}deg) translate(${-qx}px,${-qy}px)`;
+  const spin=maru.animate([{transform:R(-200)},{transform:R(0)}],{duration:Math.round(t1*1000), delay:260, easing:'linear', fill:'forwards'});
+  // 3本とも終わったら、もう一度新品に差し替えて残りをゼロにする＝リロード直後と同じ素のロゴ
+  Promise.all([stand.finished, drop.finished, spin.finished]).then(()=>{ freshen(body); freshen(wrap); }).catch(()=>{});
+  // (c) 一言はそっと消す
+  if(hunt){ hunt.animate([{opacity:1},{opacity:0, transform:'translateY(-8px)'}],{duration:320, fill:'forwards'}).onfinish=()=>hunt.remove(); }
 }
 function playBiroon(){
   if(gifState!=='idle') return;
