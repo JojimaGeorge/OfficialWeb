@@ -1742,6 +1742,13 @@ function topplePo(){
 // ===== 「゜」がロゴから落ちて消えた直後、ロゴの真上に「＼◯を さがさなきゃ！／」を出す =====
 // ◯は落ちた「゜」と同じ形。logo.svg から切り出した輪のパス（window.__maruD）をその場で描く
 // ＝ 別に丸を用意しないので、ロゴの形を直しても勝手に付いてくる。
+// 一言をふわっと消す（0.32秒で薄くなりながら少し上へ）。is-out を付けて「もう出ている」判定から外す
+function hideMaruHunt(el){
+  el=el||document.querySelector('.maruHunt:not(.is-out)'); if(!el) return;
+  el.classList.add('is-out');
+  if(!el.animate){ el.remove(); return; }
+  el.animate([{opacity:1},{opacity:0, transform:'translateY(-8px)'}],{duration:320, fill:'forwards'}).onfinish=()=>el.remove();
+}
 // msg を渡すと輪なしでその文言だけ出す（戻った時の「＼おかえり！／」）。省略時は「＼◯を さがさなきゃ！／」
 function showMaruHunt(msg){
   const logo=document.querySelector('.logo'), md=window.__maruD;
@@ -1896,12 +1903,12 @@ function reattachMaru(){
   // 落ちながら自分の中心で回る（回転の中心は「ぽ」全体の中心なので、輪の中心へずらして回す）
   const R=(deg)=>`translate(${qx}px,${qy}px) rotate(${deg}deg) translate(${-qx}px,${-qy}px)`;
   const spin=maru.animate([{transform:R(-200)},{transform:R(0)}],{duration:Math.round(t1*1000), delay:260, easing:'linear', fill:'both'});
-  // ハマった瞬間に「＼おかえり！／」（さがさなきゃ と同じ部品・文言だけ違う）
-  drop.onfinish=()=>showMaruHunt('＼おかえり！／');
+  // ハマった瞬間に「＼おかえり！／」（さがさなきゃ と同じ部品・文言だけ違う）。==3秒たったらふわっと消す==（2026-09-02 じょじを指示）
+  drop.onfinish=()=>{ showMaruHunt('＼おかえり！／'); setTimeout(hideMaruHunt, 3000); };
   // 3本とも終わったら、もう一度新品に差し替えて残りをゼロにする＝リロード直後と同じ素のロゴ
   Promise.all([stand.finished, drop.finished, spin.finished]).then(()=>{ freshen(body); freshen(wrap); }).catch(()=>{});
   // (c) 一言はそっと消す
-  if(hunt){ hunt.classList.add('is-out'); hunt.animate([{opacity:1},{opacity:0, transform:'translateY(-8px)'}],{duration:320, fill:'forwards'}).onfinish=()=>hunt.remove(); }
+  hideMaruHunt(hunt);
 }
 function playBiroon(){
   if(gifState!=='idle') return;
