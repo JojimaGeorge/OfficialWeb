@@ -1742,16 +1742,18 @@ function topplePo(){
 // ===== 「゜」がロゴから落ちて消えた直後、ロゴの真上に「＼◯を さがさなきゃ！／」を出す =====
 // ◯は落ちた「゜」と同じ形。logo.svg から切り出した輪のパス（window.__maruD）をその場で描く
 // ＝ 別に丸を用意しないので、ロゴの形を直しても勝手に付いてくる。
-function showMaruHunt(){
+// msg を渡すと輪なしでその文言だけ出す（戻った時の「＼おかえり！／」）。省略時は「＼◯を さがさなきゃ！／」
+function showMaruHunt(msg){
   const logo=document.querySelector('.logo'), md=window.__maruD;
-  if(!logo||!md||document.querySelector('.maruHunt')) return;
+  if(!logo||!md||document.querySelector('.maruHunt:not(.is-out)')) return;
   const {d,box}=md;
   // h1 の中なので段落ではなく span で入れる（h1 に置けるのは文の部品だけ）。
   // h1 は aria-label で「ぽちゃもん」と名乗っているため、この一言は読み上げには載らない。
   // 絵で成り立っている遊びなので、そのまま飾りとして伏せる。
   const el=document.createElement('span');
   el.className='maruHunt'; el.setAttribute('aria-hidden','true');
-  el.innerHTML='＼'
+  if(msg) el.textContent=msg;
+  else el.innerHTML='＼'
     +'<svg class="maruHunt__ring" viewBox="'+box.x+' '+box.y+' '+box.w+' '+box.h+'" '
     +'style="aspect-ratio:'+(box.w/box.h).toFixed(3)+'"><path d="'+d+'" fill="currentColor"/></svg>'
     +'を さがさなきゃ！／';
@@ -1775,7 +1777,10 @@ function landMaruOnFooter(foot){
   foot.appendChild(el);
   if(!el.animate) return;
   const ring=el.firstElementChild;                                        // 位置は el、回転は中の輪。別々に動かす（落下は加速・回転は一定、と曲線を分けるため）
-  const r=(box.w*scale)/2, H=Math.max(260, innerHeight*0.7);              // 画面の上の方から落ちてくる
+  /* 落ちはじめは==その瞬間の画面の上端より外==（輪1個ぶん＋余白）。
+     以前は innerHeight*0.7 の固定量だったので、フッターが見え始めた瞬間（着地点が画面の下端付近）は
+     開始位置が画面の中に入り、途中からパッと現れていた（2026-09-02 じょじを指摘・スマホで顕著） */
+  const r=(box.w*scale)/2, H=Math.max(260, el.getBoundingClientRect().top + box.h*scale + 24);
   const G=2000, DEG=180/Math.PI, GRAV_IN='cubic-bezier(.11,0,.5,0)', DECEL='cubic-bezier(.5,1,.89,1)';   // DECEL＝一定の割合で減速（摩擦）
   // 跳ねさせない（そこまで硬い物ではない）。惰性：落ちている間に回っていて、着地の瞬間の回転の速さがそのまま転がる速さになる
   const t1=Math.sqrt(2*H/G);                                               // 落下時間
@@ -1870,7 +1875,14 @@ function reattachMaru(){
     {transform:'translate(0,0) rotate(0deg)'}
   ],{duration:520, fill:'forwards'});
   // (b) 「゜」が上から降ってきてハマる（小さく1回跳ねる）。落下は viewBox 単位・重力は転げ落ちる時と同じ G
-  const H=170, G=1600, E=0.3;
+  // 回す中心と輪の位置（下の回転にも使う）
+  const g=body.parentNode, gb=g.getBBox(), mb=maru.getBBox();
+  const cx=gb.x+gb.width/2, cy=gb.y+gb.height/2, qx=mb.x+mb.width/2-cx, qy=mb.y+mb.height/2-cy;
+  /* 落ちはじめは==画面の上端より外==。viewBox 単位で「ロゴの画面内の高さ＋輪の位置＋輪の高さ＋余白」ぶん上。
+     以前は 170 固定で、スマホでは画面内から現れていた */
+  const unit=svg.getBoundingClientRect().width/(svg.viewBox.baseVal.width||449);
+  const H=Math.ceil(svg.getBoundingClientRect().top/unit + mb.y + mb.height + 30);
+  const G=1600, E=0.3;
   const t1=Math.sqrt(2*H/G), h1=E*E*H, tu1=Math.sqrt(2*h1/G), total=t1+2*tu1;
   const ky=[
     {transform:'translate(0,'+(-H)+'px)', offset:0, easing:GRAV_IN},
@@ -1878,16 +1890,18 @@ function reattachMaru(){
     {transform:'translate(0,'+(-h1).toFixed(2)+'px)', offset:(t1+tu1)/total, easing:GRAV_IN},
     {transform:'translate(0,0)', offset:1}
   ];
-  const drop=wrap.animate(ky,{duration:Math.round(total*1000), delay:260, fill:'forwards'});
-  // 落ちながら自分の中心で回る（回転の中心は倒した時に「ぽ」全体の中心へ変えてあるので、輪の中心へずらして回す）
-  const g=body.parentNode, gb=g.getBBox(), mb=maru.getBBox();
-  const cx=gb.x+gb.width/2, cy=gb.y+gb.height/2, qx=mb.x+mb.width/2-cx, qy=mb.y+mb.height/2-cy;
+  // fill:'both' ＝ 待っている 260ms の間も最初のコマ（画面外の上）に置く。
+  // forwards だけだと待ち時間は元の位置に表示され、「もう付いているのに、もう1個落ちてくる」二重に見えた（2026-09-02 じょじを指摘）
+  const drop=wrap.animate(ky,{duration:Math.round(total*1000), delay:260, fill:'both'});
+  // 落ちながら自分の中心で回る（回転の中心は「ぽ」全体の中心なので、輪の中心へずらして回す）
   const R=(deg)=>`translate(${qx}px,${qy}px) rotate(${deg}deg) translate(${-qx}px,${-qy}px)`;
-  const spin=maru.animate([{transform:R(-200)},{transform:R(0)}],{duration:Math.round(t1*1000), delay:260, easing:'linear', fill:'forwards'});
+  const spin=maru.animate([{transform:R(-200)},{transform:R(0)}],{duration:Math.round(t1*1000), delay:260, easing:'linear', fill:'both'});
+  // ハマった瞬間に「＼おかえり！／」（さがさなきゃ と同じ部品・文言だけ違う）
+  drop.onfinish=()=>showMaruHunt('＼おかえり！／');
   // 3本とも終わったら、もう一度新品に差し替えて残りをゼロにする＝リロード直後と同じ素のロゴ
   Promise.all([stand.finished, drop.finished, spin.finished]).then(()=>{ freshen(body); freshen(wrap); }).catch(()=>{});
   // (c) 一言はそっと消す
-  if(hunt){ hunt.animate([{opacity:1},{opacity:0, transform:'translateY(-8px)'}],{duration:320, fill:'forwards'}).onfinish=()=>hunt.remove(); }
+  if(hunt){ hunt.classList.add('is-out'); hunt.animate([{opacity:1},{opacity:0, transform:'translateY(-8px)'}],{duration:320, fill:'forwards'}).onfinish=()=>hunt.remove(); }
 }
 function playBiroon(){
   if(gifState!=='idle') return;
