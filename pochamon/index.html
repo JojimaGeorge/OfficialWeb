@@ -719,7 +719,7 @@ body.theme-pink  { --star-w:#ffffff; --star-b:#ffc8da; --star-y:#fff1c2; }
    canvas は touch-action:none ＝ 全画面の間は縦の指の動きもカードが受け取る（ページのスクロールは要らない） */
 .cardFull{
   position:fixed; inset:0; z-index:110;
-  background:rgba(14,22,48,.86);
+  background:rgba(14,22,48,.5);   /* 後ろのページが透けて見える程度（.86→.5・2026-09-03 じょじを指示「透明感を」） */
   display:none; flex-direction:column; align-items:center; justify-content:center;
   padding:max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
   opacity:0; transition:opacity .28s ease; touch-action:none;
@@ -1138,7 +1138,7 @@ footer{
 <section id="cards" data-theme="theme-blue" data-fx="bubble">
   <div class="inner">
     <h2 class="sec-title reveal">ぽちゃもんカード</h2>
-    <p class="sec-lead reveal">さわると かたむく。タップで おおきく。ながおしで カードのなかへ。</p>
+    <p class="sec-lead reveal">さわると かたむく。タップで おおきく。</p>
     <div class="cardsGrid">
       <div class="cardStage reveal" data-card="amayadori"><canvas aria-label="あまやどり の3Dカード"></canvas></div>
       <div class="cardStage reveal" data-card="ukiwa"><canvas aria-label="うきわぎゅうぎゅう の3Dカード"></canvas></div>
@@ -1280,7 +1280,7 @@ footer{
   <div class="cardFull__bar">
     <button class="gyroBtn" id="gyroBtnFull" type="button">スマホの かたむきで うごかす</button>
     <button class="cardFull__close" id="cardFullClose" type="button">とじる</button>
-    <div class="cardFull__hint"><span>ドラッグで かたむく</span><span>ながおしで カードのなかへ</span><span>ダブルタップで もどす</span></div>
+    <div class="cardFull__hint"><span>ドラッグで かたむく</span><span>ダブルタップで もどす</span></div>
   </div>
 </div>
 
