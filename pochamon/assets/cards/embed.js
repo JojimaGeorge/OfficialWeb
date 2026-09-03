@@ -150,7 +150,8 @@ export function mountCard(canvas, opts = {}) {
       st.lightT.set(clamp(hit.x / (CARD_W / 2), -1.4, 1.4), clamp(hit.y / (CARD_H / 2), -1.4, 1.4));
     }
   }
-  let last = { x: 0, y: 0 }, moved = 0, holdTimer = 0;
+  let last = { x: 0, y: 0 }, moved = 0, holdTimer = 0, downAt = 0, dived = false;
+  const HOLD_MS = 380;   // これより長く押すと「カードの中へ」。それより短く・動かさずに離したら「タップ」
   const onMove = (e) => {
     const p = local(e);
     st.pointerOn = true;
@@ -172,14 +173,17 @@ export function mountCard(canvas, opts = {}) {
   };
   const onDown = (e) => {
     canvas.setPointerCapture(e.pointerId);
-    st.dragging = true; moved = 0; last = { x: e.clientX, y: e.clientY };
+    st.dragging = true; moved = 0; last = { x: e.clientX, y: e.clientY }; downAt = performance.now(); dived = false;
     canvas.classList.add('dragging');
-    holdTimer = setTimeout(() => { if (moved < 8) st.diveT = 1; }, 380);   // 長押しでカードの中へ
+    holdTimer = setTimeout(() => { if (moved < 8) { st.diveT = 1; dived = true; } }, HOLD_MS);   // 長押しでカードの中へ
   };
-  const release = () => {
+  const release = (e) => {
+    const wasDragging = st.dragging;
     st.dragging = false; st.diveT = 0;
     if (holdTimer) { clearTimeout(holdTimer); holdTimer = 0; }
     canvas.classList.remove('dragging');
+    // タップ＝押してから HOLD_MS 未満・ほぼ動かさず・カードの中へ入っていない状態で離した（pointercancel は除く）
+    if (wasDragging && e && e.type === 'pointerup' && !dived && moved < 8 && performance.now() - downAt < HOLD_MS && opts.onTap) opts.onTap(e);
   };
   const onLeave = () => { st.pointerOn = false; st.hoverT.x = 0; st.hoverT.y = 0; };
   const onDbl = () => { st.drag.x = 0; st.drag.y = 0; };
@@ -240,5 +244,7 @@ export function mountCard(canvas, opts = {}) {
     shadow.material.map.dispose(); shadow.material.dispose(); shadow.geometry.dispose();
     renderer.dispose();
   }
-  return { load, dispose, get card() { return card; } };
+  // 置き場が変わった時（全画面の覆いへ移した時など）に、canvas の今の大きさで撮り直す
+  function refit() { W = H = 0; resize(); }
+  return { load, dispose, refit, get card() { return card; } };
 }

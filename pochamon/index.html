@@ -715,6 +715,32 @@ body.theme-pink  { --star-w:#ffffff; --star-b:#ffc8da; --star-y:#fff1c2; }
 .gyroBtn.show{ display:block; }
 .gyroBtn.active{ background:#ffb03a; color:#fff; }
 
+/* 全画面の覆い（カードをタップで大きく）。canvas を .cardStage からここへ移し替えて見せる＝描画エンジンは作り直さない。
+   canvas は touch-action:none ＝ 全画面の間は縦の指の動きもカードが受け取る（ページのスクロールは要らない） */
+.cardFull{
+  position:fixed; inset:0; z-index:110;
+  background:rgba(14,22,48,.86);
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  padding:max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
+  opacity:0; transition:opacity .28s ease; touch-action:none;
+}
+.cardFull.open{ display:flex; }
+.cardFull.in{ opacity:1; }
+.cardFull__stage{ position:relative; width:100%; flex:1 1 auto; min-height:0; }
+.cardFull__stage canvas{ width:100%; height:100%; display:block; touch-action:none; cursor:grab; transform-origin:50% 50%; }
+.cardFull__stage canvas.dragging{ cursor:grabbing; }
+.cardFull__stage canvas.flip{ transition:transform .42s cubic-bezier(.22,1,.36,1); }   /* 元の枠から「ふくらむ」／元の枠へ「縮む」 */
+.cardFull__bar{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; padding-top:12px; }
+.cardFull__bar .gyroBtn{ margin:0; }
+.cardFull__close{
+  font-family:var(--font-body); font-weight:700; background:#fff; color:var(--ink); border:none;
+  padding:10px 28px; border-radius:999px; cursor:pointer; font-size:14px; box-shadow:0 4px 0 rgba(0,0,0,.14);
+}
+.cardFull__hint{ width:100%; text-align:center; color:rgba(255,255,255,.8); font-weight:700; font-size:12.5px; line-height:1.8; margin-top:2px; }
+.cardFull__hint span{ display:inline-block; }                                   /* 折り返しは項目の切れ目でだけ起こす（語の途中で切れない） */
+.cardFull__hint span+span::before{ content:'／'; margin:0 .5em; opacity:.6; }
+html.cardFull-lock{ overflow:hidden; }   /* 全画面の間はページを動かさない */
+
 /* ============================================================
    うごくぽちゃもん／あそぶ／グッズ／おみやげ
    ============================================================ */
@@ -1112,7 +1138,7 @@ footer{
 <section id="cards" data-theme="theme-blue" data-fx="bubble">
   <div class="inner">
     <h2 class="sec-title reveal">ぽちゃもんカード</h2>
-    <p class="sec-lead reveal">さわると かたむく。ながおしで カードのなかへ。</p>
+    <p class="sec-lead reveal">さわると かたむく。タップで おおきく。ながおしで カードのなかへ。</p>
     <div class="cardsGrid">
       <div class="cardStage reveal" data-card="amayadori"><canvas aria-label="あまやどり の3Dカード"></canvas></div>
       <div class="cardStage reveal" data-card="ukiwa"><canvas aria-label="うきわぎゅうぎゅう の3Dカード"></canvas></div>
@@ -1245,6 +1271,16 @@ footer{
     <div class="lightbox__name" id="lbName"></div>
     <div class="lightbox__caption" id="lbCap"></div>
     <button class="lightbox__close" id="lbClose">とじる</button>
+  </div>
+</div>
+
+<!-- 3Dカードの全画面（カードをタップで開く。canvas は .cardStage からここへ移し替え、閉じたら戻す） -->
+<div class="cardFull" id="cardFull" role="dialog" aria-modal="true" aria-label="ぽちゃもんカードを おおきく見る">
+  <div class="cardFull__stage" id="cardFullStage"></div>
+  <div class="cardFull__bar">
+    <button class="gyroBtn" id="gyroBtnFull" type="button">スマホの かたむきで うごかす</button>
+    <button class="cardFull__close" id="cardFullClose" type="button">とじる</button>
+    <div class="cardFull__hint"><span>ドラッグで かたむく</span><span>ながおしで カードのなかへ</span><span>ダブルタップで もどす</span></div>
   </div>
 </div>
 
@@ -2127,20 +2163,69 @@ else{
     for(const stage of stages){
       if(!stage.querySelector("canvas")) continue;
       const spec=E.FULLART.find(c=>c.id===stage.dataset.card);
-      const m=E.mountCard(stage.querySelector("canvas"),{fill:.88});
+      const m=E.mountCard(stage.querySelector("canvas"),{fill:.88, onTap:()=>openFull(stage, m)});   // タップ＝全画面へ
       try{ await m.load(spec); }catch(err){ console.warn(err); m.dispose(); showFallback(stage); }
     }
-    const gb=document.getElementById("gyroBtn");
+    // 傾きセンサーのボタンはセクション内と全画面の2か所。状態は1つ（どちらを押しても同じ）
+    const gyroBtns=[document.getElementById("gyroBtn"), document.getElementById("gyroBtnFull")];
     if(E.gyroAvailable){
-      gb.classList.add("show");
       let gyroOn=false;
-      gb.addEventListener("click",async()=>{
-        if(gyroOn){ E.disableGyro(); gyroOn=false; gb.classList.remove("active"); gb.textContent="スマホの かたむきで うごかす"; return; }
-        if(await E.enableGyro()){ gyroOn=true; gb.classList.add("active"); gb.textContent="かたむきセンサー ON（もういちど押すと OFF）"; }
-      });
+      const paint=()=>gyroBtns.forEach(b=>{ b.classList.toggle("active",gyroOn); b.textContent=gyroOn?"かたむきセンサー ON（もういちど押すと OFF）":"スマホの かたむきで うごかす"; });
+      const toggle=async()=>{ if(gyroOn){ E.disableGyro(); gyroOn=false; } else if(await E.enableGyro()){ gyroOn=true; } paint(); };
+      gyroBtns.forEach(b=>{ b.classList.add("show"); b.addEventListener("click",toggle); });
     }
     built=true;
   }
+
+  // ---- 全画面（カードをタップで大きく）----
+  // canvas の DOM 要素そのものを覆いの中へ移し替える。WebGL の文脈（描画の状態）は同じ文書内の移動なら保たれるので、
+  // エンジンを作り直さず、ResizeObserver＋refit() が新しい大きさに合わせて撮り直すだけで済む。
+  const full=document.getElementById("cardFull"), fullStage=document.getElementById("cardFullStage");
+  let fullOpen=null;   // {stage, canvas, mount}
+  const center=r=>({x:r.left+r.width/2, y:r.top+r.height/2});
+  function openFull(stage, mount){
+    if(fullOpen) return;                                   // 全画面の中でタップしても何も起きない
+    const canvas=stage.querySelector("canvas"); if(!canvas) return;
+    const from=canvas.getBoundingClientRect();
+    fullOpen={stage, canvas, mount};
+    fullStage.appendChild(canvas);
+    full.classList.add("open");
+    document.documentElement.classList.add("cardFull-lock");
+    mount.refit();
+    // 元の枠の位置・大きさから「ふくらむ」（先に最終位置へ置き、差分だけ transform で戻してから 0 へ動かす）
+    const to=canvas.getBoundingClientRect(), a=center(from), b=center(to);
+    const s=Math.min(from.width/to.width, from.height/to.height);
+    canvas.classList.remove("flip");
+    canvas.style.transform=`translate(${a.x-b.x}px,${a.y-b.y}px) scale(${s})`;
+    void canvas.offsetWidth;                               // ここで一度置かせてから transition を効かせる
+    canvas.classList.add("flip");
+    canvas.style.transform="";
+    requestAnimationFrame(()=>full.classList.add("in"));
+    // スマホの「戻る」で全画面だけ閉じるため、開く時に履歴を1段積む（ライトボックスと同じ仕掛け）
+    if(!(history.state && history.state.cf)) history.pushState({cf:1}, "");
+  }
+  function closeFull(viaHistory){
+    if(!fullOpen) return;
+    const {stage, canvas, mount}=fullOpen; fullOpen=null;
+    full.classList.remove("in");
+    // 元の枠へ「縮んで」戻ってから移し替える
+    const to=stage.getBoundingClientRect(), from=canvas.getBoundingClientRect(), a=center(to), b=center(from);
+    const s=Math.min(to.width/from.width, to.height/from.height);
+    canvas.classList.add("flip");
+    canvas.style.transform=`translate(${a.x-b.x}px,${a.y-b.y}px) scale(${s})`;
+    setTimeout(()=>{
+      full.classList.remove("open");
+      canvas.classList.remove("flip"); canvas.style.transform="";
+      stage.appendChild(canvas);
+      mount.refit();
+      document.documentElement.classList.remove("cardFull-lock");
+    }, 300);
+    if(!viaHistory && history.state && history.state.cf) history.back();   // 自分で積んだ1段を消す（ページは戻らない）
+  }
+  document.getElementById("cardFullClose").addEventListener("click",()=>closeFull());
+  full.addEventListener("click",e=>{ if(e.target===full) closeFull(); });          // 暗い背景をタップ → 閉じる
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeFull(); });
+  addEventListener("popstate",()=>{ if(fullOpen) closeFull(true); });                // 戻るボタン → 全画面だけ閉じる
 
   // 通信を節約したい人・回線が細い人には最初から1.2MBを落とさせない（その人たちは今まで通り、近づいてから）
   const conn=navigator.connection||{};
