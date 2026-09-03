@@ -736,10 +736,12 @@ body.theme-pink  { --star-w:#ffffff; --star-b:#ffc8da; --star-y:#fff1c2; }
   font-family:var(--font-body); font-weight:700; background:#fff; color:var(--ink); border:none;
   padding:10px 28px; border-radius:999px; cursor:pointer; font-size:14px; box-shadow:0 4px 0 rgba(0,0,0,.14);
 }
-.cardFull__hint{ width:100%; text-align:center; color:rgba(255,255,255,.8); font-weight:700; font-size:12.5px; line-height:1.8; margin-top:2px; }
+/* 説明はカードの上（2026-09-03 じょじを指示）。カードは残りの高さいっぱいなので、ここが伸びたぶんカードが縮む */
+.cardFull__hint{ flex:0 0 auto; width:100%; text-align:center; color:rgba(255,255,255,.9); font-weight:700; font-size:12.5px; line-height:1.8; padding-bottom:10px; text-shadow:0 1px 3px rgba(10,16,36,.5); }
 .cardFull__hint span{ display:inline-block; }                                   /* 折り返しは項目の切れ目でだけ起こす（語の途中で切れない） */
-.cardFull__hint span+span::before{ content:'／'; margin:0 .5em; opacity:.6; }
+.cardFull__hint span:not(:last-child)::after{ content:'／'; margin:0 .5em; opacity:.6; }   /* 区切りは前の項目にくっつける（折り返した時に「／」が行頭に落ちない） */
 html.cardFull-lock{ overflow:hidden; }   /* 全画面の間はページを動かさない */
+html.cardFull-lock header{ opacity:0; transition:opacity .2s ease; }   /* 全画面の間は上のメニュー帯を隠す（説明と重なるため） */
 
 /* ============================================================
    うごくぽちゃもん／あそぶ／グッズ／おみやげ
@@ -1276,11 +1278,11 @@ footer{
 
 <!-- 3Dカードの全画面（カードをタップで開く。canvas は .cardStage からここへ移し替え、閉じたら戻す） -->
 <div class="cardFull" id="cardFull" role="dialog" aria-modal="true" aria-label="ぽちゃもんカードを おおきく見る">
+  <div class="cardFull__hint"><span>ドラッグで かたむく</span><span>ながおしで かくだい</span><span>ダブルタップで もどす</span></div>
   <div class="cardFull__stage" id="cardFullStage"></div>
   <div class="cardFull__bar">
     <button class="gyroBtn" id="gyroBtnFull" type="button">スマホの かたむきで うごかす</button>
     <button class="cardFull__close" id="cardFullClose" type="button">とじる</button>
-    <div class="cardFull__hint"><span>ドラッグで かたむく</span><span>ながおしで かくだい</span><span>ダブルタップで もどす</span></div>
   </div>
 </div>
 
