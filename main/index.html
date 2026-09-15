@@ -3272,6 +3272,11 @@ html{color-scheme:only light;}
           if (lastPointer) excite(lastPointer.x, lastPointer.y, RADIUS, false);
         });
       }
+      /* ==ここは `any-hover` のまま自前で判定する。== 上の視差演出の `anyHover` を `canHover` に
+         改名した時（commit a76df47）ここだけ旧名が残り、ReferenceError で PC のマウスも
+         SP のタップも登録前に止まっていた（2026-09-15 本人指摘）。視差と違いキラキラは
+         「マウスが1つでも繋がっていれば反応してよい」ので `hover` にはしない。 */
+      const anyHover = window.matchMedia('(any-hover: hover)').matches;
       if (anyHover) {
         window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY), { passive: true });
         window.addEventListener('mousedown', (e) => excite(e.clientX, e.clientY, TAP_RADIUS, true), { passive: true });
