@@ -1,0 +1,319 @@
+/* すしだるまグランプリ — STUDIO 版（sushidaruma-grandprix.studio.site）の自前移植。
+   幅の切り替えは STUDIO と同じ 540px（スマホ）。 */
+
+:root {
+  --bg: #1e1d17;
+  --bg-entry: #18171e;
+  --bg-prize: #1e171d;
+  --bg-link: #2f1639;
+  --bg-thanks: #171e17;
+  --text: #d9d7a9;
+  --text-intro: #d9cc9e;
+  --gold: #ddd496;
+  --orange: #ffad7d;
+  --frame: #d7c34a;
+  --font: "Lato", sans-serif;
+  --font-antique: "Zen Antique", serif;
+  --font-serif: "Noto Serif JP", serif;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.4;
+  text-align: center;
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
+h1, h2, p, ul { margin: 0; }
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: none; }
+
+/* ---------- 見出し（左右に小さな絵を添える） ---------- */
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-antique);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.heading img { object-fit: cover; }
+
+/* ---------- トップ：自動で流れる作品の帯 ----------
+   同じ25枚の列（.strip__track）を2本並べ、どちらも自分の幅ぶん送ってから最初に戻す＝つなぎ目なく流れ続ける。
+   上段（--left）は右から左、下段（--right）は左から右。マウスを乗せる・指で触れている間は止まる。 */
+.strip {
+  display: flex;
+  height: 229px;
+  align-items: center;
+  overflow: hidden;
+  background: var(--bg);
+  --strip-duration: 80s;
+}
+.strip__track {
+  display: flex;
+  flex: none;
+  animation: strip-left var(--strip-duration) linear infinite;
+}
+.strip--right .strip__track { animation-name: strip-right; }
+.strip:hover .strip__track,
+.strip:active .strip__track { animation-play-state: paused; }
+.strip img { flex: none; width: 160px; height: 160px; object-fit: cover; }
+@keyframes strip-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+@keyframes strip-right {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 432px;
+}
+.logo img { width: 483px; height: 341px; object-fit: cover; }
+
+/* ---------- トップ：企画説明 ---------- */
+.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  border-top: 3px solid var(--orange);
+  border-bottom: 3px solid var(--orange);
+}
+.intro__text {
+  padding: 0 0 28px;
+  color: var(--text-intro);
+  font-family: var(--font-antique);
+  font-size: 20px;
+}
+.intro__img { width: 234px; height: 234px; object-fit: cover; }
+
+/* ---------- トップ：参加方法 ---------- */
+.entry { background: var(--bg-entry); font-family: var(--font-serif); }
+.entry__title {
+  height: 50px;
+  padding-bottom: 1px;
+  font-family: var(--font-antique);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 49px;
+}
+.entry__steps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  font-size: 20px;
+}
+.entry__steps p { width: 520px; max-width: 100%; text-align: left; }
+.entry__steps a { text-decoration: underline; }
+.entry__period {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 92px;
+}
+.entry__period-label { font-size: 20px; }
+.entry__period-date {
+  color: var(--gold);
+  font-family: "PT Serif", serif;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+/* ---------- トップ：参加特典 ---------- */
+.heading--bonus { height: 72px; font-size: 32px; }
+.bonus__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 368px;
+  gap: 37px;
+}
+.bonus__text { padding: 14px 0; font-family: "Noto Sans JP", sans-serif; font-size: 20px; }
+.bonus__img { width: 214px; height: 216px; border: 5px solid var(--frame); object-fit: cover; }
+.bonus__caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 68px;
+  color: var(--gold);
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-style: italic;
+}
+
+/* ---------- トップ：入賞者プレゼント ---------- */
+.prize { background: var(--bg-prize); font-family: var(--font-serif); }
+.heading--prize { height: 132px; font-size: 32px; }
+.prize__imgs {
+  display: flex;
+  justify-content: center;
+  height: 220px;
+  padding-top: 10px;
+}
+.prize__imgs img { width: 200px; height: 200px; object-fit: cover; }
+.prize__list {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 306px;
+  font-size: 20px;
+}
+.prize__grand,
+.prize__second { padding-bottom: 28px; }
+.prize__grand { color: #eee863; font-weight: 900; }
+.prize__second { color: #ececec; font-weight: 600; }
+.prize__happy { color: #90ff83; }
+
+/* ---------- トップ：作品一覧への入口 ---------- */
+.to-works {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 417px;
+  background: var(--bg-link);
+  border: 3px solid var(--orange);
+}
+.to-works__lead { font-family: "M PLUS Rounded 1c", sans-serif; font-size: 20px; }
+.to-works__title { font-family: var(--font-antique); font-size: 32px; }
+.to-works img { width: 302px; height: 294px; object-fit: cover; }
+
+/* ---------- トップ：Special Thanks ---------- */
+.thanks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 277px;
+  background: var(--bg-thanks);
+  font-family: "Zen Maru Gothic", sans-serif;
+}
+.heading--thanks { height: 59px; color: var(--gold); font-size: 24px; }
+.heading--thanks img { width: 96px; height: 85px; }
+.thanks__group { padding: 3px 0 4px; color: #50f090; font-size: 18px; }
+.thanks__names { padding: 0; list-style: none; color: var(--gold); }
+
+/* ---------- 参加作品一覧（/1） ---------- */
+.works__logo {
+  display: flex;
+  justify-content: center;
+  height: 271px;
+  padding-top: 7px;
+}
+.works__logo img { width: 367px; height: 258px; object-fit: cover; }
+.works__icons { display: flex; justify-content: center; overflow: hidden; }
+.works__icons img { width: 150px; height: 164px; object-fit: cover; }
+.works__head {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 151px;
+}
+.works__title { font-family: var(--font-antique); font-size: 24px; font-weight: 400; }
+.works__order { font-size: 15px; }
+.works__hint { font-family: var(--font-antique); font-size: 20px; }
+/* 段とカードの高さは元の実寸を style 属性で持つ（--rh・--ch）。名前はカードの箱からはみ出してよい */
+.works__row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--rh);
+}
+.work {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 1;
+  min-width: 0;
+  height: var(--ch);
+  padding: 20px;
+  font-size: var(--fs, 16px);
+}
+.work span { max-width: var(--w); }
+.work img { flex: none; width: var(--w); height: var(--h); object-fit: cover; }
+/* 画面が2枚分より狭い時は、カードの幅を縮める */
+.work img { max-width: 100%; }
+.works__note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  font-size: 14px;
+}
+.works__home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 391px;
+  margin-bottom: 57px;
+}
+.works__home-text { color: var(--orange); font-size: 24px; font-weight: 900; }
+.works__home-img img { width: 294px; height: 282px; object-fit: cover; }
+
+/* ---------- スマホ（540px 以下） ---------- */
+@media (max-width: 540px) {
+  .strip { height: 113px; --strip-duration: 40s; }
+  .strip img { width: 80px; height: 80px; }
+  .logo { height: 427px; }
+  .logo img { width: 332px; height: 234px; }
+
+  .intro { border: 0; }
+  .intro__text { padding: 0 0 26px; }
+
+  .entry__steps { font-size: 16px; }
+  .entry__period-label { font-size: 18px; }
+  .entry__period-date { font-size: 24px; }
+
+  .heading--bonus,
+  .heading--prize { font-size: 24px; }
+  .heading--prize { height: 87px; }
+  .heading--prize img { height: 44px; }
+  .bonus__body { gap: 36px; }
+  .bonus__text { padding: 26px 0 2px; font-size: 18px; }
+
+  .prize__imgs img { width: 180px; height: 180px; }
+
+  .to-works__lead { font-size: 16px; }
+
+  .works__logo { padding-top: 37px; }
+  .works__logo img { width: 283px; height: 198px; }
+  .works__icons img { width: 105px; height: 114px; }
+  .works__head { height: 95px; }
+  .works__title { font-size: 20px; }
+  .works__order { font-size: 12px; }
+  .works__hint { font-size: 15px; }
+  .works__row { justify-content: space-around; height: var(--rh-sp); }
+  .work { height: var(--ch-sp); padding: 0; font-size: var(--fs-sp, 16px); }
+  .work span { max-width: var(--w-sp); }
+  .works__home-img img { width: 195px; height: 183px; }
+  .work img { width: var(--w-sp); height: var(--h-sp); }
+  .works__note { height: 117px; }
+}
+
+/* ---------- 出現の動き（画面に入った部品を2秒かけて浮かび上がらせる。main.js が is-shown を付ける） ---------- */
+.js .fade {
+  opacity: 0;
+  transition: opacity 2s cubic-bezier(0.4, 0.4, 0, 1);
+}
+.js .fade.is-shown { opacity: 1; }
