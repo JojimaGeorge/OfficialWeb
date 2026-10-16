@@ -1,0 +1,460 @@
+/* NFT紅白2022 — STUDIO 版（nft-kouhaku-2022.studio.site）の自前移植。
+   幅の切り替えは STUDIO と同じ 840px（タブレット）／540px（スマホ）。 */
+
+:root {
+  --red: #f64949;
+  --gold: #bd8a1e;
+  --purple: #56125b;
+  --cream: #fffbf7;
+  --gray: #eeeeee;
+  --text: #333333;
+  --twitter: #0cadec;
+  --discord: #591bf6;
+  --cluster: #303ff2;
+  --foundation: #333131;
+  --gradient: linear-gradient(45deg, #ff0055 0%, #f94cff 100%);
+  --font: "Lato", sans-serif;
+  --font-display: "Reggae One", sans-serif;
+  --font-list: "Noto Sans JP", sans-serif;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #fff;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3, h4, p, ul { margin: 0; }
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+
+main {
+  background: var(--cream);
+  text-align: center;
+}
+
+/* ---------- ヘッダー・メイン画像 ---------- */
+.site-header {
+  display: flex;
+  justify-content: center;
+  background: #fff;
+}
+.site-header__logo { display: block; width: 355px; height: 91px; }
+.site-header__logo img { width: 100%; height: 100%; object-fit: cover; }
+
+.hero { width: 100%; height: auto; }
+
+/* ---------- ボタン ---------- */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 500px;
+  max-width: 100%;
+  min-height: 35px;
+  margin: 0 auto;
+  padding: 10px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+.btn--gradient { background: var(--gradient); }
+.btn--twitter,
+.btn--opensea { background: var(--twitter); }
+.btn--discord { background: var(--discord); }
+.btn--cluster { background: var(--cluster); }
+.btn--foundation { background: var(--foundation); }
+
+/* 紅・白・司会で色を変える帯 */
+.band {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+}
+.leader--red .band, .member--red .band { background: var(--red); }
+.leader--white .band, .member--white .band { background: var(--gold); }
+.leader--host .band, .member--extreme .band { background: var(--purple); }
+
+/* ---------- トップ：得点 ---------- */
+.score { display: flex; height: 401px; }
+.score__team {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 12px;
+}
+.score__team--red { background: var(--red); color: #fff; }
+.score__team--white { background: #fff; color: var(--gold); }
+.score__name {
+  padding: 24px 0;
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 56px;
+}
+.score__num {
+  margin-top: -9px;
+  font-size: 144px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+.score__note {
+  padding: 12px 0;
+  font-size: 12px;
+}
+
+/* ---------- トップ：投票（X の埋め込み） ---------- */
+.vote__title {
+  padding: 24px 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+.vote__posts {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0 30px;
+  min-height: 661px;
+  padding: 0 16px;
+}
+.vote__posts .twitter-tweet { margin: 0 !important; }
+
+/* ---------- トップ：NFT紅白とは ---------- */
+.about__title { padding: 36px 0 35px; font-size: 24px; font-weight: 700; }
+.about__text { padding: 10px 16px; }
+.about__text--survey { padding: 20px 16px; }
+.about__text--battle { padding: 16px; }
+.about__lead { padding: 22px 0; font-size: 20px; font-weight: 700; }
+.about__sub { padding: 12px 0; font-weight: 700; font-style: italic; }
+.about__sub--red { color: var(--red); }
+.about__sub--gold { padding: 4px 0; color: var(--gold); }
+.btn-area { padding: 67px 16px 95px; }
+
+/* ---------- トップ：団長・副団長・総合司会 ---------- */
+.leaders { padding-bottom: 0; }
+.leaders__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 60%;
+  margin: 0 auto;
+  padding-bottom: 15px;
+}
+.leader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 30px;
+}
+.leader .band { align-self: stretch; }
+.leader__name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  min-height: 57px;
+  font-size: 20px;
+}
+.leader__name img { width: 20px; height: 20px; object-fit: cover; }
+.leader__avatar {
+  width: 200px;
+  height: 200px;
+  margin-top: 11px;
+  border: 1px solid;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.leader--red .leader__avatar { border-color: var(--red); }
+.leader--white .leader__avatar { border-color: var(--gold); }
+.leader--host { width: 60%; margin: 0 auto; padding-bottom: 0; }
+.leader--host .leader__name { min-height: 71px; }
+.leader--host .leader__avatar { width: 246px; height: 246px; margin-top: 0; border-color: var(--purple); }
+
+/* ---------- トップ：参加方法 ---------- */
+.join { padding: 31px 16px 76px; }
+.join__title { padding: 23px 0; font-size: 24px; font-weight: 700; }
+.join__text { padding: 10px 0; }
+.join__text--flow { padding: 24px 0; }
+.join__form {
+  display: inline-block;
+  padding: 9px 0;
+  color: #3d56fb;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+/* ---------- トップ：特典 ---------- */
+.gifts {
+  padding: 33px 16px 184px;
+  background: var(--gray);
+}
+.gifts__catch { padding: 8px 0; font-size: 18px; }
+.gifts__lead { padding: 16px 0 40px; font-size: 20px; }
+.gift:first-of-type { margin-top: 51px; }
+.gift { display: flex; flex-direction: column; align-items: center; }
+.gift + .gift { margin-top: 15px; }
+.gift__title { padding: 31px 0 12px; font-size: 24px; font-weight: 700; }
+.gift__text { font-size: 20px; }
+.gift__team { margin-top: 62px; color: #000; font-size: 20px; font-weight: 700; }
+.gift__pair { padding: 4px 0 23px; color: #000; font-size: 18px; }
+.gift__img { width: 504px; height: 504px; margin-top: 15px; object-fit: cover; }
+.gift__pair + .gift__img { margin-top: 0; }
+
+/* ---------- トップ：参加者一覧へ ---------- */
+.to-creators { padding: 40px 16px 0; }
+.to-creators__title { padding-bottom: 51px; font-size: 24px; font-weight: 700; }
+
+/* ---------- 共通：リンク情報 ---------- */
+.links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 16px 92px;
+}
+.links__title { padding: 32px 0; font-size: 24px; font-weight: 700; }
+.links__label { padding: 0 0 11px; font-size: 20px; }
+.links .btn + .links__label { padding-top: 18px; padding-bottom: 18px; }
+.links__label--small { font-size: 16px; }
+.links .btn { min-height: 37px; }
+.links__note { padding-top: 3px; font-size: 10px; }
+
+/* ---------- 共通：フッター ---------- */
+.site-footer {
+  padding: 41px 0 32px;
+  background: #fff;
+}
+.site-footer__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+.site-footer__logo { display: block; width: 139px; height: 44px; }
+.site-footer__logo img { width: 100%; height: 100%; object-fit: cover; }
+.site-footer__contact {
+  margin-top: 15px;
+  padding: 2px 5px;
+  border-bottom: 1px solid #2852b9;
+  color: #594aff;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: background 0.5s cubic-bezier(0.4, 0.4, 0, 1);
+}
+.site-footer__contact:hover { background: #2852b9; color: #fff; }
+.site-footer__copy {
+  margin-top: 40px;
+  color: #000;
+  font-size: 13px;
+  font-weight: 300;
+  text-align: center;
+}
+
+/* ---------- 代表戦メンバー ---------- */
+.page-title { padding: 30px 0 29px; font-size: 24px; font-weight: 700; }
+.members > .page-title { padding: 69px 0; }
+.members__grid { display: grid; grid-template-columns: 1fr 1fr; padding-bottom: 22px; }
+.member { display: flex; flex-direction: column; padding-bottom: 60px; }
+.member__profile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100px;
+  font-size: 20px;
+}
+.member__avatar {
+  width: 70px;
+  height: 70px;
+  border: 1px solid;
+  border-radius: 50%;
+  object-fit: cover;
+}
+/* 作品は大きさがまちまちなので、左右で高さを揃えた枠の中央に置く */
+.member__work {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0 30px;
+}
+.member__work img {
+  width: var(--w);
+  height: var(--h);
+  border: 1px solid;
+  object-fit: cover;
+}
+.member--red .member__avatar, .member--red .member__work img { border-color: var(--red); }
+.member--white .member__avatar, .member--white .member__work img { border-color: var(--gold); }
+.member--extreme .member__avatar, .member--extreme .member__work img { border-color: var(--purple); }
+.member__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80%;
+  min-height: 88px;
+  margin: 0 auto;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--gray);
+  border-radius: 24px;
+  font-size: 20px;
+}
+.member .btn { width: 60%; margin-top: 41px; }
+.member--extreme { padding-bottom: 65px; }
+.member--extreme .member__work { flex: none; padding: 10px 0 45px; }
+
+/* ---------- 参加者一覧 ---------- */
+.creators { padding-bottom: 90px; }
+.page-title--creators { padding: 52px 0 11px; }
+.creators__note { padding: 0 0 55px; font-size: 12px; }
+.creators__grid {
+  display: grid;
+  grid-template-columns: 417fr 432fr;
+  gap: 15px;
+  max-width: 864px;
+  margin: 0 auto;
+  text-align: left;
+  font-family: var(--font-list);
+}
+.creators__head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 47px;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 400;
+}
+.creators__col--red .creators__head { background: var(--red); }
+.creators__col--white .creators__head { background: var(--gold); }
+.creators__col ul { padding: 0; list-style: none; }
+.creators__col li {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  padding-left: 20px;
+  border-bottom: 1px solid var(--text);
+  font-size: 15px;
+  font-weight: 700;
+}
+.creators__col--red li { color: var(--red); }
+.creators__col--white li { color: var(--gold); }
+
+/* ---------- 1140px 以下（元の版では Opensea ボタンが濃い青になる） ---------- */
+@media (max-width: 1140px) {
+  .btn--opensea { background: #2c96ff; }
+}
+
+/* ---------- タブレット（840px 以下） ---------- */
+@media (max-width: 840px) {
+  .site-footer__copy { color: #111; }
+  .site-header__logo { width: 533px; height: 144px; }
+  .creators__grid { padding: 0 16px; }
+}
+
+/* ---------- スマホ（540px 以下） ---------- */
+@media (max-width: 540px) {
+  .site-header__logo { width: 229px; height: 65px; }
+
+  .btn { width: 195px; min-height: 36px; padding: 0 10px; font-size: 13px; }
+  .btn--opensea { background: var(--twitter); }
+  .btn--foundation { background: #393939; }
+  .band { height: 40px; font-size: 20px; }
+
+  .score { height: 253px; }
+  .score__team { padding-top: 1px; }
+  .score__name { padding: 29px 0; font-size: 28px; line-height: 39px; }
+  .score__num { margin-top: -8px; font-size: 72px; }
+
+  .vote__title { padding: 10px 0; font-size: 20px; }
+  .vote__posts { flex-direction: column; gap: 20px; min-height: 0; padding: 20px 16px; }
+  /* X の埋め込みが幅を直接書き込むので、スマホでは元の版と同じ 273px に上書きする */
+  .vote__posts .twitter-tweet { width: 273px !important; }
+
+  .about__title { padding: 10px 0; font-size: 20px; }
+  .about__text { padding: 20px 16px; font-size: 12px; }
+  .about__text--survey { padding: 28px 16px; }
+  .about__text--battle { padding: 25px 16px; }
+  .about__lead { padding: 8px 0 28px; }
+  .about__sub { padding: 10px 0; }
+  .btn-area { padding: 35px 16px; }
+
+  .leaders__grid { width: 100%; padding: 25px 0 20px; }
+  .leaders .band { height: 35px; }
+  .leader { padding-bottom: 20px; }
+  .leader__name { min-height: 48px; margin-top: 10px; gap: 10px; font-size: 16px; }
+  .leader__avatar { width: 150px; height: 150px; margin-top: 20px; }
+  .leader--host { width: 100%; padding: 0 0 20px; }
+  .leader--host .leader__avatar { width: 170px; height: 170px; }
+
+  .join { padding: 1px 16px 41px; }
+  .join__title { padding: 26px 0; font-size: 20px; }
+  .join__text { padding: 28px 0; font-size: 12px; }
+  .join__text--flow { padding: 44px 0; }
+  .join__form { padding: 28px 0; font-size: 16px; }
+
+  .gifts { padding: 30px 16px 129px; }
+  .gifts__catch { padding: 13px 0 0; }
+  .gifts__lead { padding: 5px 0; }
+  .gift:first-of-type { margin-top: 20px; }
+  .gift__title { padding: 50px 0 0; font-size: 20px; }
+  .gift__text { padding: 7px 0 0; font-size: 16px; }
+  .gift + .gift .gift__title { padding-top: 50px; }
+  .gift__team { margin-top: 60px; padding: 5px 0; font-size: 16px; }
+  .gift__pair { padding: 0 0 22px; font-size: 14px; }
+  .gift__img { width: 300px; height: 300px; margin-top: 4px; }
+
+  .to-creators__title { padding: 25px 0 35px; font-size: 20px; }
+  .to-creators { padding: 15px 16px 41px; }
+
+  .links { padding-bottom: 99px; }
+  .links__title { padding: 16px 0; font-size: 20px; }
+  .links__label { padding: 0 0 10px; font-size: 16px; }
+  .links .btn + .links__label { padding: 11px 0 12px; }
+  .links .btn { min-height: 36px; }
+  .links__label--small { font-size: 14px; }
+  .links__note { width: 195px; }
+
+  .site-footer { padding: 29px 0 26px; }
+  .site-footer__inner { padding: 0 30px; }
+  .site-footer__logo { width: 112px; height: 30px; }
+  .site-footer__contact { font-size: 14px; }
+
+  .members > .page-title { padding: 26px 0; font-size: 20px; }
+  .member { padding-bottom: 50px; }
+  .members__grid { padding-bottom: 26px; }
+  .member--extreme { padding-bottom: 96px; }
+  .member__profile { height: 80px; font-size: 16px; gap: 6px; }
+  .member__avatar { width: 50px; height: 50px; }
+  .member__work { padding: 10px 0 20px; }
+  .member__work img { width: var(--w-sp); height: var(--h-sp); }
+  .member__card { width: 90%; min-height: 120px; padding: 10px 0; font-size: 14px; }
+  .member .btn { width: 98px; margin-top: 30px; }
+  .member--extreme .btn { width: 195px; }
+
+  .page-title--creators { padding: 65px 0 25px; font-size: 20px; }
+  .creators__note { padding-bottom: 53px; }
+  .creators__grid { grid-template-columns: 156fr 166fr; gap: 10px; padding: 0 29px; }
+  .creators { padding-bottom: 41px; }
+  .creators__head { height: 40px; }
+  .creators__col li { padding-left: 10px; font-size: 12px; }
+}
