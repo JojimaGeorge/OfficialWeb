@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sushidaruma-v4';
+const CACHE_NAME = 'sushidaruma-v5';
 const URLS_TO_CACHE = [
   // 図鑑ページ
   './zukan/',
