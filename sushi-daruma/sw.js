@@ -1,13 +1,9 @@
-const CACHE_NAME = 'sushidaruma-v5';
+const CACHE_NAME = 'sushidaruma-v6';
 const URLS_TO_CACHE = [
   // 図鑑ページ
   './zukan/',
   './zukan/index.html',
   './zukan/manifest.json',
-  // くじページ
-  './kuji/',
-  './kuji/index.html',
-  './kuji/admin.html',
   // くじ用バッジ画像
   './image/badge/maguro.webp',
   './image/badge/salmon.webp',
