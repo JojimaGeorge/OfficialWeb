@@ -202,6 +202,6 @@ button.big:active { transform: translateY(4px); box-shadow: 0 2px 0 #1d1326; }
 
 /* ---------- 縦向きの時 ---------- */
 @media (orientation: portrait) {
-  #rotate { display: flex; z-index: 50; }
+  #rotate { display: flex; z-index: 50; pointer-events: auto; }
   #rotate .small-card { font-size: clamp(16px, 5vw, 28px); padding: 1.2em 1.4em; }
 }

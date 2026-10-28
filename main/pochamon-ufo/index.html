@@ -9,8 +9,12 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#F98BB3">
   <meta name="robots" content="noindex">
+  <script>
+    // 末尾の / が無い URL（…/pochamon-ufo）だと相対パスの css や素材がサイト直下を向くので、/ 付きへ寄せる
+    if (!/\/$|\.html$/.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);
+  </script>
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="assets/pochamon_idle.png">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
   <link rel="stylesheet" href="style.css?v=1">
   <title>ぽちゃもん UFOキャッチャー</title>
 </head>
@@ -98,6 +102,7 @@
         <div class="admin-actions">
           <button id="adminSave" class="big" type="button">保存してとじる</button>
           <button id="adminClose" class="mini-text" type="button">保存せずとじる</button>
+          <button id="adminToTitle" class="mini-text" type="button">ゲームを中断してタイトルへ</button>
         </div>
         <div class="admin-hint">ひらきかた：タイトル画面の「ぽちゃもん」を 2秒 おしつづける ／ URLに #admin</div>
       </div>

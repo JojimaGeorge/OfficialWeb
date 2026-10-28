@@ -21,11 +21,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const after = await page.evaluate(() => ({ p: window.__ufo.settings.luckP, slot: window.__ufo.settings.luckSlot, shown: document.getElementById('admin').classList.contains('show'),
     stored: JSON.parse(localStorage.getItem('pochamon-ufo-settings-v1') || '{}') }));
   console.log('after save:', JSON.stringify(after));
-  // 長押しで開く（2秒）
+  // 長押しで開く（「ぽちゃもん」の文字を2秒）
+  const sub = await page.$('.title-sub');
+  const sb = await sub.boundingBox();
+  await page.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
+  await page.mouse.down(); await sleep(2300); await page.mouse.up();
   const card = await page.$('.title-card');
   const box = await card.boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + 30);
-  await page.mouse.down(); await sleep(2300); await page.mouse.up();
   const shown2 = await page.evaluate(() => document.getElementById('admin').classList.contains('show'));
   console.log('admin opened by long press:', shown2);
   await page.click('#adminClose');

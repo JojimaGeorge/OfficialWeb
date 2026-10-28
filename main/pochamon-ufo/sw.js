@@ -11,6 +11,8 @@ const CORE = [
   './manifest.json',
   './assets/scene.json',
   './assets/pochamon_idle.png',
+  './assets/icon-180.png',
+  './assets/icon-512.png',
   './assets/fonts/ZenMaruGothic-Bold.woff2',
   './assets/fonts/ZenMaruGothic-Black.woff2',
   './assets/fonts/CherryBombOne-Regular.woff2',
@@ -41,7 +43,12 @@ self.addEventListener('install', (event) => {
     const results = await Promise.allSettled(all.map((url) => cache.add(new Request(url, { cache: 'reload' }))));
     const failed = results.filter((r) => r.status === 'rejected');
     console.log(`[SW] cached ${all.length - failed.length}/${all.length}`);
-    if (failed.length) console.warn('[SW] failed:', failed.map((f) => (f.reason && f.reason.message) || String(f.reason)));
+    if (failed.length) {
+      // 1枚でも欠けたまま「設置済み」にしない（オフラインで欠けた素材を踏むと止まる）。次に開いた時にやり直す
+      console.warn('[SW] failed:', failed.map((f) => (f.reason && f.reason.message) || String(f.reason)));
+      await caches.delete(CACHE_NAME);
+      throw new Error('[SW] precache incomplete: ' + failed.length);
+    }
     await self.skipWaiting();
   })());
 });

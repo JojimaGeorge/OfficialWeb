@@ -9,6 +9,7 @@
   "background_color": "#4a3f66",
   "theme_color": "#F98BB3",
   "icons": [
-    { "src": "assets/pochamon_idle.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
   ]
 }

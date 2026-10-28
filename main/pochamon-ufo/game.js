@@ -30,7 +30,8 @@ const CFG = {
   tries: 3,
   moveSpeed: 0.16,      // 台車の速さ
   moveAccel: 3.0,       // 台車の加減速（急に止まるほど揺れる）
-  driftSpeed: 0.07,     // 下降中に一番近い子へ寄る速さ
+  driftSpeed: 0.10,     // 下降中に一番近い子へ寄る速さ（×速さ設定。残りは持ち上げ最初の0.3秒でなじませる）
+  idleBackSec: 90,      // 操作が無いままこの秒数でタイトルへ
   descendSpeed: 0.30,
   liftSpeed: 0.24,
   carrySpeed: 0.16,
@@ -62,11 +63,11 @@ const toys = [];           // 実行時のぬいぐるみ
 let clawSprites = [];      // { img, z, angle, anchor, depth, size }
 let clawHeights = [];
 const view = { dpr: 1, cw: 0, ch: 0, k: 1, ox: 0, oy: 0 };
-const input = { x: false, y: false, pressedX: false, pressedY: false };
+const input = { x: false, y: false, pressedX: false, pressedY: false, xId: null, yId: null };
 const claw = { cx: 0, cy: 0, vx: 0, vy: 0, L: 0.07, thx: 0, thy: 0, wx: 0, wy: 0, x: 0, y: 0, z: 0,
                arm: 16, armTarget: 16, held: null, damp: 0.9, cableTop: 0.73 };
 const game = { phase: 'loading', phaseT: 0, tryIndex: 0, got: 0, slots: [], outcome: null, target: null,
-               zTarget: 0, slipAt: 0, settleTarget: null, liftStartL: 0, timeScale: 1, lastPointer: 0 };
+               zTarget: 0, slipAt: 0, settleTarget: null, liftStartL: 0, timeScale: 1, lastInputAt: 0 };
 let park = { x: 0, y: 0 };
 let bounds = null;
 let chuteClip = null;      // 画面上の多角形（景品口の「窓」）
@@ -92,7 +93,7 @@ const audio = (() => {
   let ac = null, master = null, motor = null, motorGain = null;
   const ok = () => ac && !settings.muted;
   function unlock() {
-    if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+    if (ac) { if (ac.state !== 'running') ac.resume().catch(() => {}); return; }   // WebKit は 'interrupted' もある
     try {
       ac = new (window.AudioContext || window.webkitAudioContext)();
       master = ac.createGain(); master.gain.value = settings.volume; master.connect(ac.destination);
@@ -280,7 +281,8 @@ function setPhase(p) {
       ui.title.classList.add('show'); ui.result.classList.remove('show'); setButtons(false, false); guide('');
       resetClaw(); audio.motorOff(); break;
     case 'intro':
-      ui.title.classList.remove('show'); startGame(); showMsg('1かいめ！', 'round', 900); setButtons(false, false); break;
+      ui.title.classList.remove('show'); startGame(); showMsg('1かいめ！', 'round', 900); setButtons(false, false);
+      game.lastInputAt = performance.now(); break;
     case 'moveX':
       input.pressedX = false; input.x = false; setButtons(true, false);
       guide(settings.layout === 'B' ? '「→よこ」を おしているあいだ よこに うごくよ' : 'ひだりの ボタンを おしているあいだ よこに うごくよ'); break;
@@ -308,13 +310,13 @@ function setPhase(p) {
       game.slipAt = CFG.slipMin + Math.random() * (CFG.slipMax - CFG.slipMin);
       break;
     case 'lift':
-      if (game.target) { game.target.state = 'held'; claw.held = game.target; }
+      if (game.target) { game.target.state = 'held'; game.target.attach = 0; claw.held = game.target; }
       claw.damp = CFG.dampHeld; game.liftStartL = claw.L; audio.whir(); break;
     case 'slipping': audio.slip(); break;
     case 'carry': claw.damp = CFG.dampHeld; guide(''); break;
     case 'release': claw.armTarget = CFG.armOpen; break;
     case 'return': claw.armTarget = CFG.armClosed; claw.damp = CFG.dampFree; break;
-    case 'between': showMsg((game.tryIndex + 1) + 'かいめ！', 'round', 900); break;
+    case 'between': showMsg((game.tryIndex + 1) + 'かいめ！', 'round', 900); game.lastInputAt = performance.now(); break;
     case 'result': {
       setButtons(false, false); guide(''); audio.motorOff();
       ui.resultNum.textContent = game.got;
@@ -378,11 +380,13 @@ function moveTowards(dt, tx, ty, speed) {
 function updateToys(dt) {
   for (const t of toys) {
     if (t.state === 'held') {
-      // 爪先の点にくっついて動く
-      t.dx = claw.x - t.hold.x; t.dy = claw.y - t.hold.y; t.dz = (claw.z + CFG.padDz) - t.hold.z - t.sag * 0.05;
+      // 爪先の点にくっついて動く（つかんだ直後の0.3秒は、寄せ切れなかった残りをなじませる）
+      t.attach = Math.min(1, (t.attach == null ? 1 : t.attach) + dt / 0.3);
+      const k = t.attach * t.attach * (3 - 2 * t.attach);
+      t.dx = (claw.x - t.hold.x) * k; t.dy = (claw.y - t.hold.y) * k; t.dz = (claw.z + CFG.padDz) - t.hold.z - t.sag * 0.05;
       const hangTarget = clamp(-Math.atan2(t.data.center[0] - t.hold.x, Math.max(0.03, t.hold.z - t.data.center[2])) * 0.8, -0.6, 0.6);
       t.hang = approach(t.hang, hangTarget, 1.5 * dt);
-      t.rot = claw.thx + t.hang + t.sag * Math.sin(game.phaseT * 28) * 0.25;
+      t.rot = (claw.thx + t.hang) * k + t.sag * Math.sin(game.phaseT * 28) * 0.25;
       t.shadowA = clamp(1 - t.dz / 0.25, 0, 1);
     } else if (t.state === 'falling') {
       // つかみそこねて、元の場所へ落ちる
@@ -439,15 +443,15 @@ function update(dt) {
     }
     case 'descend': {
       changeCable(CFG.descendSpeed * settings.speed * dt);
-      if (game.target) {
-        const r = moveTowards(dt, game.target.hold.x, game.target.hold.y, CFG.driftSpeed);
-        acc = r;
-      } else acc = stepCarriage(dt, 0, 0, spd);
+      if (game.target) acc = moveTowards(dt, game.target.hold.x, game.target.hold.y, CFG.driftSpeed * settings.speed);
+      else acc = stepCarriage(dt, 0, 0, spd);
       if (claw.z <= game.zTarget) { claw.L = claw.cableTop - game.zTarget; setPhase('grab'); }
       break;
     }
     case 'grab': {
-      acc = stepCarriage(dt, 0, 0, spd);
+      // 閉じている間も寄せ続ける
+      if (game.target) acc = moveTowards(dt, game.target.hold.x, game.target.hold.y, CFG.driftSpeed * settings.speed);
+      else acc = stepCarriage(dt, 0, 0, spd);
       if (game.phaseT > 0.6) setPhase('lift');
       break;
     }
@@ -519,6 +523,11 @@ function update(dt) {
   claw.arm = approach(claw.arm, claw.armTarget, CFG.armRate * dt);
   stepPendulum(dt, acc.ax, acc.ay, rumble);
   updateToys(dt);
+  // 途中で子が去った時：操作待ちのまま一定時間たったらタイトルへ（次の子に回数を引き継がない）。ゲーム内の時間で数える
+  if (game.phase === 'moveX' || game.phase === 'moveY') {
+    game.idleT = (input.x || input.y) ? 0 : (game.idleT || 0) + dt;
+    if (game.idleT > CFG.idleBackSec) setPhase('title');
+  } else game.idleT = 0;
 }
 
 // ---------------- 描画 ----------------
@@ -708,16 +717,25 @@ function loop(ts) {
 }
 
 // ---------------- 入力 ----------------
+function release(key) {
+  input[key] = false; input[key + 'Id'] = null;
+  ui['btn' + key.toUpperCase()].classList.remove('pressed');
+}
 function bindHold(btn, key) {
   const down = (e) => {
     if (e.pointerType !== 'mouse' || e.button === 0) {
-      e.preventDefault(); audio.unlock();
+      e.preventDefault(); audio.unlock(); game.lastInputAt = performance.now();
       if (!btn.classList.contains('active')) return;
-      input[key] = true; input['pressed' + key.toUpperCase()] = true; btn.classList.add('pressed');
+      input[key] = true; input['pressed' + key.toUpperCase()] = true; input[key + 'Id'] = e.pointerId; btn.classList.add('pressed');
       try { btn.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     }
   };
-  const up = (e) => { e.preventDefault(); input[key] = false; btn.classList.remove('pressed'); };
+  // 押している指（pointerId）が離れた時だけ止める。別の指が画面に触れて離れても切れない
+  const up = (e) => {
+    e.preventDefault(); audio.unlock();
+    if (input[key + 'Id'] != null && e.pointerId !== input[key + 'Id']) return;
+    release(key);
+  };
   btn.addEventListener('pointerdown', down);
   btn.addEventListener('pointerup', up);
   btn.addEventListener('pointercancel', up);
@@ -726,38 +744,43 @@ function bindHold(btn, key) {
 }
 bindHold(ui.btnX, 'x');
 bindHold(ui.btnY, 'y');
-// ボタンから指がずれても止まるように
-window.addEventListener('pointerup', () => { input.x = input.y = false; ui.btnX.classList.remove('pressed'); ui.btnY.classList.remove('pressed'); }, { passive: true });
-window.addEventListener('blur', () => { input.x = input.y = false; });
+// 取りこぼしの保険：押している指そのものの pointerup を window でも拾う
+window.addEventListener('pointerup', (e) => {
+  if (input.xId != null && e.pointerId === input.xId) release('x');
+  if (input.yId != null && e.pointerId === input.yId) release('y');
+}, { passive: true });
+window.addEventListener('blur', () => { release('x'); release('y'); });
+document.addEventListener('pointerdown', () => { game.lastInputAt = performance.now(); game.idleT = 0; }, { passive: true, capture: true });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('dblclick', (e) => e.preventDefault());
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('touchmove', (e) => { if (!e.target.closest('.admin-card')) e.preventDefault(); }, { passive: false });
 
-// タイトル：タップでスタート（タイトル文字の長押しで設定）
+// タイトル：タップでスタート（「ぽちゃもん」の文字だけ、2秒の長押しで設定）
 let pressTimer = null, longPressed = false;
+const titleSub = document.querySelector('.title-sub');
 ui.title.addEventListener('pointerdown', (e) => {
   audio.unlock(); longPressed = false;
   if (e.target.closest('#muteBtn')) return;
   clearTimeout(pressTimer);
-  pressTimer = setTimeout(() => { longPressed = true; openAdmin(); }, 2000);
+  if (e.target.closest('.title-sub')) pressTimer = setTimeout(() => { longPressed = true; openAdmin(); }, 2000);
 });
 const titleUp = (e) => {
-  clearTimeout(pressTimer);
+  clearTimeout(pressTimer); audio.unlock();
   if (e.target.closest('#muteBtn')) return;
   if (longPressed) return;
   if (game.phase === 'title' && performance.now() - game.titleShownAt > 350) { audio.tap(); setPhase('intro'); }
 };
 ui.title.addEventListener('pointerup', titleUp);
 ui.title.addEventListener('pointercancel', () => clearTimeout(pressTimer));
-ui.title.addEventListener('pointerleave', () => clearTimeout(pressTimer));
+titleSub.addEventListener('pointerleave', () => clearTimeout(pressTimer));
 ui.muteBtn.addEventListener('click', () => {
   settings.muted = !settings.muted; saveSettings(); ui.muteBtn.classList.toggle('muted', settings.muted); if (!settings.muted) { audio.unlock(); audio.tap(); }
 });
 ui.muteBtn.classList.toggle('muted', settings.muted);
 ui.resultBtn.addEventListener('click', () => {
   if (performance.now() - (game.resultShownAt || 0) < 500) return;
-  audio.tap(); setPhase('title'); game.titleShownAt = performance.now();
+  audio.unlock(); audio.tap(); setPhase('title'); game.titleShownAt = performance.now();
 });
 // キーボード（PCでの確認用）：→ よこ、↑ おく、Enter スタート
 window.addEventListener('keydown', (e) => {
@@ -774,7 +797,7 @@ window.addEventListener('keyup', (e) => {
 // ---------------- 設定画面 ----------------
 const adm = { luckP: $('luckP'), luckPVal: $('luckPVal'), luckSlot: $('luckSlot'), layout: $('layoutSel'), volume: $('volume'), volVal: $('volVal'),
               speed: $('speed'), speedVal: $('speedVal'), cntGames: $('cntGames'), cntStickers: $('cntStickers'), cntReset: $('cntReset'),
-              save: $('adminSave'), close: $('adminClose') };
+              save: $('adminSave'), close: $('adminClose'), toTitle: $('adminToTitle') };
 function openAdmin() {
   adm.luckP.value = Math.round(settings.luckP * 100); adm.luckSlot.value = settings.luckSlot; adm.layout.value = settings.layout;
   adm.volume.value = Math.round(settings.volume * 100); adm.speed.value = Math.round(settings.speed * 100);
@@ -786,7 +809,18 @@ function adminLabels() {
   adm.luckPVal.textContent = adm.luckP.value + '%'; adm.volVal.textContent = adm.volume.value + '%'; adm.speedVal.textContent = adm.speed.value + '%';
 }
 ['input', 'change'].forEach((ev) => { adm.luckP.addEventListener(ev, adminLabels); adm.volume.addEventListener(ev, adminLabels); adm.speed.addEventListener(ev, adminLabels); });
-adm.cntReset.addEventListener('click', () => { settings.counters[todayKey()] = { games: 0, stickers: 0 }; saveSettings(); adm.cntGames.textContent = 0; adm.cntStickers.textContent = 0; });
+// カウンタのリセットは2段階（1回目「ほんとに？」→3秒以内にもう1回で消す）
+let resetArmed = null;
+adm.cntReset.addEventListener('click', () => {
+  if (resetArmed) {
+    clearTimeout(resetArmed); resetArmed = null; adm.cntReset.textContent = 'リセット';
+    settings.counters[todayKey()] = { games: 0, stickers: 0 }; saveSettings(); adm.cntGames.textContent = 0; adm.cntStickers.textContent = 0;
+    return;
+  }
+  adm.cntReset.textContent = 'ほんとに消す？（もう1回おす）';
+  resetArmed = setTimeout(() => { resetArmed = null; adm.cntReset.textContent = 'リセット'; }, 3000);
+});
+adm.toTitle.addEventListener('click', () => { ui.admin.classList.remove('show'); setPhase('title'); game.titleShownAt = performance.now(); });
 adm.save.addEventListener('click', () => {
   settings.luckP = adm.luckP.value / 100; settings.luckSlot = adm.luckSlot.value; settings.layout = adm.layout.value;
   settings.volume = adm.volume.value / 100; settings.speed = adm.speed.value / 100;
@@ -800,7 +834,9 @@ const dbg = {};
 window.__ufo = {
   dbg,
   unlockAudio: () => { audio.unlock(); audio.tap(); },
-  state: () => ({ phase: game.phase, tryIndex: game.tryIndex, got: game.got, slots: game.slots.slice(), outcome: game.outcome,
+  setLastInput: (v) => { game.lastInputAt = v; },
+  state: () => ({ phase: game.phase, phaseT: game.phaseT, lastInputAt: game.lastInputAt, now: performance.now(),
+                  tryIndex: game.tryIndex, got: game.got, slots: game.slots.slice(), outcome: game.outcome,
                   claw: { x: claw.x, y: claw.y, z: claw.z, cx: claw.cx, cy: claw.cy, arm: claw.arm, thx: claw.thx, L: claw.L },
                   held: claw.held ? claw.held.id : null, toys: toys.map((t) => ({ id: t.id, state: t.state })) }),
   press: (key, on) => { input[key] = !!on; if (on) input['pressed' + key.toUpperCase()] = true; ui['btn' + key.toUpperCase()].classList.toggle('pressed', !!on); },
