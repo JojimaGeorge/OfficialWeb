@@ -1,0 +1,14 @@
+{
+  "name": "ぽちゃもん UFOキャッチャー",
+  "short_name": "ぽちゃもんUFO",
+  "description": "ぽちゃもんのぬいぐるみをUFOキャッチャーでつかまえよう！",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#4a3f66",
+  "theme_color": "#F98BB3",
+  "icons": [
+    { "src": "assets/pochamon_idle.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

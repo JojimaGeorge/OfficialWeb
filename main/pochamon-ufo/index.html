@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ぽちゃもんUFO">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#F98BB3">
+  <meta name="robots" content="noindex">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/pochamon_idle.png">
+  <link rel="stylesheet" href="style.css?v=1">
+  <title>ぽちゃもん UFOキャッチャー</title>
+</head>
+<body class="layout-A phase-loading">
+  <canvas id="scene"></canvas>
+
+  <div id="ui">
+    <!-- 上の表示 -->
+    <div id="hud">
+      <div class="hud-box hud-tries">
+        <span class="hud-label">のこり</span>
+        <span class="hud-lamps"><i></i><i></i><i></i></span>
+      </div>
+      <div class="hud-box hud-got">
+        <span class="hud-label">ゲット</span>
+        <span class="hud-num" id="hudGot">0</span>
+      </div>
+    </div>
+
+    <!-- 中央メッセージ -->
+    <div id="msg"></div>
+    <!-- 下の案内 -->
+    <div id="guide"></div>
+
+    <!-- ボタン -->
+    <button id="btnX" class="ctl" type="button" aria-label="よこにうごかす">
+      <span class="ctl-arrow">→</span><span class="ctl-label">よこ</span>
+    </button>
+    <button id="btnY" class="ctl" type="button" aria-label="おくにうごかす">
+      <span class="ctl-arrow">↑</span><span class="ctl-label">おく</span>
+    </button>
+
+    <!-- タイトル -->
+    <div id="title" class="screen">
+      <div class="card title-card">
+        <div class="title-sub">ぽちゃもん</div>
+        <div class="title-main">UFOキャッチャー</div>
+        <div class="title-rule">
+          <span>3かい チャレンジ！</span>
+          <span>とれた かずだけ ステッカーが もらえるよ</span>
+        </div>
+        <div class="title-tap">タップして スタート</div>
+      </div>
+      <button id="muteBtn" class="mini" type="button" aria-label="おと">♪</button>
+    </div>
+
+    <!-- 結果 -->
+    <div id="result" class="screen">
+      <div class="card result-card">
+        <div class="result-head">けっか はっぴょう！</div>
+        <div class="result-stickers" id="resultStickers"></div>
+        <div class="result-main">ステッカー <b id="resultNum">0</b> まい ゲット！</div>
+        <div class="result-note">スタッフに みせてね</div>
+        <button id="resultBtn" class="big" type="button">おしまい</button>
+      </div>
+    </div>
+
+    <!-- 読み込み / 回転 -->
+    <div id="loading" class="screen show"><div class="card small-card">よみこみちゅう…<br><span id="loadProg"></span></div></div>
+    <div id="rotate" class="screen"><div class="card small-card">iPadを よこむきに してね</div></div>
+
+    <!-- 設定（スタッフ用） -->
+    <div id="admin" class="screen">
+      <div class="card admin-card">
+        <div class="admin-title">せってい（スタッフ用）</div>
+        <label>運の回の取れる確率 <span id="luckPVal"></span>
+          <input type="range" id="luckP" min="0" max="100" step="5"></label>
+        <label>運の回はどれ
+          <select id="luckSlot">
+            <option value="random">毎回ランダム</option>
+            <option value="first">1回目</option>
+            <option value="last">3回目</option>
+          </select></label>
+        <label>レイアウト
+          <select id="layoutSel">
+            <option value="A">A：筐体まんなか・ボタン左右の角</option>
+            <option value="B">B：右に操作盤</option>
+          </select></label>
+        <label>音量 <span id="volVal"></span>
+          <input type="range" id="volume" min="0" max="100" step="10"></label>
+        <label>速さ <span id="speedVal"></span>
+          <input type="range" id="speed" min="60" max="160" step="10"></label>
+        <div class="admin-counter">きょう：<span id="cntGames">0</span>回あそんで ステッカー <span id="cntStickers">0</span>枚
+          <button id="cntReset" class="mini-text" type="button">リセット</button></div>
+        <div class="admin-actions">
+          <button id="adminSave" class="big" type="button">保存してとじる</button>
+          <button id="adminClose" class="mini-text" type="button">保存せずとじる</button>
+        </div>
+        <div class="admin-hint">ひらきかた：タイトル画面の「ぽちゃもん」を 2秒 おしつづける ／ URLに #admin</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js?v=1"></script>
+</body>
+</html>
