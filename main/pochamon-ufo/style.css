@@ -157,7 +157,7 @@ button.big {
 }
 button.big:active { transform: translateY(4px); box-shadow: 0 2px 0 #1d1326; }
 
-/* ---------- コイン（左の操作盤のトレーにある。位置・大きさは game.js が置く） ---------- */
+/* ---------- コイン（タイトルの札の真下にある。位置・大きさは game.js が置く） ---------- */
 #coin { position: absolute; left: 0; top: 0; z-index: 20; pointer-events: auto; touch-action: none; cursor: grab; will-change: transform; }
 #coin::before { content: ''; position: absolute; inset: -18px; }   /* 指で取りやすいように当たりを広げる */
 #coin img { display: block; width: 100%; height: 100%; -webkit-user-drag: none; filter: drop-shadow(0 6px 6px rgba(0,0,0,.35)); }
@@ -167,7 +167,7 @@ button.big:active { transform: translateY(4px); box-shadow: 0 2px 0 #1d1326; }
 #coin.nudge img { animation: coinnudge .6s ease-out; }
 #coin.dragging { cursor: grabbing; z-index: 21; }
 #coin.dragging img { transform: scale(1.1); filter: drop-shadow(0 14px 14px rgba(0,0,0,.45)); animation: none; }
-#coin.back { transition: transform .45s cubic-bezier(.3,1.4,.4,1), width .45s, height .45s; }
+#coin.back { transition: transform .45s cubic-bezier(.3,1.4,.4,1); }   /* 大きさは遷移させない（向きの絵が変わる時に丸がつぶれる） */
 @keyframes coinbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @keyframes coindrop { 0% { transform: translateY(-90px); opacity: 0; } 25% { opacity: 1; } 60% { transform: translateY(6px); } 80% { transform: translateY(-4px); } 100% { transform: none; } }
 @keyframes coinnudge { 0% { transform: translateY(0); } 30% { transform: translateY(-18px) scale(1.08); } 60% { transform: translateY(4px); } 100% { transform: none; } }

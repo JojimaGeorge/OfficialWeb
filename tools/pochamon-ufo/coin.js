@@ -31,9 +31,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const c = await page.evaluate(() => window.__ufo.coin());
   const cons = await page.evaluate(() => window.__ufo.consoles());
   console.log('coin', JSON.stringify(c), 'consoles', JSON.stringify({ L: cons.L, R: cons.R }));
-  if (c.state !== 'home') throw new Error('coin is not in the tray: ' + c.state);
+  if (c.state !== 'home') throw new Error('coin is not at home: ' + c.state);
 
-  // 1) 投入口から外れた所で離す → トレーへ戻る
+  // 1) 投入口から外れた所で離す → 札の下へ戻る
   await page.mouse.move(c.pos.x, c.pos.y);
   await page.mouse.down();
   for (let i = 1; i <= 8; i++) { await page.mouse.move(c.pos.x + 320 * i / 8, c.pos.y - 60 * i / 8); await sleep(30); }   // 筐体の上まで持っていって離す
@@ -64,7 +64,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await page.waitForFunction(() => window.__ufo.state().phase === 'moveY', null, { timeout: 15000 });
   await sleep(400);
   await shot('07_moveY_ring_lit');
-  // 残りは自動で最後まで（結果 → おしまい → コインが戻る）
+  // 残りは自動で最後まで（結果 → おしまい → コインが札の下へ戻る）
   await page.evaluate(() => { window.__ufo.force(['win', 'win', 'lose']); });
   await page.evaluate(() => window.__ufo.press('y', true));
   await sleep(600);
