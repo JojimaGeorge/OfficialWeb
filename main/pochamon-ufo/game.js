@@ -49,7 +49,7 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('scene');
 const ctx = canvas.getContext('2d', { alpha: true });
 const ui = {
-  coin: $('coin'), coinImg: $('coinImg'),
+  coin: $('coin'), coinImg: $('coinImg'), titleCard: document.querySelector('.title-card'),
   msg: $('msg'), guide: $('guide'), btnX: $('btnX'), btnY: $('btnY'),
   title: $('title'), result: $('result'), loading: $('loading'), loadProg: $('loadProg'), admin: $('admin'),
   resultNum: $('resultNum'), resultStickers: $('resultStickers'), resultBtn: $('resultBtn'), muteBtn: $('muteBtn'),
@@ -331,21 +331,27 @@ function drawConsoles() {
     ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.fill();
   }
 }
-// コイン：タイトルでトレーにある → 投入口へドラッグ → 入る（チャリン）→ 表示が点く → スタート。「おしまい」で次の子のためにトレーへ戻る
+// コイン：タイトルの札の真下にある → 持つと縦向きになる → 投入口へドラッグして離すと入る（チャリン）→ 表示が点く → スタート。
+// 「おしまい」で次の子のために札の下へ戻る。左の操作盤のトレーは返却口の飾り
 const easeOut = (u) => 1 - Math.pow(1 - u, 3);
 const coinUI = {
   state: 'hidden',   // hidden | home | drag | inserting | returning
-  frame: 0, pos: { x: 0, y: 0 }, center: null, frames: null, slit: null, slotZone: null, grab: null, timers: [],
+  frame: 0, pos: { x: 0, y: 0 }, frames: null, slit: null, slotZone: null, grab: null, timers: [], dragT: 0,
   layout() {
     if (!con.L) return;
     const L = con.data.L, k = con.L.k, S = CFG.coinScale;
-    this.center = conPt('L', L.coin_rest);
     this.frames = [0, 1, 2, 3].map((i) => { const r = con.data.sprites['coin_0' + i].rect; return { w: r[2] * k * S, h: r[3] * k * S }; });
     const sl = conRect('L', L.slit), sp = conRect('L', L.slot_plate);
     this.slit = { x: sl.x + sl.w / 2, y: sl.y, h: sl.h };
     this.slotZone = { x: sp.x - sp.w * 0.5, y: sp.y - sp.h * 0.3, w: sp.w * 2, h: sp.h * 1.5 };   // この中で離すと入る
-    // トレーにある（戻る途中も）コインは新しい置き場へ。投入中は毎フレーム投入口を読み直すのでここでは触らない
-    if (this.state === 'home' || this.state === 'returning') { this.place(this.center.x, this.center.y, 0); ui.coin.classList.remove('hidden'); if (this.state === 'home') ui.coin.classList.add('bob'); }
+    // 定位置にある（戻る途中も）コインは新しい置き場へ。投入中は毎フレーム投入口を読み直すのでここでは触らない
+    if (this.state === 'home' || this.state === 'returning') { const h = this.home(); this.place(h.x, h.y, 0); ui.coin.classList.remove('hidden'); if (this.state === 'home') ui.coin.classList.add('bob'); }
+  },
+  home() {   // 定位置＝タイトルの札の真下・筐体のまんなか（札は flex でまんなか寄せなので、下端＝(画面の高さ＋札の高さ)/2）
+    const mW = scene ? scene.image.width * view.k : view.cw;
+    const cardH = ui.titleCard.offsetHeight || view.ch * 0.45;
+    const y = (view.ch + cardH) / 2 + view.ch * 0.03 + this.frames[0].h / 2;
+    return { x: view.ox + mW / 2, y: Math.min(y, view.ch - this.frames[0].h * 0.6 - 6) };
   },
   clearTimers() { for (const id of this.timers) clearTimeout(id); this.timers = []; },
   place(cx, cy, frame) {   // 中心の座標で置く。frame は向き（0 正面 … 3 真横）
@@ -355,12 +361,12 @@ const coinUI = {
     ui.coin.style.transform = 'translate(' + (cx - f.w / 2) + 'px,' + (cy - f.h / 2) + 'px)';
     this.pos = { x: cx, y: cy };
   },
-  toTray(drop) {
+  toHome(drop) {
     this.clearTimers(); con.credit = false;   // 投入の途中で中断された時：始まりのタイマーを止め、クレジットの表示を消す
     this.state = 'home';
-    if (!this.center) return;   // 置き場が決まる前（最初の読み込み中）は layout() が置く
+    if (!this.frames) return;   // 置き場が決まる前（最初の読み込み中）は layout() が置く
     ui.coin.className = ''; ui.coin.style.opacity = '';
-    this.place(this.center.x, this.center.y, 0);
+    const h = this.home(); this.place(h.x, h.y, 0);
     if (drop) { audio.coinReturn(); ui.coin.classList.add('drop'); setTimeout(() => ui.coin.classList.remove('drop'), 750); }
     ui.coin.classList.add('bob');
   },
@@ -368,13 +374,13 @@ const coinUI = {
   nudge() { if (this.state !== 'home') return; ui.coin.classList.remove('nudge'); void ui.coin.offsetWidth; ui.coin.classList.add('nudge'); audio.tap(); },
   springBack() {
     this.state = 'returning'; ui.coin.classList.add('back');
-    this.place(this.center.x, this.center.y, 0);
+    const h = this.home(); this.place(h.x, h.y, 0);
     setTimeout(() => { ui.coin.classList.remove('back'); if (this.state === 'returning') { this.state = 'home'; ui.coin.classList.add('bob'); } }, 450);
   },
   insert(fast) {
     if (this.state === 'inserting' || this.state === 'hidden' || !this.slit) return;
     this.state = 'inserting'; ui.coin.classList.remove('bob', 'back', 'dragging', 'nudge');
-    const start = { x: this.pos.x, y: this.pos.y };
+    const start = { x: this.pos.x, y: this.pos.y }, f0 = this.frame;
     const end = () => ({ x: this.slit.x, y: this.slit.y + this.slit.h * 0.5 });   // 途中でリサイズされても今の投入口へ
     const T1 = fast ? 0.01 : 0.30, T2 = fast ? 0.01 : 0.22, t0 = performance.now();
     const step = () => {
@@ -382,7 +388,7 @@ const coinUI = {
       const t = (performance.now() - t0) / 1000, e = end();
       if (t < T1) {   // 投入口へ寄りながら真横を向く
         const u = easeOut(t / T1);
-        this.place(lerp(start.x, e.x, u), lerp(start.y, e.y, u), Math.min(3, Math.floor(u * 3.99)));
+        this.place(lerp(start.x, e.x, u), lerp(start.y, e.y, u), Math.max(f0, Math.min(3, Math.floor(u * 3.99))));   // 今の向きから先へ（正面に戻らない）
         requestAnimationFrame(step); return;
       }
       if (t < T1 + T2) {   // 中へ入っていく
@@ -468,7 +474,7 @@ function setPhase(p) {
     case 'title':
       ui.title.classList.add('show'); ui.result.classList.remove('show'); setButtons(false, false); guide('');
       resetClaw(); audio.motorOff();
-      coinUI.toTray(prev !== 'loading');   // 遊び終わり（や中断）ならコインがトレーに戻ってくる
+      coinUI.toHome(prev !== 'loading');   // 遊び終わり（や中断）ならコインが札の下に落ちて戻ってくる
       break;
     case 'intro':
       ui.title.classList.remove('show'); coinUI.hide(); startGame(); showMsg('1かいめ！', 'round', 900); setButtons(false, false);
@@ -940,16 +946,20 @@ bindHold(ui.btnY, 'y');
 ui.coin.addEventListener('pointerdown', (e) => {
   if (coinUI.state !== 'home' || game.phase !== 'title') return;
   e.preventDefault(); audio.unlock(); game.lastInputAt = performance.now();
-  coinUI.state = 'drag'; coinUI.grab = { id: e.pointerId, dx: e.clientX - coinUI.pos.x, dy: e.clientY - coinUI.pos.y };
+  coinUI.state = 'drag'; coinUI.grab = { id: e.pointerId, dx: e.clientX - coinUI.pos.x, dy: e.clientY - coinUI.pos.y }; coinUI.dragT = performance.now();
   ui.coin.classList.remove('bob', 'back', 'nudge'); ui.coin.classList.add('dragging');
   try { ui.coin.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  // 持った瞬間に縦向きへ（0°→30°→60° と素早く回す。指が止まっていても回り切るようにタイマーでも進める）
+  coinUI.place(coinUI.pos.x, coinUI.pos.y, 1);
+  coinUI.timers.push(setTimeout(() => { if (coinUI.state === 'drag' && coinUI.frame < 2) coinUI.place(coinUI.pos.x, coinUI.pos.y, 2); }, 90));
 });
 ui.coin.addEventListener('pointermove', (e) => {
   if (coinUI.state !== 'drag' || !coinUI.grab || e.pointerId !== coinUI.grab.id) return;
   e.preventDefault();
   const cx = e.clientX - coinUI.grab.dx, cy = e.clientY - coinUI.grab.dy;
   const d = Math.hypot(cx - coinUI.slit.x, cy - (coinUI.slit.y + coinUI.slit.h / 2)), R = coinUI.frames[0].w;
-  coinUI.place(cx, cy, d < R * 0.7 ? 2 : d < R * 1.4 ? 1 : 0);   // 投入口に近づくほど横を向く
+  const turned = performance.now() - coinUI.dragT > 70 ? 2 : 1;   // 持ってすぐは 30°、その後は 60°（縦向き）
+  coinUI.place(cx, cy, d < R * 1.0 ? 3 : turned);   // 投入口のすぐそばでは真横
 });
 const coinUp = (e) => {
   if (coinUI.state !== 'drag' || (coinUI.grab && e.pointerId !== coinUI.grab.id)) return;

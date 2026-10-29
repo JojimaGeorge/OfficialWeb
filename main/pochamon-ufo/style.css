@@ -123,13 +123,13 @@ body {
   margin: .05em 0 .15em;
 }
 .title-rule { display: flex; flex-direction: column; gap: .2em; font-size: clamp(15px, 2.8vh, 28px); font-weight: 700; color: var(--ink); }
-/* 「コインを いれて」はボタンではないので塗らない。矢印が左のトレーを指す */
+/* 「コインを いれて」はボタンではないので塗らない。矢印が札の下のコインを指す */
 .title-tap {
   margin-top: 2.2vh; display: inline-flex; align-items: center; gap: .25em;
   color: var(--pink-dark); font-size: clamp(18px, 3.4vh, 34px); font-weight: 900;
 }
-.title-arrow { display: inline-block; animation: arrowL 1s ease-in-out infinite; }
-@keyframes arrowL { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-.35em); } }
+.title-arrow { display: inline-block; animation: arrowD 1s ease-in-out infinite; }
+@keyframes arrowD { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(.3em); } }
 .mini {
   position: absolute; right: 2vw; bottom: max(14px, env(safe-area-inset-bottom)); width: 52px; height: 52px; border-radius: 50%;
   border: 3px solid #fff; background: var(--lav-deep); color: #fff; font-size: 22px; font-weight: 900; cursor: pointer;
