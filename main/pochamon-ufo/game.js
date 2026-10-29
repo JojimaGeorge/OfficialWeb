@@ -81,6 +81,8 @@ const game = { phase: 'loading', phaseT: 0, tryIndex: 0, got: 0, slots: [], outc
 let park = { x: 0, y: 0 };
 let bounds = null;
 let chuteClip = null;      // 画面上の多角形（景品口の「窓」）
+let cabOpen = null;        // 画面上の多角形（筐体の前の開口部＝左右の柱の内側）
+const isFlat = (t) => t.data.kind === 'biroon';   // びろーん（平たく幅の広い子）
 
 // ---------------- 小道具 ----------------
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -277,7 +279,11 @@ async function load() {
   await Promise.all(jobs);
   // 景品口の「窓」：手前のふちから上に開いた四角（床より下に落ちた分を隠す）
   const ch = scene.machine.chute;
-  chuteClip = [project(ch.x0, ch.y0, 0), project(ch.x1, ch.y0, 0), project(ch.x1, ch.y1, 0.5), project(ch.x0, ch.y1, 0.5)];
+  // 手前の辺＝手前の台の上端の奥の角（y=front+0.007・z=0.02）。穴の縁の z=0 で作っていた時は絵の縁より約50px下で、落ちる子が白い縁にかぶった（10/30 検品・絵の明るさで実測）
+  chuteClip = [project(ch.x0, scene.machine.front + 0.007, 0.02), project(ch.x1, scene.machine.front + 0.007, 0.02), project(ch.x1, ch.y1, 0.5), project(ch.x0, ch.y1, 0.5)];
+  // 筐体の前の開口部（左右の柱の内側）：中の物（持った子・アーム・落ちる子）はこの外へ描かない（幅の広いびろーんが外へはみ出た・10/30 検品）
+  const fy = scene.machine.front + 0.005, hw = scene.machine.half_width - 0.004;
+  cabOpen = [project(-hw, fy, -0.3), project(-hw, fy, 1.0), project(hw, fy, 1.0), project(hw, fy, -0.3)];
   // 筐体の線（絵の px）：手前の梁の下の縁（これより上は梁の裏）・手前のレールの上下（レールの裏に隠れる帯）・床の線（操作盤の足を揃える）
   const m = scene.machine;
   cab.beamV = project(0, m.front - 0.05, 0.815).v;
@@ -712,9 +718,14 @@ function pickToy(x, y) {
     let covered = 0;
     for (const o of toys) {
       if (o === t || (o.state !== 'rest' && o.state !== 'settle')) continue;
-      if (Math.hypot(o.hold.x - t.hold.x, o.hold.y - t.hold.y) < 0.11 && o.hold.z + o.dz > t.hold.z + t.dz + 0.04) { covered = 0.09; break; }
+      // 上に乗られているか：ふつうの子はつかむ点から11cm、びろーん（幅26cm）は外形の箱で見る
+      const over = isFlat(o)
+        ? (t.hold.x > o.data.bbox[0][0] && t.hold.x < o.data.bbox[1][0] && t.hold.y > o.data.bbox[0][1] && t.hold.y < o.data.bbox[1][1])
+        : Math.hypot(o.hold.x - t.hold.x, o.hold.y - t.hold.y) < 0.11;
+      if (over && o.hold.z + o.dz > t.hold.z + t.dz + 0.04) { covered = 0.09; break; }
     }
-    const score = d - 0.35 * (t.hold.z + t.dz) + covered;
+    // 高い所の子ほど選ばれやすい（上に出ている）。びろーんは山のてっぺんに乗せてあるので重みを弱める（狙いから6.5cm 横へ寄った・10/30 検品）
+    const score = d - (isFlat(t) ? 0.12 : 0.35) * (t.hold.z + t.dz) + covered;
     if (score < bestScore) { bestScore = score; best = t; }
   }
   return best;
@@ -913,7 +924,8 @@ function updateToys(dt) {
       const k = t.attach * t.attach * (3 - 2 * t.attach);
       const sx = t.restDx || 0, sy = t.restDy || 0, sz = t.restDz || 0;   // 休んでいた位置（沈んでいた子はそこから）
       t.dx = lerp(sx, claw.x - t.hold.x, k); t.dy = lerp(sy, claw.y - t.hold.y, k); t.dz = (claw.z + CFG.padDz) - t.hold.z - t.sag * 0.05;
-      const hangTarget = clamp(-Math.atan2(t.data.center[0] - t.hold.x, Math.max(0.03, t.hold.z - t.data.center[2])) * 0.8, -0.6, 0.6);
+      // ぶら下がった子の傾き（重心が爪の真下へ来る向き）。びろーんは平たく、つかむ点と重心の高さがほぼ同じ＝分母が小さくて 30° も出て筐体の外へはみ出した → 傾けない（10/30 検品）
+      const hangTarget = isFlat(t) ? 0 : clamp(-Math.atan2(t.data.center[0] - t.hold.x, Math.max(0.03, t.hold.z - t.data.center[2])) * 0.8, -0.6, 0.6);
       t.hang = approach(t.hang, hangTarget, 1.5 * dt);
       t.rot = lerp(t.restRot || 0, claw.thx + t.hang, k) + t.sag * Math.sin(game.phaseT * 28) * 0.25;
       t.shadowA = clamp(1 - (t.dz - sz) / 0.25, 0, 1);
@@ -1043,7 +1055,7 @@ function update(dt) {
       acc = stepCarriage(dt, 0, 0, spd);
       const t = claw.held;
       if (t && claw.arm <= -11) {
-        t.state = 'chute'; t.vz = 0; t.rotV = (Math.random() - 0.5) * 2.5; t.splashed = false;
+        t.state = 'chute'; t.vz = 0; t.rotV = isFlat(t) ? 0 : (Math.random() - 0.5) * 2.5; t.splashed = false;   // 幅の広い子は回さず落とす
         claw.held = null; claw.wx += 0.5 * (Math.random() - 0.5);
         game.got++; updateHud(); showMsg('ゲット！！', 'win', 1400); audio.win(); faceUI.grin();
         game.flashUntil = performance.now() + 1500;   // 電球が全部、速く点滅
@@ -1158,6 +1170,12 @@ function drawClaw(p) {
   }
 }
 // 手前の梁より上と、手前のレールの帯は、中の物（台車・ケーブル・UFO・持った子）より手前にある＝そこは描かない
+function clipCabOpen() {
+  if (!cabOpen) return;
+  ctx.beginPath(); ctx.moveTo(cabOpen[0].u, cabOpen[0].v);
+  for (let i = 1; i < 4; i++) ctx.lineTo(cabOpen[i].u, cabOpen[i].v);
+  ctx.closePath(); ctx.clip();
+}
 function clipBehindFront() {
   const top = Math.max(cab.beamV || 0, cab.railBotV || 0);
   ctx.beginPath(); ctx.rect(-10000, top, 20000, 20000); ctx.clip();
@@ -1293,25 +1311,42 @@ function draw() {
     layerBox = [Math.min(layerBox[0], x0 - mg), Math.min(layerBox[1], y0 - mg), Math.max(layerBox[2], x0 + w + mg), Math.max(layerBox[3], y0 + hh + mg)];
     layerDepth = Math.min(layerDepth, project(t.data.center[0] + t.dx, t.data.center[1] + t.dy, t.data.center[2] + t.dz).d);
   }
-  const iClaw = insertionIndex(rest, layerDepth, layerBox);
+  let iClaw = insertionIndex(rest, layerDepth, layerBox);
+  // 下りて閉じる間は、狙った子より手前に描く（びろーんはつかむ点が奥の縁＝爪の奥行きが子の中心より奥と判定されて裏に隠れ、持ち上げで表へ飛んだ・10/30 検品）
+  if (game.target && !claw.held && (game.phase === 'descend' || game.phase === 'grab')) {
+    const ti = rest.indexOf(game.target);
+    if (ti >= 0) iClaw = Math.max(iClaw, ti + 1);
+  }
   const top = pileTopUnder(claw.x, claw.y);
   const zs = top.z;
   const sp = project(claw.x, claw.y, zs);
   const iSh = top.on ? rest.indexOf(top.on) + 1 : 0;
   const drawClawLayer = () => {
-    ctx.save(); clipBehindFront();   // 手前の梁とレールの裏に隠れる（奥の高い所にいる時に上へはみ出ない）
+    ctx.save(); clipBehindFront(); clipCabOpen();   // 手前の梁とレールの裏に隠れる（奥の高い所にいる時に上へはみ出ない）・左右の柱の外へ出ない
     if (claw.held) drawToyDynamic(claw.held, false);
     drawCable(cb.p);
     drawClaw(cb.p);
     ctx.restore();
   };
   dbg.shadow = { zs, sp, iSh, iClaw, n: rest.length, h: claw.z - zs };
+  // 景品口へ落ちる子：床より上にいる間は、山の子と奥行きで前後を決める（前は全部の上に描いていて、手前の子や札にかぶった・10/30 検品）。
+  // 床より下に入ったら最後に描いて、景品口の窓で切り抜く（窓の辺は奥ほど寄る斜めの線なので、高い所で切ると幅の広い子が大きく欠ける）
+  const fallAt = new Map();
+  for (const t of toys) {
+    if (t.state !== 'chute' || t.hold.z + t.dz - t.below < 0.0) continue;
+    const c = t.data.center, h = t.hold, r = t.data.sprite.rect;
+    const p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz), s = t.holdUV.d / p1.d;
+    const x0 = p1.u - (t.holdUV.u - r[0]) * s, y0 = p1.v - (t.holdUV.v - r[1]) * s;
+    fallAt.set(t, insertionIndex(rest, project(c[0] + t.dx, c[1] + t.dy, c[2] + t.dz).d, [x0, y0, x0 + r[2] * s, y0 + r[3] * s]));
+  }
+  const drawFalling = (t, clip) => { ctx.save(); clipCabOpen(); drawToyDynamic(t, clip); ctx.restore(); };
   for (let i = 0; i <= rest.length; i++) {
     if (i === iSh) drawClawShadow(sp, zs);
+    for (const [t, k] of fallAt) if (k === i) drawFalling(t, false);
     if (i === iClaw) drawClawLayer();
     if (i < rest.length) drawToyRest(rest[i]);
   }
-  for (const t of toys) if (t.state === 'chute') drawToyDynamic(t, t.hold.z + t.dz - t.below < 0.0);
+  for (const t of toys) if (t.state === 'chute' && !fallAt.has(t)) drawFalling(t, true);
   drawGantry();
   drawConsoles();
   faceUI.draw();

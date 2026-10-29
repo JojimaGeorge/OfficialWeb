@@ -11,6 +11,10 @@
 カメラ（m_cam・fx・cx・cy）が前と違うとアームの位置が合わないので、その時は止める。
 """
 import sys, os, json, time
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 from PIL import Image
 import numpy as np
 
@@ -28,6 +32,14 @@ if err > 1e-3 or OLD["image"] != S["image"]:
     sys.exit("camera / image size differs from the current assets (max diff %.5f) — the claw sheets would not line up" % err)
 if not OLD.get("claw_sheets"):
     sys.exit("the current assets have no claw_sheets to keep")
+
+# 元の絵が全部そろっているか、消す前に確かめる（途中で欠けて止まると、古い scene.json が消えた絵を指したまま残る・10/30 検品）
+need = ["bg.png"] + [t["file"] for t in S["bulbs"]["tiles"]]
+for t in S["toys"]:
+    need += [x["file"] for x in (t.get("sprite"), t.get("shadow")) if x]
+missing = [n for n in need if not os.path.exists(os.path.join(src, n))]
+if missing:
+    sys.exit("missing in the export: %s" % ", ".join(missing[:10]))
 
 total_in = total_out = 0
 
@@ -86,3 +98,4 @@ print("assets ->", DEST)
 print("images: %.1f MB -> %.1f MB" % (total_in / 1e6, total_out / 1e6))
 print("toys", len(S["toys"]), kinds, "shadows", sum(1 for t in S["toys"] if t.get("shadow")), "bulb tiles", len(tiles),
       "claw sheets kept", len(S["claw_sheets"]), "floor_z", S["machine"].get("floor_z"))
+print("→ 忘れずに：sw.js の CACHE_NAME と index.html の ?v= を上げる（溜め込みが古い絵を出し続けるため）")
