@@ -19,12 +19,9 @@ function loadSettings() {
 }
 function saveSettings() { try { localStorage.setItem(LS_KEY, JSON.stringify(settings)); } catch (e) { /* private mode */ } }
 const settings = loadSettings();
-const CFG_LAYOUT_OVERRIDE = {};
 const qs = new URLSearchParams(location.search);
 if (qs.get('p')) settings.luckP = Math.max(0, Math.min(1, parseFloat(qs.get('p'))));
 if (qs.get('slot')) settings.luckSlot = qs.get('slot');
-// 配置の比較用（確認の時だけ）：?edge=0.018&gap=0.012&conh=0.9
-for (const [q, key] of [['edge', 'edge'], ['gap', 'gap'], ['conh', 'conH']]) if (qs.get(q) != null && !isNaN(parseFloat(qs.get(q)))) CFG_LAYOUT_OVERRIDE[key] = parseFloat(qs.get(q));
 const todayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
 // ---------------- 動きの定数（メートル・秒） ----------------
@@ -47,14 +44,12 @@ const CFG = {
   coinSize: 0.17,       // 手に持ったコインの直径（画面の高さに対する割合。iPad 768px で約130px＝実物の500円玉に近い）
   coinAtSlit: 0.85,     // 投入口のそばでのコインの直径（投入口の縦幅に対する割合＝遠近で小さくなって口に入る）
   holdSec: 0.75,        // 上げ切った後に止まっている時間（本物のUFOキャッチャーの「間」）
-  layout: { edge: 0.018, gap: 0.012, conH: 0.9 },   // 画面の端の余白・操作盤と筐体の隙間（幅に対する割合）・操作盤の高さ（筐体の絵の高さに対する割合。配置 A＝0.9・2026-10-29 本人「やっぱり配置A」。B は 1.0）
   bulbStep: 0.22,       // 電球の追いかけ点灯の1コマ（秒）
   bgmVol: 0.5,          // BGM の音量（効果音に対する割合）
   slump: 0.55,          // 持ち上げた子の上に乗っていた子が穴へ沈む深さ（持ち上げた子の高さに対する割合）
   shadowAlpha: 0.6,     // UFO の影の濃さ（Blender の影そのままだと絵の上で穴に見える）
   clawShadow: false,    // UFO の影を描くか（2026-10-29 本人「不自然だから一旦消す」＝止めている。絵と仕組みは残す）
 };
-Object.assign(CFG.layout, CFG_LAYOUT_OVERRIDE);
 
 // ---------------- DOM ----------------
 const $ = (id) => document.getElementById(id);
@@ -298,16 +293,13 @@ function resize() {
   canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
   view.dpr = dpr; view.cw = cw; view.ch = ch;
   if (!scene) return;
-  const W = scene.image.width, H = scene.image.height, LY = CFG.layout;
-  // 筐体はまんなか・絵の下端を画面の下端に揃える（胴体は画面の下で切れる）。両脇の操作盤は筐体の絵と同じ高さ（配置 B・2026-10-29 本人が選択）＝天井を絵の上端、足の底を画面の下端に。
-  // 横に入り切らない時（4:3 の iPad）は筐体を少し縮めて、端の余白と隙間を保つ
-  const edge = cw * LY.edge, gap = cw * LY.gap;
-  const bodyPx = con.data ? ((con.data.L.foot_bottom || con.data.L.bottom_edge) - con.data.L.top_edge) : 0;   // 操作盤の本体（天井から足の底まで・frame px）
-  const conWperK = (con.data && bodyPx) ? con.data.sprites.console_L.rect[2] * H * LY.conH / bodyPx : 0;   // 筐体の k=1 のときの操作盤の幅
-  view.k = Math.min(ch / H, (cw - 2 * edge - 2 * gap) / (W + 2 * conWperK));
+  const W = scene.image.width, H = scene.image.height;
+  // 筐体はまんなか・縦いっぱい。両脇の空きに左右の操作盤が入るので、脇は最低でも幅の 18.5% ずつ残す（4:3 の iPad で操作盤が小さくなりすぎない）。
+  // （10/29 夜に「床の線で揃える」「同じ高さ」「上端揃え」を試したが、本人が最初のこの配置に戻した）
+  view.k = Math.min(ch / H, (cw - 2 * cw * 0.185) / W);
   const imgW = W * view.k, imgH = H * view.k;
   view.ox = (cw - imgW) / 2;
-  view.oy = 0;   // 上端に揃える（本人の指示＝上に隙間を作らない）。4:3 で出る下の空きは draw() が胴体の端の1行を伸ばして埋める
+  view.oy = (ch - imgH) / 2;   // 上下の真ん中。4:3 で出る下の空きは draw() が胴体の端の1行を伸ばして埋める（上は部屋の色のまま）
   document.documentElement.style.setProperty('--machine-left', view.ox + 'px');
   document.documentElement.style.setProperty('--machine-width', imgW + 'px');
   layoutConsoles();
@@ -322,14 +314,14 @@ function conPt(side, p) { const c = con[side]; return { x: c.x + (p[0] - c.rect[
 function conRect(side, r) { const c = con[side]; return { x: c.x + (r[0] - c.rect[0]) * c.k, y: c.y + (r[1] - c.rect[1]) * c.k, w: r[2] * c.k, h: r[3] * c.k }; }
 function layoutConsoles() {
   if (!con.data || !scene) return;
-  const cw = view.cw, LY = CFG.layout;
-  const rect = con.data.sprites.console_L.rect, L = con.data.L;   // 左右は同じ大きさ
-  const bodyPx = (L.foot_bottom || L.bottom_edge) - L.top_edge;
-  const k = scene.image.height * view.k * LY.conH / bodyPx, w = rect[2] * k, h = rect[3] * k;   // 天井の上端〜足の底＝筐体の絵の高さ × conH（A＝0.9）
-  const gap = cw * LY.gap;
-  const y = view.ch - ((L.foot_bottom || L.bottom_edge) - rect[1]) * k;   // 足の底を画面の下端に（A では天井が梁より一段低くなる）
-  con.L = { x: view.ox - gap - w, y, w, h, k, rect };
-  con.R = { x: view.ox + scene.image.width * view.k + gap, y, w, h, k, rect: con.data.sprites.console_R.rect };
+  const cw = view.cw, ch = view.ch;
+  const rect = con.data.sprites.console_L.rect;   // 左右は同じ大きさ
+  const side = view.ox;                            // 筐体の脇の幅（左右同じ）
+  const gap = Math.max(6, cw * 0.006);
+  const w = Math.max(60, Math.min(side - gap * 2, (ch - gap * 2) * rect[2] / rect[3]));
+  const k = w / rect[2], h = rect[3] * k, y = (ch - h) / 2;
+  con.L = { x: (side - w) / 2, y, w, h, k, rect };
+  con.R = { x: view.ox + scene.image.width * view.k + (side - w) / 2, y, w, h, k, rect: con.data.sprites.console_R.rect };
   // ボタンの押す場所（HTML）をキャップの上に重ねる。文字の大きさはキャップの半径
   for (const key of ['X', 'Y']) {
     const b = con.data.R['btn' + key], c = conPt('R', b.c), r = b.r_cap * k, el = ui['btn' + key];
@@ -407,11 +399,9 @@ function drawConsoles() {
   ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
   ctx.globalAlpha = 1;
   for (const side of ['L', 'R']) {
-    const c = con[side], im = con.img['console_' + side];
+    const c = con[side];
     if (!c.cache) c.cache = bakeConsole(side);
     if (c.cache) ctx.drawImage(c.cache.canvas, c.cache.x, c.cache.y, c.cache.w, c.cache.h);
-    const bottom = c.y + c.h;   // 4:3 で出る下の空き：足の端の1行を画面の下端まで伸ばす
-    if (im && view.ch > bottom + 0.5) ctx.drawImage(im, 0, im.height - 1, im.width, 1, c.x, bottom - 0.5, c.w, view.ch - bottom + 1);
   }
   const t = frameNow / 1000;
   // 天井の電球：筐体の梁と同じ追いかけ点灯。番号は左の操作盤 0〜2 → 梁 3〜13 → 右の操作盤 14〜16 で一続き。
@@ -583,10 +573,9 @@ const faceUI = {
     if (!this.data || !con.R) return;
     const [fw, fh] = this.data.size;
     const b = con.data.R.btnY, c = conPt('R', b.c), bottom = c.y + b.r_bezel * con.R.k;   // 「たて」のボタンにはかぶせない
-    const h = Math.round(Math.max(80, view.ch * 0.5));
+    const h = Math.round(Math.max(80, Math.min(view.ch * 0.34, view.ch - bottom - 8)));
     const w = Math.round(h * fw / fh);
-    const y = Math.round(Math.max(view.ch - h * 0.84, bottom + 8));   // 体の下は画面の外へ（縁で切れる絵）。「たて」のボタンにはかぶせない
-    this.rect = { x: view.cw - w, y, w, h };   // 右下の角。整数に丸める（端数だと隣のコマの縁がにじむ）
+    this.rect = { x: view.cw - w, y: view.ch - h, w, h };   // 右下の角に、縁で切れる絵をそのまま。整数に丸める（端数だと隣のコマの縁がにじむ）
   },
   play(name, from) {
     const c = this.data && this.data.clips[name]; if (!c) return;
@@ -1474,7 +1463,6 @@ window.__ufo = {
   consoles: () => ({ loaded: !!con.data, L: con.L, R: con.R, view: Object.assign({}, view), cab: Object.assign({}, cab) }),
   bgm: () => audio.bgmState(),
   pile: () => toys.map((t) => ({ id: t.id, state: t.state, dz: +t.dz.toFixed(3), rot: +t.rot.toFixed(3), bounce: +(t.bounce || 0).toFixed(3), reactors: (t.reactors || []).map((a) => a.id) })),
-  setLayout: (o) => { Object.assign(CFG.layout, o); resize(); },   // 配置の比較用（edge / gap / conH）
   face: () => ({ mode: faceUI.mode, rect: faceUI.rect }),
   force: (arr) => { game.forcedOutcome = arr; },   // 例: ['win','lose','win']（null で解除）
   setLuck: (p) => { settings.luckP = p; },
