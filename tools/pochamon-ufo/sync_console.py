@@ -32,7 +32,7 @@ def put(name, quality):
 
 
 for f in os.listdir(DEST):
-    if f.startswith(("console_", "cap", "ring", "coin_")) and f.split(".")[-1] in ("png", "webp"):
+    if f.startswith(("console_", "cap", "ring", "coin_", "bulb_L", "bulb_R")) and f.split(".")[-1] in ("png", "webp"):
         os.remove(os.path.join(DEST, f))
 
 for key, spr in C["sprites"].items():

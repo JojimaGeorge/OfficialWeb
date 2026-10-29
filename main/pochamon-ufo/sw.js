@@ -1,13 +1,14 @@
 // ぽちゃもん UFOキャッチャー Service Worker
 // 会場のオフライン対策：本体と素材を全部 precache する。
 // index.html / game.js / style.css / 素材を変えたら CACHE_NAME を bump すること（cache-first のため）。
-const CACHE_NAME = 'pochamon-ufo-v4';
+const CACHE_NAME = 'pochamon-ufo-v5';
 
 const CORE = [
   './',
   './index.html',
-  './style.css?v=4',
-  './game.js?v=4',
+  './style.css?v=5',
+  './game.js?v=5',
+  './assets/bgm.mp3',
   './manifest.json',
   './assets/scene.json',
   './assets/console.json',
@@ -21,25 +22,18 @@ const CORE = [
 ];
 
 async function assetList() {
-  // scene.json に書いてある素材（背景・ぬいぐるみ・影・アーム）を全部
+  // scene.json / console.json / face.json に書いてある画像を全部（背景・ぬいぐるみ・影・アームのコマ表・電球・操作盤・コイン・顔）
   try {
-    const res = await fetch('./assets/scene.json', { cache: 'reload' });
-    const s = await res.json();
     const files = new Set();
-    files.add('./assets/' + ((s.files && s.files.bg) || 'bg.png'));
-    for (const t of s.toys) {
-      if (t.sprite) files.add('./assets/' + t.sprite.file);
-      if (t.shadow) files.add('./assets/' + t.shadow.file);
+    const walk = (v) => {
+      if (typeof v === 'string') { if (/\.(webp|png|jpg|mp3)$/i.test(v)) files.add('./assets/' + v); return; }
+      if (Array.isArray(v)) { for (const x of v) walk(x); return; }
+      if (v && typeof v === 'object') for (const k of Object.keys(v)) walk(v[k]);
+    };
+    for (const name of ['scene.json', 'console.json', 'face.json']) {
+      const res = await fetch('./assets/' + name, { cache: 'reload' });
+      walk(await res.json());
     }
-    for (const c of s.claw_sprites) files.add('./assets/' + c.file);
-    // 左右の操作盤（本体・キャップ・光る輪・コイン）
-    const cr = await fetch('./assets/console.json', { cache: 'reload' });
-    const con = await cr.json();
-    for (const spr of Object.values(con.sprites)) files.add('./assets/' + spr.file);
-    // 右下のぽちゃもん（顔のパーツ）
-    const fr = await fetch('./assets/face.json', { cache: 'reload' });
-    const face = await fr.json();
-    for (const f of Object.values(face.files)) files.add('./assets/' + f);
     return Array.from(files);
   } catch (e) {
     // 一覧が読めないまま本体だけ溜めて「設置済み」にしない（オフラインで素材欠けを踏む）。install を失敗させて次回やり直す

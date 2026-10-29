@@ -19,9 +19,12 @@ function loadSettings() {
 }
 function saveSettings() { try { localStorage.setItem(LS_KEY, JSON.stringify(settings)); } catch (e) { /* private mode */ } }
 const settings = loadSettings();
+const CFG_LAYOUT_OVERRIDE = {};
 const qs = new URLSearchParams(location.search);
 if (qs.get('p')) settings.luckP = Math.max(0, Math.min(1, parseFloat(qs.get('p'))));
 if (qs.get('slot')) settings.luckSlot = qs.get('slot');
+// 配置の比較用（確認の時だけ）：?edge=0.018&gap=0.012&conh=0.9
+for (const [q, key] of [['edge', 'edge'], ['gap', 'gap'], ['conh', 'conH']]) if (qs.get(q) != null && !isNaN(parseFloat(qs.get(q)))) CFG_LAYOUT_OVERRIDE[key] = parseFloat(qs.get(q));
 const todayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
 // ---------------- 動きの定数（メートル・秒） ----------------
@@ -41,9 +44,15 @@ const CFG = {
   dampFree: 0.9, dampHeld: 1.3, dampGround: 9,
   g: 9.81,
   slipMin: 0.30, slipMax: 0.72,   // 運枠で外す時、持ち上げのどの辺で落とすか
-  coinScale: 1.25,      // コインの絵の拡大（描いた寸法のままだと指で取りにくい）
+  coinSize: 0.17,       // 手に持ったコインの直径（画面の高さに対する割合。iPad 768px で約130px＝実物の500円玉に近い）
+  coinAtSlit: 0.85,     // 投入口のそばでのコインの直径（投入口の縦幅に対する割合＝遠近で小さくなって口に入る）
   holdSec: 0.75,        // 上げ切った後に止まっている時間（本物のUFOキャッチャーの「間」）
+  layout: { edge: 0.018, gap: 0.012, conH: 0.90 },   // 画面の端の余白・操作盤と筐体の隙間（幅に対する割合）・操作盤の高さ（筐体の床から梁までに対する割合）
+  bulbStep: 0.22,       // 電球の追いかけ点灯の1コマ（秒）
+  bgmVol: 0.5,          // BGM の音量（効果音に対する割合）
+  slump: 0.55,          // 持ち上げた子の上に乗っていた子が穴へ沈む深さ（持ち上げた子の高さに対する割合）
 };
+Object.assign(CFG.layout, CFG_LAYOUT_OVERRIDE);
 
 // ---------------- DOM ----------------
 const $ = (id) => document.getElementById(id);
@@ -61,8 +70,11 @@ let scene = null;          // scene.json
 let CAM = null, MC = null, UNIT = 1;
 const img = { bg: null };
 const toys = [];           // 実行時のぬいぐるみ
-let clawSprites = [];      // { img, z, angle, anchor, depth, size }
+let clawSheets = [];       // アームのコマ表：{ img, z, frames: [{ angle, x, y, w, h, ax, ay, depth }] }（高さの昇順）
 let clawHeights = [];
+let clawShadows = [];      // UFO の影（Blender で床に落とした絵）：{ img, h, angle, anchor, depth }
+let bulbTiles = [];        // 梁の電球の点灯の絵：{ img, i, rect }
+const cab = {};            // 筐体の画面上の線（絵の px）：beamV（梁の下の縁）・railTopV/railBotV（手前のレール）・floorV（床の線）
 const view = { dpr: 1, cw: 0, ch: 0, k: 1, ox: 0, oy: 0 };
 const input = { x: false, y: false, pressedX: false, pressedY: false, xId: null, yId: null };
 const claw = { cx: 0, cy: 0, vx: 0, vy: 0, L: 0.07, thx: 0, thy: 0, wx: 0, wy: 0, x: 0, y: 0, z: 0,
@@ -99,6 +111,7 @@ const audio = (() => {
       ac = new (window.AudioContext || window.webkitAudioContext)();
       master = ac.createGain(); master.gain.value = settings.volume; master.connect(ac.destination);
     } catch (e) { ac = null; }
+    if (ac) decodeBgm();
   }
   function setVolume(v) { if (master) master.gain.value = v; }
   function tone(freq, dur, type = 'sine', vol = 0.3, slideTo = null, when = 0) {
@@ -133,8 +146,38 @@ const audio = (() => {
     motorGain.gain.setTargetAtTime(0.10, ac.currentTime, 0.04);
   }
   function motorOff() { if (motorGain) motorGain.gain.setTargetAtTime(0, ac.currentTime, 0.08); }
+  // BGM（assets/bgm.mp3）：コインを入れたら切れ目なくループ、タイトルに戻ったら消える。
+  // バイト列は最初に取っておき、最初の操作（AudioContext ができた時）に復号する。buffer source の loop は継ぎ目に隙間が出ない
+  let bgmBytes = null, bgmBuf = null, bgmSrc = null, bgmGain = null, bgmWant = false, bgmDecoding = false;
+  fetch('assets/bgm.mp3').then((r) => r.arrayBuffer()).then((b) => { bgmBytes = b; decodeBgm(); }).catch(() => {});
+  function decodeBgm() {
+    if (!ac || !bgmBytes || bgmBuf || bgmDecoding) return;
+    bgmDecoding = true;
+    ac.decodeAudioData(bgmBytes.slice(0), (buf) => { bgmBuf = buf; bgmDecoding = false; if (bgmWant) bgmStart(); }, () => { bgmDecoding = false; });
+  }
+  function bgmStart() {
+    bgmWant = true;
+    if (!ac || !bgmBuf || bgmSrc) return;
+    if (!bgmGain) { bgmGain = ac.createGain(); bgmGain.connect(master); }
+    const now = ac.currentTime;
+    bgmGain.gain.cancelScheduledValues(now); bgmGain.gain.setValueAtTime(0.0001, now);
+    bgmGain.gain.exponentialRampToValueAtTime(settings.muted ? 0.0001 : CFG.bgmVol, now + 0.6);
+    bgmSrc = ac.createBufferSource(); bgmSrc.buffer = bgmBuf;
+    bgmSrc.loop = true; bgmSrc.loopStart = 0; bgmSrc.loopEnd = Math.min(bgmBuf.duration, 182.72);   // 尻の無音 0.6 秒を飛ばしてつなぐ
+    bgmSrc.connect(bgmGain); bgmSrc.start();
+  }
+  function bgmStop() {
+    bgmWant = false;
+    if (!bgmSrc) return;
+    const s = bgmSrc, now = ac.currentTime; bgmSrc = null;
+    bgmGain.gain.cancelScheduledValues(now); bgmGain.gain.setValueAtTime(Math.max(0.0001, bgmGain.gain.value), now);
+    bgmGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+    setTimeout(() => { try { s.stop(); } catch (e) { /* already stopped */ } }, 800);
+  }
+  function bgmMute(m) { if (bgmGain && ac) bgmGain.gain.setTargetAtTime(m ? 0.0001 : CFG.bgmVol, ac.currentTime, 0.05); }
   return {
-    unlock, setVolume, motorOn, motorOff,
+    unlock, setVolume, motorOn, motorOff, bgmStart, bgmStop, bgmMute,
+    bgmState: () => ({ loaded: !!bgmBuf, playing: !!bgmSrc, want: bgmWant }),
     tap: () => tone(880, 0.08, 'square', 0.12),
     clack: () => { noise(0.07, 0.5, 1800, 1.2); tone(220, 0.09, 'triangle', 0.25, 120); },
     bump: () => { noise(0.12, 0.35, 300, 0.7); },
@@ -180,12 +223,39 @@ async function load() {
     if (t.shadow) jobs.push(track(loadImage('assets/' + t.shadow.file)).then((im) => { toy.shImg = im; }));
   }
   for (const id of scene.order) toys.push(byId[id]);   // 奥 → 手前
-  for (const c of scene.claw_sprites) {
-    const spr = { img: null, z: c.z, angle: c.angle, anchor: c.anchor, depth: c.depth, size: c.size };
-    clawSprites.push(spr);
-    jobs.push(track(loadImage('assets/' + c.file)).then((im) => { spr.img = im; }));
+  // アームの絵：高さごとのコマ表（claw_sheets・2度きざみ）。無ければ古い1枚ずつの絵（claw_sprites）
+  if (scene.claw_sheets) {
+    for (const sh of scene.claw_sheets) {
+      const sheet = { img: null, z: sh.z, frames: sh.frames.slice().sort((a, b) => a.angle - b.angle) };
+      clawSheets.push(sheet);
+      jobs.push(track(loadImage('assets/' + sh.file)).then((im) => { sheet.img = im; }));
+    }
+  } else {
+    for (const c of scene.claw_sprites) {
+      let sheet = clawSheets.find((s) => s.z === c.z);
+      if (!sheet) { sheet = { img: null, z: c.z, frames: [] }; clawSheets.push(sheet); }
+      const fr = { angle: c.angle, x: 0, y: 0, w: c.size[0], h: c.size[1], ax: c.anchor[0], ay: c.anchor[1], depth: c.depth, img: null };
+      sheet.frames.push(fr);
+      jobs.push(track(loadImage('assets/' + c.file)).then((im) => { fr.img = im; }));
+    }
+    for (const s of clawSheets) s.frames.sort((a, b) => a.angle - b.angle);
   }
-  clawHeights = Array.from(new Set(clawSprites.map((s) => s.z))).sort((a, b) => a - b);
+  clawSheets.sort((a, b) => a.z - b.z);
+  clawHeights = clawSheets.map((s) => s.z);
+  // UFO の影（高さ × 開き具合）
+  for (const sh of (scene.claw_shadows || [])) {
+    if (!sh.file) continue;   // その高さでは影が写らない（天井の光が大きい＝高い所の影は散って消える）
+    const spr = { img: null, h: sh.h, angle: sh.angle, anchor: sh.anchor, depth: sh.depth };
+    clawShadows.push(spr);
+    jobs.push(track(loadImage('assets/' + sh.file)).then((im) => { spr.img = im; }));
+  }
+  clawShadows.sort((a, b) => a.h - b.h || a.angle - b.angle);
+  // 梁の電球（点灯の絵。消えた絵は背景に描いてある）
+  for (const t of ((scene.bulbs && scene.bulbs.tiles) || [])) {
+    const tile = { img: null, i: t.i, rect: t.rect };
+    bulbTiles.push(tile);
+    jobs.push(track(loadImage('assets/' + t.file)).then((im) => { tile.img = im; }));
+  }
   // 左右の操作盤：絵（本体・キャップ・光る輪・コイン）と部品の画面上の位置
   jobs.push(track(fetch('assets/console.json').then((r) => r.json())).then((c) => {
     con.data = c;
@@ -205,6 +275,13 @@ async function load() {
   // 景品口の「窓」：手前のふちから上に開いた四角（床より下に落ちた分を隠す）
   const ch = scene.machine.chute;
   chuteClip = [project(ch.x0, ch.y0, 0), project(ch.x1, ch.y0, 0), project(ch.x1, ch.y1, 0.5), project(ch.x0, ch.y1, 0.5)];
+  // 筐体の線（絵の px）：手前の梁の下の縁（これより上は梁の裏）・手前のレールの上下（レールの裏に隠れる帯）・床の線（操作盤の足を揃える）
+  const m = scene.machine;
+  cab.beamV = project(0, m.front - 0.05, 0.815).v;
+  cab.railTopV = project(0, m.rails.y_front, m.rails.z + m.rails.radius).v;
+  cab.railBotV = project(0, m.rails.y_front, m.rails.z - m.rails.radius).v;
+  cab.floorV = project(0, m.front - 0.03, -0.08).v;
+  buildSupports();
 }
 
 // ---------------- 画面サイズ ----------------
@@ -215,9 +292,18 @@ function resize() {
   canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
   view.dpr = dpr; view.cw = cw; view.ch = ch;
   if (!scene) return;
-  const W = scene.image.width, H = scene.image.height;
-  // 筐体はまんなか・縦いっぱい。両脇の空きに左右の操作盤が入るので、脇は最低でも幅の 18.5% ずつ残す（4:3 の iPad で操作盤が小さくなりすぎない）
-  view.k = Math.min(ch / H, (cw - 2 * cw * 0.185) / W);
+  const W = scene.image.width, H = scene.image.height, LY = CFG.layout;
+  // 筐体はまんなか。両脇の操作盤は筐体と同じ床の線に足を置き、高さは筐体（床から梁まで）の conH 倍。
+  // 横に入り切らない時（4:3 の iPad）は筐体を少し縮めて、端の余白と隙間を保つ（三つが詰まって見えない）
+  const edge = cw * LY.edge, gap = cw * LY.gap;
+  let conW = 0;   // 操作盤の幅（筐体の k=1 のときの px）
+  if (con.data) {
+    const r = con.data.sprites.console_L.rect, L = con.data.L;
+    const bodyPx = (L.foot_bottom || L.bottom_edge) - L.top_edge;   // 操作盤の本体（天井から足の底まで・frame px）
+    con.kPerK = (cab.floorV || H) * LY.conH / bodyPx;                // 筐体の k=1 のとき、操作盤の frame px → 画面 px
+    conW = r[2] * con.kPerK;
+  }
+  view.k = Math.min(ch / H, (cw - 2 * edge - 2 * gap) / (W + 2 * conW));
   const imgW = W * view.k, imgH = H * view.k;
   view.ox = (cw - imgW) / 2;
   view.oy = (ch - imgH) / 2;
@@ -235,14 +321,14 @@ function conPt(side, p) { const c = con[side]; return { x: c.x + (p[0] - c.rect[
 function conRect(side, r) { const c = con[side]; return { x: c.x + (r[0] - c.rect[0]) * c.k, y: c.y + (r[1] - c.rect[1]) * c.k, w: r[2] * c.k, h: r[3] * c.k }; }
 function layoutConsoles() {
   if (!con.data || !scene) return;
-  const cw = view.cw, ch = view.ch;
-  const rect = con.data.sprites.console_L.rect;   // 左右は同じ大きさ
-  const side = view.ox;                            // 筐体の脇の幅（左右同じ）
-  const gap = Math.max(6, cw * 0.006);
-  const w = Math.max(60, Math.min(side - gap * 2, (ch - gap * 2) * rect[2] / rect[3]));
-  const k = w / rect[2], h = rect[3] * k, y = (ch - h) / 2;
-  con.L = { x: (side - w) / 2, y, w, h, k, rect };
-  con.R = { x: view.ox + scene.image.width * view.k + (side - w) / 2, y, w, h, k, rect: con.data.sprites.console_R.rect };
+  const cw = view.cw, LY = CFG.layout;
+  const rect = con.data.sprites.console_L.rect, L = con.data.L;   // 左右は同じ大きさ
+  const k = (con.kPerK || 0.3) * view.k, w = rect[2] * k, h = rect[3] * k;
+  const gap = cw * LY.gap;
+  const footLine = view.oy + (cab.floorV || scene.image.height) * view.k;   // 筐体の床の線（画面 px）
+  const y = footLine - ((L.foot_bottom || L.bottom_edge) - rect[1]) * k;    // 足の底を床の線に合わせる
+  con.L = { x: view.ox - gap - w, y, w, h, k, rect };
+  con.R = { x: view.ox + scene.image.width * view.k + gap, y, w, h, k, rect: con.data.sprites.console_R.rect };
   // ボタンの押す場所（HTML）をキャップの上に重ねる。文字の大きさはキャップの半径
   for (const key of ['X', 'Y']) {
     const b = con.data.R['btn' + key], c = conPt('R', b.c), r = b.r_cap * k, el = ui['btn' + key];
@@ -272,7 +358,10 @@ function bakeConsole(side) {
   g.drawImage(im, pad, pad, c.w, c.h);
   if (side === 'L') {
     const L = con.data.L, ox = pad - c.x, oy = pad - c.y;
-    for (const [key, text] of [['led_tries', 'のこり'], ['led_got', 'ゲット']]) { const r = conRect('L', L[key]); label(g, text, r.x + r.w / 2 + ox, r.y - c.k * 20 + oy, c.k * 52); }
+    for (const [key, text] of [['tries', 'のこり'], ['got', 'ゲット']]) {
+      const r = conRect('L', L['bezel_' + key] || L['led_' + key]);   // 黒い縁の上端から frame 16px 上に基線（縁にめり込まない）
+      label(g, text, r.x + r.w / 2 + ox, r.y - c.k * 16 + oy, c.k * 46);
+    }
     const sp = conRect('L', L.slot_plate); label(g, 'コイン', sp.x + sp.w / 2 + ox, sp.y - c.k * 18 + oy, c.k * 48);
   }
   return { canvas: cv, x: c.x - pad, y: c.y - pad, w: c.w + pad * 2, h: c.h + pad * 2 };
@@ -299,6 +388,11 @@ function draw7seg(x, y, w, h, digit, alpha, color) {
     }
   } finally { ctx.restore(); }
 }
+// 電球 i がいま点いているか：3つに1つが順に流れる（ゲーセンの看板）。ゲット！の直後は全部が速く点滅
+function bulbLit(i, step) {
+  if (game.flashUntil && performance.now() < game.flashUntil) return Math.floor(performance.now() / 90) % 2 === 0;
+  return ((i + step) % 3 + 3) % 3 === 0;
+}
 function drawLed(r, value, key) {
   const h = r.h * 0.76, w = h * 0.56, x = r.x + (r.w - w) / 2, y = r.y + (r.h - h) / 2;
   let alpha = value == null ? 0 : 1;   // null は消灯（薄く 8 が見える＝本物の消えた数字管）
@@ -316,17 +410,35 @@ function drawConsoles() {
     if (c.cache) ctx.drawImage(c.cache.canvas, c.cache.x, c.cache.y, c.cache.w, c.cache.h);
   }
   const t = performance.now() / 1000;
-  // ボタン：押す番の輪を光らせる（脈打つ）→ キャップ（押している間は沈んだ絵）
+  // 天井の電球：筐体の梁と同じ追いかけ点灯（消えた絵は本体に描いてあり、点いた絵を上に貼る）
+  const step = Math.floor(t / CFG.bulbStep);
+  for (const side of ['L', 'R']) {
+    const list = con.data[side].bulbs || [];
+    for (let i = 0; i < list.length; i++) {
+      if (!bulbLit(i, step)) continue;
+      const im = con.img[list[i].sprite]; if (!im) continue;
+      const r = conRect(side, con.data.sprites[list[i].sprite].rect);
+      ctx.drawImage(im, r.x, r.y, r.w, r.h);
+    }
+  }
+  // ボタン：押す番は蓋そのものが光る（中の電球）＋輪が脈打つ＋まわりにほのかな光。押している間は沈んだ絵
   for (const key of ['X', 'Y']) {
     const el = ui['btn' + key];
     const active = el.classList.contains('active'), pressed = el.classList.contains('pressed');
-    if (active && con.img['ring' + key]) {
-      const r = conRect('R', con.data.sprites['ring' + key].rect);
-      const pulse = 0.5 + 0.5 * (0.5 + 0.5 * Math.sin(t * 2 * Math.PI / 1.1));
-      ctx.save(); ctx.globalAlpha = pulse; ctx.shadowColor = 'rgba(255,110,165,.95)'; ctx.shadowBlur = r.w * 0.14;
-      ctx.drawImage(con.img['ring' + key], r.x, r.y, r.w, r.h); ctx.restore();
+    const pulse = 0.5 + 0.5 * Math.sin(t * 2 * Math.PI / 1.1);
+    if (active) {
+      const b = con.data.R['btn' + key], c = conPt('R', b.c), rr = b.r_bezel * con.R.k * 1.8;
+      const grd = ctx.createRadialGradient(c.x, c.y, b.r_cap * con.R.k * 0.5, c.x, c.y, rr);
+      grd.addColorStop(0, 'rgba(255,120,175,' + (0.28 + 0.22 * pulse).toFixed(3) + ')'); grd.addColorStop(1, 'rgba(255,120,175,0)');
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(c.x, c.y, rr, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      if (con.img['ring' + key]) {
+        const r = conRect('R', con.data.sprites['ring' + key].rect);
+        ctx.save(); ctx.globalAlpha = 0.65 + 0.35 * pulse; ctx.shadowColor = 'rgba(255,110,165,.95)'; ctx.shadowBlur = r.w * 0.14;
+        ctx.drawImage(con.img['ring' + key], r.x, r.y, r.w, r.h); ctx.restore();
+      }
     }
-    const name = 'cap' + key + (pressed ? '_down' : '_up');
+    const base = 'cap' + key + (pressed ? '_down' : '_up');
+    const name = active && con.img[base + '_lit'] ? base + '_lit' : base;
     if (con.img[name]) { const cr = conRect('R', con.data.sprites[name].rect); ctx.drawImage(con.img[name], cr.x, cr.y, cr.w, cr.h); }
   }
   // 電光表示（のこり・ゲット）。コインが入った瞬間からクレジットとして点く（phase が変わる前でも）
@@ -347,16 +459,22 @@ function drawConsoles() {
 const easeOut = (u) => 1 - Math.pow(1 - u, 3);
 const coinUI = {
   state: 'hidden',   // hidden | home | drag | inserting | returning
-  frame: 0, pos: { x: 0, y: 0 }, frames: null, slit: null, slotZone: null, grab: null, timers: [], dragT: 0,
+  frame: 0, pos: { x: 0, y: 0 }, size: 1, frames: null, slit: null, slotZone: null, grab: null, timers: [], dragT: 0,
+  D: 120, slitSize: 0.3,
   layout() {
     if (!con.L) return;
-    const L = con.data.L, k = con.L.k, S = CFG.coinScale;
-    this.frames = [0, 1, 2, 3].map((i) => { const r = con.data.sprites['coin_0' + i].rect; return { w: r[2] * k * S, h: r[3] * k * S }; });
+    const L = con.data.L;
+    // コインの絵は console の描き出しの中で 2 倍の大きさで描いてある（細部のため）。画面での直径は画面の高さから決める
+    const keys = Object.keys(con.data.sprites).filter((n) => /^coin_\d\d$/.test(n)).sort();
+    this.D = clamp(view.ch * CFG.coinSize, 96, 200);
+    const s = this.D / (2 * (L.coin_r_px || con.data.sprites[keys[0]].rect[2] / 2));   // 絵の px → 画面 px
+    this.frames = keys.map((n) => { const spr = con.data.sprites[n]; return { key: n, deg: spr.deg || 0, w: spr.rect[2] * s, h: spr.rect[3] * s }; });
     const sl = conRect('L', L.slit), sp = conRect('L', L.slot_plate);
     this.slit = { x: sl.x + sl.w / 2, y: sl.y, h: sl.h };
+    this.slitSize = clamp(sl.h * CFG.coinAtSlit / this.D, 0.12, 1);   // 投入口のそばでの縮尺＝手元から板の上へ（遠近）
     this.slotZone = { x: sp.x - sp.w * 0.5, y: sp.y - sp.h * 0.3, w: sp.w * 2, h: sp.h * 1.5 };   // この中で離すと入る
     // 定位置にある（戻る途中も）コインは新しい置き場へ。投入中は毎フレーム投入口を読み直すのでここでは触らない
-    if (this.state === 'home' || this.state === 'returning') { const h = this.home(); this.place(h.x, h.y, 0); ui.coin.classList.remove('hidden'); if (this.state === 'home') ui.coin.classList.add('bob'); }
+    if (this.state === 'home' || this.state === 'returning') { const h = this.home(); this.place(h.x, h.y, 0, 1); ui.coin.classList.remove('hidden'); if (this.state === 'home') ui.coin.classList.add('bob'); }
   },
   home() {   // 定位置＝タイトルの札の真下・筐体のまんなか（札は flex でまんなか寄せなので、下端＝(画面の高さ＋札の高さ)/2）
     const mW = scene ? scene.image.width * view.k : view.cw;
@@ -364,55 +482,74 @@ const coinUI = {
     const y = (view.ch + cardH) / 2 + view.ch * 0.03 + this.frames[0].h / 2;
     return { x: view.ox + mW / 2, y: Math.min(y, view.ch - this.frames[0].h * 0.6 - 6) };
   },
+  frameFor(deg) {   // 向き（度）に一番近い絵
+    let best = 0;
+    for (let i = 1; i < this.frames.length; i++) if (Math.abs(this.frames[i].deg - deg) < Math.abs(this.frames[best].deg - deg)) best = i;
+    return best;
+  },
   clearTimers() { for (const id of this.timers) clearTimeout(id); this.timers = []; },
-  place(cx, cy, frame) {   // 中心の座標で置く。frame は向き（0 正面 … 3 真横）
+  place(cx, cy, frame, size) {   // 中心の座標で置く。frame は向きの絵、size は縮尺（1＝手に持った大きさ）
     const f = this.frames[frame];
-    if (frame !== this.frame || !ui.coinImg.getAttribute('src')) { this.frame = frame; const im = con.img['coin_0' + frame]; if (im) ui.coinImg.src = im.src; }
-    ui.coin.style.width = f.w + 'px'; ui.coin.style.height = f.h + 'px';
-    ui.coin.style.transform = 'translate(' + (cx - f.w / 2) + 'px,' + (cy - f.h / 2) + 'px)';
+    if (frame !== this.frame || !ui.coinImg.getAttribute('src')) { this.frame = frame; const im = con.img[f.key]; if (im) ui.coinImg.src = im.src; }
+    if (size != null) this.size = size;
+    const w = f.w * this.size, h = f.h * this.size;
+    ui.coin.style.width = w + 'px'; ui.coin.style.height = h + 'px';
+    ui.coin.style.transform = 'translate(' + (cx - w / 2) + 'px,' + (cy - h / 2) + 'px)';
     this.pos = { x: cx, y: cy };
+  },
+  // ドラッグ中の見え方：投入口に近づくほど小さく（手元から板の上へ）、向きも寝ていく（30°→60°→75°→90°）
+  dragPose(cx, cy) {
+    const d = Math.hypot(cx - this.slit.x, cy - (this.slit.y + this.slit.h / 2)), R = this.D;
+    const u = clamp((2.6 * R - d) / (2.0 * R), 0, 1), e = u * u * (3 - 2 * u);
+    const size = lerp(1, this.slitSize, e) * 1.06;   // 持っている間は少し浮いて大きめ
+    const turned = performance.now() - this.dragT > 70 ? 60 : 30;
+    const deg = d < 1.2 * R ? 90 : d < 2.4 * R ? 75 : turned;
+    return { size, frame: this.frameFor(deg) };
   },
   toHome(drop) {
     this.clearTimers(); con.credit = false;   // 投入の途中で中断された時：始まりのタイマーを止め、クレジットの表示を消す
     this.state = 'home';
     if (!this.frames) return;   // 置き場が決まる前（最初の読み込み中）は layout() が置く
-    ui.coin.className = ''; ui.coin.style.opacity = '';
-    const h = this.home(); this.place(h.x, h.y, 0);
+    ui.coin.className = ''; ui.coin.style.opacity = ''; ui.coin.style.clipPath = '';
+    const h = this.home(); this.place(h.x, h.y, 0, 1);
     if (drop) { audio.coinReturn(); ui.coin.classList.add('drop'); setTimeout(() => ui.coin.classList.remove('drop'), 750); }
     ui.coin.classList.add('bob');
   },
-  hide() { this.state = 'hidden'; ui.coin.className = 'hidden'; },
+  hide() { this.state = 'hidden'; ui.coin.className = 'hidden'; ui.coin.style.clipPath = ''; },
   nudge() { if (this.state !== 'home') return; ui.coin.classList.remove('nudge'); void ui.coin.offsetWidth; ui.coin.classList.add('nudge'); audio.tap(); },
   springBack() {
-    // 今の向きのまま札の下へ飛んで、着地で正面に戻す（持った時の逆回し）。大きさは遷移させない＝たまご形につぶれない
+    // 今の向きのまま札の下へ飛んで、着地で正面に戻す（持った時の逆回し）。大きさは手に持った大きさへ戻す
     this.state = 'returning'; ui.coin.classList.add('back');
-    const h = this.home(); this.place(h.x, h.y, this.frame);
-    this.timers.push(setTimeout(() => { if (this.state === 'returning') this.place(h.x, h.y, Math.min(this.frame, 1)); }, 300));
-    this.timers.push(setTimeout(() => { ui.coin.classList.remove('back'); if (this.state === 'returning') { this.state = 'home'; this.place(h.x, h.y, 0); ui.coin.classList.add('bob'); } }, 450));
+    const h = this.home(); this.place(h.x, h.y, this.frame, 1);
+    this.timers.push(setTimeout(() => { if (this.state === 'returning') this.place(h.x, h.y, Math.min(this.frame, this.frameFor(30)), 1); }, 300));
+    this.timers.push(setTimeout(() => { ui.coin.classList.remove('back'); if (this.state === 'returning') { this.state = 'home'; this.place(h.x, h.y, 0, 1); ui.coin.classList.add('bob'); } }, 450));
   },
   insert(fast) {
     if (this.state === 'inserting' || this.state === 'hidden' || !this.slit) return;
-    this.state = 'inserting'; ui.coin.classList.remove('bob', 'back', 'dragging', 'nudge');
-    const start = { x: this.pos.x, y: this.pos.y }, f0 = this.frame;
+    this.state = 'inserting'; ui.coin.classList.remove('bob', 'back', 'dragging', 'nudge'); ui.coin.classList.add('inserting');
+    const start = { x: this.pos.x, y: this.pos.y, size: this.size }, deg0 = this.frames[this.frame].deg, fe = this.frameFor(90);
     const end = () => ({ x: this.slit.x, y: this.slit.y + this.slit.h * 0.5 });   // 途中でリサイズされても今の投入口へ
-    const T1 = fast ? 0.01 : 0.30, T2 = fast ? 0.01 : 0.22, t0 = performance.now();
+    const T1 = fast ? 0.01 : 0.24, T2 = fast ? 0.01 : 0.32, t0 = performance.now();
     const step = () => {
       if (this.state !== 'inserting') return;   // 途中で中断（タイトルへ戻された）
       const t = (performance.now() - t0) / 1000, e = end();
-      if (t < T1) {   // 投入口へ寄りながら真横を向く
+      if (t < T1) {   // 投入口の真上へ寄りながら真横を向き、板の上の大きさへ（先の縁が口に掛かる）
         const u = easeOut(t / T1);
-        this.place(lerp(start.x, e.x, u), lerp(start.y, e.y, u), Math.max(f0, Math.min(3, Math.floor(u * 3.99))));   // 今の向きから先へ（正面に戻らない）
+        this.place(lerp(start.x, e.x, u), lerp(start.y, e.y, u), this.frameFor(lerp(deg0, 90, u)), lerp(start.size, this.slitSize, u));
         requestAnimationFrame(step); return;
       }
-      if (t < T1 + T2) {   // 中へ入っていく
-        const u = (t - T1) / T2;
-        this.place(e.x, e.y, 3); ui.coin.style.opacity = String(1 - u); ui.coin.style.transform += ' scale(' + (1 - 0.6 * u) + ')';
+      if (t < T1 + T2) {
+        // 押し込む：真横から見た円のうち、板の外に残っている弦だけが見える＝上下から同じだけ隠れていく（ゆっくり入って、すっと消える）
+        const u = (t - T1) / T2, c = Math.pow(u, 1.4), vis = Math.sqrt(Math.max(0, 1 - c * c));
+        const f = this.frames[fe], h = f.h * this.slitSize, cut = (1 - vis) * 0.5 * h;
+        ui.coin.style.clipPath = 'inset(' + cut.toFixed(1) + 'px 0 ' + cut.toFixed(1) + 'px 0)';
+        this.place(e.x, e.y - c * h * 0.06, fe, this.slitSize);   // 奥へ行くぶん少し上へ（10° 見下ろしの分）
         requestAnimationFrame(step); return;
       }
-      this.hide(); ui.coin.style.opacity = '';
+      this.hide();
       audio.coinClink();
       this.clearTimers();
-      this.timers.push(setTimeout(() => { audio.creditBeep(); con.credit = true; con.flash.tries = performance.now(); }, 150));   // クレジットが点く（3 が点滅）
+      this.timers.push(setTimeout(() => { audio.creditBeep(); con.credit = true; con.flash.tries = performance.now(); audio.bgmStart(); }, 150));   // クレジットが点く（3 が点滅）→ BGM
       this.timers.push(setTimeout(() => { if (game.phase === 'title') setPhase('intro'); }, fast ? 30 : 900));
     };
     requestAnimationFrame(step);
@@ -521,7 +658,10 @@ function makeSlots() {
 }
 function startGame() {
   game.tryIndex = 0; game.got = 0; game.slots = makeSlots(); game.outcome = null;
-  for (const t of toys) { t.state = 'rest'; t.dx = t.dy = t.dz = t.vz = 0; t.rot = t.hang = t.sag = 0; t.alpha = 1; t.shadowA = 1; }
+  for (const t of toys) {
+    t.state = 'rest'; t.dx = t.dy = t.dz = t.vz = 0; t.rot = t.hang = t.sag = 0; t.alpha = 1; t.shadowA = 1;
+    t.bounce = 0; t.bv = 0; t.target = null; t.reactors = null; t.reacted = false; t.landDz = 0; restPose(t);
+  }
   resetClaw();
   updateHud();
 }
@@ -534,19 +674,80 @@ function decideOutcome(i) {
 function pickToy(x, y) {
   let best = null, bestScore = Infinity;
   for (const t of toys) {
-    if (t.state !== 'rest') continue;
-    const d = Math.hypot(t.hold.x - x, t.hold.y - y);
+    if (t.state !== 'rest' && t.state !== 'settle') continue;
+    const d = Math.hypot(t.hold.x + t.dx - x, t.hold.y + t.dy - y);
     let covered = 0;
     for (const o of toys) {
-      if (o === t || o.state !== 'rest') continue;
-      if (Math.hypot(o.hold.x - t.hold.x, o.hold.y - t.hold.y) < 0.11 && o.hold.z > t.hold.z + 0.04) { covered = 0.09; break; }
+      if (o === t || (o.state !== 'rest' && o.state !== 'settle')) continue;
+      if (Math.hypot(o.hold.x - t.hold.x, o.hold.y - t.hold.y) < 0.11 && o.hold.z + o.dz > t.hold.z + t.dz + 0.04) { covered = 0.09; break; }
     }
-    const score = d - 0.35 * t.hold.z + covered;
+    const score = d - 0.35 * (t.hold.z + t.dz) + covered;
     if (score < bestScore) { bestScore = score; best = t; }
   }
   return best;
 }
-function restingToys() { return toys.filter((t) => t.state === 'rest' || t.state === 'falling'); }
+function restingToys() { return toys.filter((t) => t.state === 'rest' || t.state === 'settle' || t.state === 'falling'); }
+
+// ---------------- 山の反応（崩れ） ----------------
+// 持ち上げた子の上に乗っていた子は、乗っていた割合だけ穴へ沈んで傾く（連鎖もする）。落ちてきた子は沈んだ子の上に乗って少し傾く。
+// つかむ時は爪の下の子とその隣が押されて跳ね返る。絵は描き直さず、位置（dx/dy/dz＝m）と画面の回転（rot）と上下の弾み（bounce）で動かす
+function floorZAt(y) { const m = scene.machine; return y > m.ramp_y0 ? m.ramp_h * (y - m.ramp_y0) / (m.back - m.ramp_y0) : 0; }
+function buildSupports() {
+  for (const t of toys) { t.supports = []; t.floorF = t.data.zbottom < floorZAt(t.data.center[1]) + 0.035 ? 1 : 0; t.u = t.data.screen_center[0]; }
+  for (const a of toys) for (const b of toys) {
+    if (a === b) continue;
+    const A = a.data.bbox, B = b.data.bbox;
+    const ox = Math.min(A[1][0], B[1][0]) - Math.max(A[0][0], B[0][0]);
+    const oy = Math.min(A[1][1], B[1][1]) - Math.max(A[0][1], B[0][1]);
+    if (ox <= 0 || oy <= 0) continue;
+    const f = ox * oy / ((A[1][0] - A[0][0]) * (A[1][1] - A[0][1]));   // a の足もとのうち b と重なる割合
+    if (f < 0.12) continue;
+    if (b.data.center[2] < a.data.center[2] - 0.03 && b.data.ztop > a.data.zbottom - 0.01) a.supports.push({ t: b, f });   // b は a の下
+  }
+}
+function restPose(t) { t.restDx = t.dx; t.restDy = t.dy; t.restDz = t.dz; t.restRot = t.rot; }
+function restTarget(t) { return t.state === 'settle' && t.target ? t.target : { dx: t.restDx || 0, dy: t.restDy || 0, dz: t.restDz || 0, rot: t.restRot || 0 }; }
+// src が無くなった（drop = null）／drop（m）だけ下がった時、その上に乗っていた子を沈める
+function pileReact(src, drop, depth) {
+  depth = depth || 0;
+  if (depth > 3) return;
+  for (const a of toys) {
+    if (a === src || (a.state !== 'rest' && a.state !== 'settle')) continue;
+    const s = a.supports.find((x) => x.t === src);
+    let amount = 0, lean = 0;
+    if (s) {
+      const others = a.supports.reduce((acc, x) => acc + ((x.t !== src && (x.t.state === 'rest' || x.t.state === 'settle')) ? x.f : 0), 0) + a.floorF * 0.6;
+      const loss = s.f / (s.f + others);   // 支えのうち src が占めていた割合
+      if (loss >= 0.1) { amount = Math.min(0.09, (drop == null ? (src.data.ztop - src.data.zbottom) * CFG.slump : drop * 0.7) * loss); lean = loss; }
+    } else if (depth === 0 && drop == null) {
+      // 乗ってはいないが、横で寄りかかっていた子：空いた所へ少し寄って傾く（ぎゅうぎゅうの山から1体抜いた時）
+      const A = a.data.bbox, B = src.data.bbox;
+      const gapX = Math.max(A[0][0] - B[1][0], B[0][0] - A[1][0]), gapY = Math.max(A[0][1] - B[1][1], B[0][1] - A[1][1]);
+      const zOverlap = Math.min(A[1][2], B[1][2]) - Math.max(A[0][2], B[0][2]);
+      if (Math.max(gapX, gapY) < 0.015 && zOverlap > 0.05) { amount = 0.012; lean = 0.5; }
+    }
+    if (amount < 0.004) continue;
+    const base = restTarget(a);
+    const dir = Math.sign(src.u - a.u) || 1;   // 穴の側へ傾く（画面の回転）
+    const nx = src.data.center[0] - a.data.center[0], ny = src.data.center[1] - a.data.center[1], nl = Math.hypot(nx, ny) || 1;
+    a.target = { dx: base.dx + nx / nl * 0.02 * lean, dy: base.dy + ny / nl * 0.02 * lean, dz: base.dz - amount, rot: clamp(base.rot + dir * 0.28 * lean, -0.5, 0.5) };
+    a.state = 'settle'; a.vz = 0; a.settleDelay = 0.10 + 0.10 * depth;
+    if (depth === 0 && drop == null) (src.reactors || (src.reactors = [])).push(a);
+    if (s) pileReact(a, amount, depth + 1);
+  }
+}
+// 上下に弾む（つかむ時に押される・落ちてきた子に押される）。減衰する ばね
+function nudgeToy(t, impulse) {
+  if (t.state !== 'rest' && t.state !== 'settle') return;
+  t.bv = (t.bv || 0) - impulse;
+}
+function pressAround(x, y, r, impulse) {
+  for (const t of toys) {
+    if (t.state !== 'rest' && t.state !== 'settle') continue;
+    const d = Math.hypot(t.hold.x - x, t.hold.y - y);
+    if (d < r) nudgeToy(t, impulse * (1 - d / r));
+  }
+}
 
 function setPhase(p) {
   const prev = game.phase;
@@ -555,7 +756,7 @@ function setPhase(p) {
   switch (p) {
     case 'title':
       ui.title.classList.add('show'); ui.result.classList.remove('show'); setButtons(false, false); guide('');
-      resetClaw(); audio.motorOff();
+      resetClaw(); audio.motorOff(); audio.bgmStop();
       coinUI.toHome(prev !== 'loading');   // 遊び終わり（や中断）ならコインが札の下に落ちて戻ってくる
       faceUI.normal(false);
       break;
@@ -579,12 +780,15 @@ function setPhase(p) {
     }
     case 'descend':
       game.target = pickToy(claw.cx, claw.cy);
-      game.zTarget = game.target ? Math.max(0.19, game.target.hold.z - CFG.padDz) : 0.19;
+      game.zTarget = game.target ? Math.max(0.19, game.target.hold.z + game.target.dz - CFG.padDz) : 0.19;
       claw.armTarget = CFG.armOpen; audio.whir(); guide('どうかな…！'); break;
     case 'grab':
       claw.damp = CFG.dampGround; claw.wx *= 0.4; claw.wy *= 0.4;
       claw.armTarget = game.target ? game.target.armHold : CFG.armClosed;
       audio.bump(); setTimeout(() => audio.clack(), 260);
+      // 爪が山に当たる：真下の子は押されて沈み、まわりも少し揺れる
+      if (game.target) nudgeToy(game.target, 0.45);
+      pressAround(claw.x, claw.y, 0.14, 0.22);
       game.outcome = decideOutcome(game.tryIndex);
       game.slipAt = CFG.slipMin + Math.random() * (CFG.slipMax - CFG.slipMin);
       break;
@@ -660,25 +864,49 @@ function moveTowards(dt, tx, ty, speed) {
 
 function updateToys(dt) {
   for (const t of toys) {
+    if (t.state === 'rest' || t.state === 'settle') {
+      // 上下の弾み（押された・落ちてきた子に押された）：減衰するばね
+      if (t.bounce || t.bv) {
+        t.bv += (-t.bounce * 180 - t.bv * 12) * dt; t.bounce += t.bv * dt;
+        if (Math.abs(t.bounce) < 0.0004 && Math.abs(t.bv) < 0.004) { t.bounce = 0; t.bv = 0; }
+      }
+    }
     if (t.state === 'held') {
       // 爪先の点にくっついて動く（つかんだ直後の0.3秒は、寄せ切れなかった残りをなじませる）
       t.attach = Math.min(1, (t.attach == null ? 1 : t.attach) + dt / 0.3);
       const k = t.attach * t.attach * (3 - 2 * t.attach);
-      t.dx = (claw.x - t.hold.x) * k; t.dy = (claw.y - t.hold.y) * k; t.dz = (claw.z + CFG.padDz) - t.hold.z - t.sag * 0.05;
+      const sx = t.restDx || 0, sy = t.restDy || 0, sz = t.restDz || 0;   // 休んでいた位置（沈んでいた子はそこから）
+      t.dx = lerp(sx, claw.x - t.hold.x, k); t.dy = lerp(sy, claw.y - t.hold.y, k); t.dz = (claw.z + CFG.padDz) - t.hold.z - t.sag * 0.05;
       const hangTarget = clamp(-Math.atan2(t.data.center[0] - t.hold.x, Math.max(0.03, t.hold.z - t.data.center[2])) * 0.8, -0.6, 0.6);
       t.hang = approach(t.hang, hangTarget, 1.5 * dt);
-      t.rot = (claw.thx + t.hang) * k + t.sag * Math.sin(game.phaseT * 28) * 0.25;
-      t.shadowA = clamp(1 - t.dz / 0.25, 0, 1);
+      t.rot = lerp(t.restRot || 0, claw.thx + t.hang, k) + t.sag * Math.sin(game.phaseT * 28) * 0.25;
+      t.shadowA = clamp(1 - (t.dz - sz) / 0.25, 0, 1);
+      // 山から抜けたら、上に乗っていた子が穴へ沈む
+      if (!t.reacted && t.dz - sz > 0.05) { t.reacted = true; pileReact(t, null, 0); }
     } else if (t.state === 'falling') {
-      // つかみそこねて、元の場所へ落ちる
+      // つかみそこねて、元の場所へ落ちる（沈んだ隣の子の上に乗るぶん、少し高い所に止まる）
       t.vz -= CFG.g * dt; t.dz += t.vz * dt;
-      const k = clamp(t.dz / Math.max(0.01, t.fallFrom), 0, 1);
-      t.dx = t.fallDx * k; t.dy = t.fallDy * k; t.rot = t.fallRot * k;
-      t.shadowA = clamp(1 - t.dz / 0.25, 0, 1);
-      if (t.dz <= 0) {
-        t.dz = 0;
+      const land = t.landDz || 0;
+      const k = clamp((t.dz - land) / Math.max(0.01, t.fallFrom - land), 0, 1);
+      t.dx = lerp(t.restDx || 0, t.fallDx, k); t.dy = lerp(t.restDy || 0, t.fallDy, k); t.rot = lerp(t.landRot || 0, t.fallRot, k);
+      t.shadowA = clamp(1 - (t.dz - land) / 0.25, 0, 1);
+      if (t.dz <= land) {
+        t.dz = land;
+        for (const a of (t.reactors || [])) nudgeToy(a, 0.25 * Math.min(1, -t.vz));   // 落ちてきた子に押される
         if (t.vz < -0.7) { t.vz = -t.vz * 0.22; audio.thud(); }
-        else { t.vz = 0; t.dx = t.dy = 0; t.rot = 0; t.state = 'rest'; t.shadowA = 1; if (!t.landedMsg) { t.landedMsg = true; showMsg('おしい…！', 'miss', 1300); audio.miss(); } }
+        else { t.vz = 0; t.dx = t.restDx || 0; t.dy = t.restDy || 0; t.rot = t.landRot || 0; t.state = 'rest'; t.shadowA = 1; restPose(t); if (!t.landedMsg) { t.landedMsg = true; showMsg('おしい…！', 'miss', 1300); audio.miss(); } }
+      }
+    } else if (t.state === 'settle') {
+      // 穴へ沈む（落ちる・弾む）／押し戻される（上へはそっと）
+      if (t.settleDelay > 0) t.settleDelay -= dt;
+      else {
+        const tg = t.target;
+        if (t.dz > tg.dz) {
+          t.vz -= CFG.g * 0.7 * dt; t.dz += t.vz * dt;
+          if (t.dz <= tg.dz) { t.dz = tg.dz; t.vz = t.vz < -0.35 ? -t.vz * 0.28 : 0; }
+        } else { t.dz = approach(t.dz, tg.dz, 0.25 * dt); t.vz = 0; }
+        t.rot = approach(t.rot, tg.rot, 2.2 * dt); t.dx = approach(t.dx, tg.dx, 0.12 * dt); t.dy = approach(t.dy, tg.dy, 0.12 * dt);
+        if (t.dz === tg.dz && t.vz === 0 && t.rot === tg.rot && t.dx === tg.dx && t.dy === tg.dy) { t.state = 'rest'; restPose(t); }
       }
     } else if (t.state === 'chute') {
       t.vz -= CFG.g * dt; t.dz += t.vz * dt;
@@ -757,7 +985,10 @@ function update(dt) {
       if (t) {
         t.sag = Math.min(1, game.phaseT / 0.45);
         if (game.phaseT >= 0.5) {
-          // 手からすべり落ちる
+          // 手からすべり落ちる。沈んだ隣の子がいれば、その上に乗る高さで止まり、少し傾く
+          const rs = (t.reactors || []).filter((a) => a.state === 'rest' || a.state === 'settle');
+          t.landDz = rs.length ? Math.min(0.05, rs.reduce((s, a) => s + Math.abs(restTarget(a).dz), 0) / rs.length * 0.5) : 0;
+          t.landRot = rs.length ? (Math.random() - 0.5) * 0.24 : 0;
           t.state = 'falling'; t.vz = 0; t.fallFrom = Math.max(0.01, t.dz); t.fallDx = t.dx; t.fallDy = t.dy; t.fallRot = t.rot; t.sag = 0; t.landedMsg = false;
           claw.held = null; claw.armTarget = CFG.armClosed; claw.damp = CFG.dampFree;
           claw.wx += 0.6 * (Math.random() - 0.5); // 軽くなってはねる
@@ -781,6 +1012,7 @@ function update(dt) {
         t.state = 'chute'; t.vz = 0; t.rotV = (Math.random() - 0.5) * 2.5; t.splashed = false;
         claw.held = null; claw.wx += 0.5 * (Math.random() - 0.5);
         game.got++; updateHud(); showMsg('ゲット！！', 'win', 1400); audio.win(); faceUI.grin();
+        game.flashUntil = performance.now() + 1500;   // 電球が全部、速く点滅
       }
       if (!claw.held && game.phaseT > 1.0) setPhase('return');
       break;
@@ -791,7 +1023,7 @@ function update(dt) {
       const r = moveTowards(dt, park.x, park.y, CFG.carrySpeed * settings.speed);
       acc = r; rumble = !r.arrived;
       if (!r.arrived) audio.motorOn(0.95); else audio.motorOff();
-      const settled = !toys.some((t) => t.state === 'falling' || t.state === 'chute');
+      const settled = !toys.some((t) => t.state === 'falling' || t.state === 'chute' || (t.state === 'settle' && game.phaseT < 3));
       if (r.arrived && claw.L <= claw.cableTop - CFG.raisedZ + 1e-6 && settled && game.phaseT > 0.8) {
         game.tryIndex++; updateHud();
         setPhase(game.tryIndex < CFG.tries ? 'between' : 'result');
@@ -831,12 +1063,12 @@ function insertionIndex(list, depth, box) {
 }
 function drawToyRest(t) {
   const r = t.data.sprite.rect;
-  if (t.state === 'falling' || t.dz !== 0 || t.rot !== 0) { drawToyDynamic(t, false); return; }
+  if (t.state === 'falling' || t.state === 'settle' || t.dz !== 0 || t.rot !== 0 || t.dx !== 0 || t.dy !== 0 || t.bounce) { drawToyDynamic(t, false); return; }
   ctx.drawImage(t.img, r[0], r[1]);
 }
 function drawToyDynamic(t, clipChute) {
   const h = t.hold, p0 = t.holdUV;
-  const p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz);
+  const p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz + (t.bounce || 0));
   const s = p0.d / p1.d;
   ctx.save();
   if (clipChute) {
@@ -851,49 +1083,50 @@ function drawToyDynamic(t, clipChute) {
   ctx.restore();
 }
 function clawPick() {
-  // 高さ×開き具合で近い絵を選び、重みを付ける
-  const out = [];
-  const hs = clawHeights;
+  // 高さ：一番近いコマ表（5cm きざみ）。切り替わる所だけ区間の 20% を重ねて形のずれを隠す（前は2枚を常に重ねていて二重に見えた）
+  // 開き具合：一番近い角度の絵（2度きざみ＝重ねずに滑らか）
+  const hs = clawHeights, out = [];
+  if (!hs.length) return out;
+  const z = clamp(claw.z, hs[0], hs[hs.length - 1]);
+  let i = 0; while (i < hs.length - 2 && z > hs[i + 1]) i++;
+  const t = hs.length > 1 ? (z - hs[i]) / (hs[i + 1] - hs[i]) : 0;
   let hw;
-  if (hs.length === 1) hw = [[hs[0], 1]];
-  else {
-    const z = clamp(claw.z, hs[0], hs[hs.length - 1]);
-    let i = 0; while (i < hs.length - 2 && z > hs[i + 1]) i++;
-    const t = (z - hs[i]) / (hs[i + 1] - hs[i]);
-    hw = [[hs[i], 1 - t], [hs[i + 1], t]];
+  if (hs.length === 1 || t <= 0.4) hw = [[i, 1]]; else if (t >= 0.6) hw = [[i + 1, 1]]; else { const w = (t - 0.4) / 0.2; hw = [[i, 1 - w], [i + 1, w]]; }
+  for (const [si, w] of hw) {
+    const sheet = clawSheets[si], fr = sheet.frames;
+    let best = 0, bd = Infinity;
+    for (let k = 0; k < fr.length; k++) { const d = Math.abs(fr[k].angle - claw.arm); if (d < bd) { bd = d; best = k; } }
+    out.push([sheet, fr[best], w]);
   }
-  for (const [h, w] of hw) {
-    if (w < 0.01) continue;
-    const list = clawSprites.filter((s) => s.z === h).sort((a, b) => a.angle - b.angle);
-    const a = clamp(claw.arm, list[0].angle, list[list.length - 1].angle);
-    let i = 0; while (i < list.length - 2 && a > list[i + 1].angle) i++;
-    const t = list.length > 1 ? (a - list[i].angle) / (list[i + 1].angle - list[i].angle) : 0;
-    if (1 - t > 0.01) out.push([list[i], w * (1 - t)]);
-    if (list.length > 1 && t > 0.01) out.push([list[i + 1], w * t]);
-  }
-  out.sort((a, b) => b[1] - a[1]);
+  out.sort((a, b) => b[2] - a[2]);
   return out;
 }
 function clawBox() {
   const p = project(claw.x, claw.y, claw.z);
-  const spr = clawSprites[0];
-  const s = spr.depth / p.d, w = spr.size[0] * s, hgt = spr.size[1] * s;
+  const sheet = clawSheets[clawSheets.length - 1], fr = sheet.frames[0];
+  const s = fr.depth / p.d / (sheet.scale || 1), w = fr.w * s, hgt = fr.h * s;
   return { p, box: [p.u - w * 0.6, p.v - hgt * 0.35, p.u + w * 0.6, p.v + hgt * 0.75] };
 }
 function drawClaw(p) {
   const picks = clawPick();
   let acc = 0;
-  for (const [spr, w] of picks) {
-    if (!spr.img) continue;
+  for (const [sheet, fr, w] of picks) {
+    const im = fr.img || sheet.img;
+    if (!im) continue;
     const alpha = acc === 0 ? 1 : w / (acc + w);
     acc += w;
-    const s = spr.depth / p.d;
+    const K = 1 / (sheet.scale || 1), s = fr.depth / p.d * K;   // コマ表は縮めて持っている（scale）ので描く時に戻す
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(p.u, p.v); ctx.rotate(claw.thx); ctx.scale(s, s);
-    ctx.drawImage(spr.img, -spr.anchor[0], -spr.anchor[1]);
+    ctx.drawImage(im, fr.x, fr.y, fr.w, fr.h, -fr.ax, -fr.ay, fr.w, fr.h);
     ctx.restore();
   }
+}
+// 手前の梁より上と、手前のレールの帯は、中の物（台車・ケーブル・UFO・持った子）より手前にある＝そこは描かない
+function clipBehindFront() {
+  const top = Math.max(cab.beamV || 0, cab.railBotV || 0);
+  ctx.beginPath(); ctx.rect(-10000, top, 20000, 20000); ctx.clip();
 }
 function drawCable(p) {
   const top = project(claw.cx, claw.cy, claw.cableTop);
@@ -908,17 +1141,24 @@ function drawGantry() {
   const m = scene.machine;
   const a = project(claw.cx, m.rails.y_front, m.gantry.z), b = project(claw.cx, m.rails.y_back, m.gantry.z);
   const d = (a.d + b.d) / 2;
-  // 手前の梁（上の太いピンク）より上には出ない：梁の手前下の辺より下だけ描く
-  const beam = project(claw.cx, m.front - 0.05, 0.815);
+  // 手前の梁（上の太いピンク）と手前のレールの裏には出ない。棒の手前の端はレールの下にぶら下がる金具（丸いキャップの棒が「鉤」に見えていた）
   ctx.save();
-  ctx.beginPath(); ctx.rect(-10000, beam.v, 20000, 20000); ctx.clip();
-  ctx.lineCap = 'round';
+  clipBehindFront();
+  ctx.lineCap = 'butt';
   ctx.strokeStyle = '#6a6e7a'; ctx.lineWidth = lenPx(0.022, d);
   ctx.beginPath(); ctx.moveTo(a.u, a.v); ctx.lineTo(b.u, b.v); ctx.stroke();
   ctx.strokeStyle = '#b9bdc8'; ctx.lineWidth = lenPx(0.014, d);
   ctx.beginPath(); ctx.moveTo(a.u, a.v); ctx.lineTo(b.u, b.v); ctx.stroke();
   ctx.strokeStyle = '#eef0f4'; ctx.lineWidth = lenPx(0.005, d);
   ctx.beginPath(); ctx.moveTo(a.u - lenPx(0.004, d), a.v); ctx.lineTo(b.u - lenPx(0.004, d), b.v); ctx.stroke();
+  {   // レールをつかむ金具（手前の端）
+    const bw = lenPx(0.046, a.d), bh = lenPx(0.03, a.d), br = Math.max(1, bw * 0.18);
+    ctx.fillStyle = '#8a8e9a'; ctx.strokeStyle = '#5a5e6a'; ctx.lineWidth = Math.max(0.8, bw * 0.04); ctx.lineJoin = 'round';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(a.u - bw / 2, a.v - bh * 0.75, bw, bh, br); else ctx.rect(a.u - bw / 2, a.v - bh * 0.75, bw, bh);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#c9cdd6'; ctx.beginPath(); ctx.rect(a.u - bw * 0.36, a.v - bh * 0.55, bw * 0.72, bh * 0.16); ctx.fill();
+  }
   // 台車（箱）
   const sz = m.carriage.size, cz = m.carriage.z;
   const hx = sz[0] / 2, hy = sz[1] / 2, hz = sz[2] / 2;
@@ -933,22 +1173,61 @@ function drawGantry() {
 }
 function pileTopUnder(x, y) {
   // 爪の真下で一番高い所（床かぬいぐるみの頭）。影はその子の直後に描く
-  let z = y > scene.machine.ramp_y0 ? scene.machine.ramp_h * (y - scene.machine.ramp_y0) / (scene.machine.back - scene.machine.ramp_y0) : 0;
+  let z = floorZAt(y);
   let on = null;
   for (const t of toys) {
-    if (t.state !== 'rest') continue;
-    if (Math.hypot(t.hold.x - x, t.hold.y - y) < 0.09 && t.data.ztop > z) { z = t.data.ztop; on = t; }
+    if (t.state !== 'rest' && t.state !== 'settle') continue;
+    const top = t.data.ztop + t.dz;
+    if (Math.hypot(t.hold.x + t.dx - x, t.hold.y + t.dy - y) < 0.09 && top > z) { z = top; on = t; }
   }
   return { z, on };
 }
 function drawClawShadow(p, zs) {
   const h = Math.max(0, claw.z - zs);
+  const ch = scene.machine.chute;
+  if (!top_onChute() && clawShadows.length) {
+    // Blender で床に落とした本物の影（同じ照明）。高さは両どなりの絵を混ぜ、開き具合は開いた絵と閉じた絵を混ぜる。一番高い絵より上はさらに薄く
+    const hs = []; for (const s of clawShadows) if (!hs.includes(s.h)) hs.push(s.h);
+    hs.sort((a, b) => a - b);
+    const hc = clamp(h, hs[0], hs[hs.length - 1]);
+    let i = 0; while (i < hs.length - 2 && hc > hs[i + 1]) i++;
+    const t = hs.length > 1 ? (hc - hs[i]) / (hs[i + 1] - hs[i]) : 0;
+    const fade = h > hs[hs.length - 1] ? clamp(1 - (h - hs[hs.length - 1]) / 0.3, 0, 1) : 1;
+    if (fade <= 0) return;
+    const ang = clamp((claw.arm + 18) / 34, 0, 1);
+    const parts = [];
+    for (const [hh, hw] of (hs.length > 1 ? [[hs[i], 1 - t], [hs[i + 1], t]] : [[hs[0], 1]])) {
+      if (hw < 0.02) continue;
+      const open = clawShadows.find((s) => s.h === hh && s.angle < 0) || clawShadows.find((s) => s.h === hh);
+      const closed = clawShadows.find((s) => s.h === hh && s.angle > 0) || open;
+      if (open && 1 - ang > 0.02) parts.push([open, hw * (1 - ang)]);
+      if (closed && ang > 0.02) parts.push([closed, hw * ang]);
+    }
+    parts.sort((a, b) => b[1] - a[1]);
+    let acc = 0;
+    ctx.save();
+    for (const [spr, w] of parts) {
+      if (!spr.img) continue;
+      const alpha = (acc === 0 ? 1 : w / (acc + w)) * fade;
+      acc += w;
+      const s = spr.depth / p.d;
+      ctx.globalAlpha = alpha;
+      ctx.setTransform(view.k * view.dpr, 0, 0, view.k * view.dpr, view.ox * view.dpr, view.oy * view.dpr);
+      ctx.translate(p.u, p.v); ctx.scale(s, s);
+      ctx.drawImage(spr.img, -spr.anchor[0], -spr.anchor[1]);
+    }
+    ctx.restore();
+    return;
+  }
+  if (top_onChute()) return;   // 景品口の上：床が無い（穴の底は遠くて影は見えない）
+  // 影の絵が無い時の代わり（ぼかした楕円）
   const rx = lenPx(scene.machine.claw.saucer_radius * (1.0 + 0.35 * h), p.d), ry = rx * 0.55;
-  const a = dbg.shadowBoost ? 0.9 : clamp(0.36 - 0.36 * h, 0.05, 0.36);
+  const a = clamp(0.36 - 0.36 * h, 0.05, 0.36);
   const g = ctx.createRadialGradient(p.u, p.v, 0, p.u, p.v, rx);
   g.addColorStop(0, 'rgba(30,20,50,' + a + ')'); g.addColorStop(0.7, 'rgba(30,20,50,' + (a * 0.6) + ')'); g.addColorStop(1, 'rgba(30,20,50,0)');
   ctx.save(); ctx.translate(p.u, p.v); ctx.scale(1, ry / rx); ctx.translate(-p.u, -p.v);
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.u, p.v, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  function top_onChute() { return claw.x < ch.x1 && claw.y < ch.y1 && zs <= 0.001; }
 }
 
 function draw() {
@@ -957,6 +1236,9 @@ function draw() {
   if (!img.bg) return;
   ctx.setTransform(view.k * view.dpr, 0, 0, view.k * view.dpr, view.ox * view.dpr, view.oy * view.dpr);
   ctx.drawImage(img.bg, 0, 0);
+  // 梁の電球：点いているものだけ点灯の絵を貼る（消えた絵は背景に描いてある）
+  const bstep = Math.floor(performance.now() / 1000 / CFG.bulbStep);
+  for (const b of bulbTiles) if (b.img && bulbLit(b.i, bstep)) ctx.drawImage(b.img, b.rect[0], b.rect[1]);
   // 影
   for (const t of toys) {
     if (t.state === 'gone' || t.state === 'chute' || !t.shImg) continue;
@@ -973,9 +1255,11 @@ function draw() {
   const sp = project(claw.x, claw.y, zs);
   const iSh = top.on ? rest.indexOf(top.on) + 1 : 0;
   const drawClawLayer = () => {
+    ctx.save(); clipBehindFront();   // 手前の梁とレールの裏に隠れる（奥の高い所にいる時に上へはみ出ない）
     if (claw.held) drawToyDynamic(claw.held, false);
     drawCable(cb.p);
     drawClaw(cb.p);
+    ctx.restore();
   };
   dbg.shadow = { zs, sp, iSh, iClaw, n: rest.length, h: claw.z - zs };
   for (let i = 0; i <= rest.length; i++) {
@@ -1043,16 +1327,15 @@ ui.coin.addEventListener('pointerdown', (e) => {
   ui.coin.classList.remove('bob', 'back', 'nudge'); ui.coin.classList.add('dragging');
   try { ui.coin.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
   // 持った瞬間に縦向きへ（0°→30°→60° と素早く回す。指が止まっていても回り切るようにタイマーでも進める）
-  coinUI.place(coinUI.pos.x, coinUI.pos.y, 1);
-  coinUI.timers.push(setTimeout(() => { if (coinUI.state === 'drag' && coinUI.frame < 2) coinUI.place(coinUI.pos.x, coinUI.pos.y, 2); }, 90));
+  coinUI.place(coinUI.pos.x, coinUI.pos.y, coinUI.frameFor(30), 1.06);
+  coinUI.timers.push(setTimeout(() => { if (coinUI.state === 'drag') { const p = coinUI.dragPose(coinUI.pos.x, coinUI.pos.y); coinUI.place(coinUI.pos.x, coinUI.pos.y, p.frame, p.size); } }, 90));
 });
 ui.coin.addEventListener('pointermove', (e) => {
   if (coinUI.state !== 'drag' || !coinUI.grab || e.pointerId !== coinUI.grab.id) return;
   e.preventDefault();
   const cx = e.clientX - coinUI.grab.dx, cy = e.clientY - coinUI.grab.dy;
-  const d = Math.hypot(cx - coinUI.slit.x, cy - (coinUI.slit.y + coinUI.slit.h / 2)), R = coinUI.frames[0].w;
-  const turned = performance.now() - coinUI.dragT > 70 ? 2 : 1;   // 持ってすぐは 30°、その後は 60°（縦向き）
-  coinUI.place(cx, cy, d < R * 1.0 ? 3 : turned);   // 投入口のすぐそばでは真横
+  const p = coinUI.dragPose(cx, cy);   // 投入口に近づくほど小さく・真横に
+  coinUI.place(cx, cy, p.frame, p.size);
 });
 const coinUp = (e) => {
   if (coinUI.state !== 'drag' || (coinUI.grab && e.pointerId !== coinUI.grab.id)) return;
@@ -1095,6 +1378,7 @@ ui.title.addEventListener('pointercancel', () => clearTimeout(pressTimer));
 titleSub.addEventListener('pointerleave', () => clearTimeout(pressTimer));
 ui.muteBtn.addEventListener('click', () => {
   settings.muted = !settings.muted; saveSettings(); ui.muteBtn.classList.toggle('muted', settings.muted); if (!settings.muted) { audio.unlock(); audio.tap(); }
+  audio.bgmMute(settings.muted);
 });
 ui.muteBtn.classList.toggle('muted', settings.muted);
 ui.resultBtn.addEventListener('click', () => {
@@ -1161,8 +1445,11 @@ window.__ufo = {
   press: (key, on) => { input[key] = !!on; if (on) input['pressed' + key.toUpperCase()] = true; ui['btn' + key.toUpperCase()].classList.toggle('pressed', !!on); },
   tap: () => { if (game.phase === 'title') coinUI.insert(true); else if (game.phase === 'result') setPhase('title'); },
   insertCoin: (fast) => coinUI.insert(!!fast),
-  coin: () => ({ state: coinUI.state, pos: coinUI.pos, frame: coinUI.frame, slit: coinUI.slit, zone: coinUI.slotZone }),
-  consoles: () => ({ loaded: !!con.data, L: con.L, R: con.R }),
+  coin: () => ({ state: coinUI.state, pos: coinUI.pos, frame: coinUI.frame, size: coinUI.size, D: coinUI.D, slitSize: coinUI.slitSize, slit: coinUI.slit, zone: coinUI.slotZone }),
+  consoles: () => ({ loaded: !!con.data, L: con.L, R: con.R, view: Object.assign({}, view), cab: Object.assign({}, cab) }),
+  bgm: () => audio.bgmState(),
+  pile: () => toys.map((t) => ({ id: t.id, state: t.state, dz: +t.dz.toFixed(3), rot: +t.rot.toFixed(3), bounce: +(t.bounce || 0).toFixed(3), reactors: (t.reactors || []).map((a) => a.id) })),
+  setLayout: (o) => { Object.assign(CFG.layout, o); resize(); },   // 配置の比較用（edge / gap / conH）
   face: () => ({ mode: faceUI.mode, rect: faceUI.rect }),
   force: (arr) => { game.forcedOutcome = arr; },   // 例: ['win','lose','win']（null で解除）
   setLuck: (p) => { settings.luckP = p; },
