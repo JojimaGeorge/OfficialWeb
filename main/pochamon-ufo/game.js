@@ -24,7 +24,7 @@ const qs = new URLSearchParams(location.search);
 if (qs.get('p')) settings.luckP = Math.max(0, Math.min(1, parseFloat(qs.get('p'))));
 if (qs.get('slot')) settings.luckSlot = qs.get('slot');
 // 配置の比較用（確認の時だけ）：?edge=0.018&gap=0.012&conh=0.9
-for (const [q, key] of [['edge', 'edge'], ['gap', 'gap']]) if (qs.get(q) != null && !isNaN(parseFloat(qs.get(q)))) CFG_LAYOUT_OVERRIDE[key] = parseFloat(qs.get(q));
+for (const [q, key] of [['edge', 'edge'], ['gap', 'gap'], ['conh', 'conH']]) if (qs.get(q) != null && !isNaN(parseFloat(qs.get(q)))) CFG_LAYOUT_OVERRIDE[key] = parseFloat(qs.get(q));
 const todayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
 // ---------------- 動きの定数（メートル・秒） ----------------
@@ -47,7 +47,7 @@ const CFG = {
   coinSize: 0.17,       // 手に持ったコインの直径（画面の高さに対する割合。iPad 768px で約130px＝実物の500円玉に近い）
   coinAtSlit: 0.85,     // 投入口のそばでのコインの直径（投入口の縦幅に対する割合＝遠近で小さくなって口に入る）
   holdSec: 0.75,        // 上げ切った後に止まっている時間（本物のUFOキャッチャーの「間」）
-  layout: { edge: 0.018, gap: 0.012 },   // 画面の端の余白・操作盤と筐体の隙間（幅に対する割合）。操作盤の高さ＝筐体の絵の上端から画面の下端まで（配置 B・2026-10-29 本人が選択）
+  layout: { edge: 0.018, gap: 0.012, conH: 0.9 },   // 画面の端の余白・操作盤と筐体の隙間（幅に対する割合）・操作盤の高さ（筐体の絵の高さに対する割合。配置 A＝0.9・2026-10-29 本人「やっぱり配置A」。B は 1.0）
   bulbStep: 0.22,       // 電球の追いかけ点灯の1コマ（秒）
   bgmVol: 0.5,          // BGM の音量（効果音に対する割合）
   slump: 0.55,          // 持ち上げた子の上に乗っていた子が穴へ沈む深さ（持ち上げた子の高さに対する割合）
@@ -303,7 +303,7 @@ function resize() {
   // 横に入り切らない時（4:3 の iPad）は筐体を少し縮めて、端の余白と隙間を保つ
   const edge = cw * LY.edge, gap = cw * LY.gap;
   const bodyPx = con.data ? ((con.data.L.foot_bottom || con.data.L.bottom_edge) - con.data.L.top_edge) : 0;   // 操作盤の本体（天井から足の底まで・frame px）
-  const conWperK = (con.data && bodyPx) ? con.data.sprites.console_L.rect[2] * H / bodyPx : 0;   // 筐体の k=1 のときの操作盤の幅
+  const conWperK = (con.data && bodyPx) ? con.data.sprites.console_L.rect[2] * H * LY.conH / bodyPx : 0;   // 筐体の k=1 のときの操作盤の幅
   view.k = Math.min(ch / H, (cw - 2 * edge - 2 * gap) / (W + 2 * conWperK));
   const imgW = W * view.k, imgH = H * view.k;
   view.ox = (cw - imgW) / 2;
@@ -325,9 +325,9 @@ function layoutConsoles() {
   const cw = view.cw, LY = CFG.layout;
   const rect = con.data.sprites.console_L.rect, L = con.data.L;   // 左右は同じ大きさ
   const bodyPx = (L.foot_bottom || L.bottom_edge) - L.top_edge;
-  const k = scene.image.height * view.k / bodyPx, w = rect[2] * k, h = rect[3] * k;   // 天井の上端〜足の底＝筐体の絵の高さ
+  const k = scene.image.height * view.k * LY.conH / bodyPx, w = rect[2] * k, h = rect[3] * k;   // 天井の上端〜足の底＝筐体の絵の高さ × conH（A＝0.9）
   const gap = cw * LY.gap;
-  const y = view.oy - (L.top_edge - rect[1]) * k;   // 天井の上端を筐体の絵の上端に
+  const y = view.ch - ((L.foot_bottom || L.bottom_edge) - rect[1]) * k;   // 足の底を画面の下端に（A では天井が梁より一段低くなる）
   con.L = { x: view.ox - gap - w, y, w, h, k, rect };
   con.R = { x: view.ox + scene.image.width * view.k + gap, y, w, h, k, rect: con.data.sprites.console_R.rect };
   // ボタンの押す場所（HTML）をキャップの上に重ねる。文字の大きさはキャップの半径
