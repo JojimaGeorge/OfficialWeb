@@ -423,40 +423,57 @@ const coinUI = {
 // 絵は AE の元ファイル（詳細コンポ・タービュレントディスプレイス付き）から表情ごとに書き出したコマ表（assets/face_sheet_*.webp・face.json）。
 // つかんで持ち上がったらニヤッ（口が上がる・開き目のまま）、途中で落ちたら真顔に戻る。画面の右下の角に、縁で切れる大きさで置く
 const faceUI = {
-  // コマ表（AE の「詳細」コンポをタービュレントディスプレイス付きで書き出したもの）を 30 コマ/秒のきざみで回す。
-  // ふだん＝open の 12 コマを秒 6 で回し、時々まばたき（半目→閉じ目→半目）を差し込む。ニヤッ＝grin_in（9コマ・秒30）→ grin の 12 コマを秒 6 で回す。
-  // 戻る＝grin_out（15コマ）→ ふだんへ。揺れの周期はループの途中位置を保って続けるので、表情が変わっても継ぎ目が出ない
+  // 絵は AE の元ファイル（詳細コンポ・タービュレントディスプレイス付き）から表情ごとに書き出したコマ表（assets/face_sheet_*.webp・face.json）。
+  // 30 コマ/秒のきざみで回す。ふだん＝open の 12 コマを秒 6 で回し、時々まばたき（半目→閉じ目→半目）。ニヤッ＝grin_in（9コマ）→ grin の 12 コマを秒 6。
+  // 戻る＝grin_out（15コマ）→ ふだんへ。揺れのループは途中位置を保つので、表情が変わっても継ぎ目が出ない
   img: {}, data: null, rect: null, mode: 'normal',
-  queue: [], cur: null, hold: 0, lastTick: 0, loopPos: 0, nextBlink: 0,
+  queue: [], clip: null, pending: null, cur: null, hold: 0, lastTick: 0, loopPos: 0, nextBlink: 0,
   layout() {
     if (!this.data || !con.R) return;
     const [fw, fh] = this.data.size;
     const b = con.data.R.btnY, c = conPt('R', b.c), bottom = c.y + b.r_bezel * con.R.k;   // 「たて」のボタンにはかぶせない
-    const h = Math.max(80, Math.min(view.ch * 0.34, view.ch - bottom - 8));
-    const w = h * fw / fh;
-    this.rect = { x: view.cw - w, y: view.ch - h, w, h };   // 右下の角に、縁で切れる絵をそのまま置く
+    const h = Math.round(Math.max(80, Math.min(view.ch * 0.34, view.ch - bottom - 8)));
+    const w = Math.round(h * fw / fh);
+    this.rect = { x: view.cw - w, y: view.ch - h, w, h };   // 右下の角に、縁で切れる絵をそのまま。整数に丸める（端数だと隣のコマの縁がにじむ）
   },
-  play(name) { const c = this.data && this.data.clips[name]; if (!c) return; this.queue = c.map((f) => ({ name: f[0], ticks: f[1] })); this.hold = 0; },
-  grin() { if (this.mode === 'grin') return; this.mode = 'grin'; this.loopPos = 0; this.play('grin_in'); },
-  normal() { if (this.mode === 'normal') return; this.mode = 'normal'; this.loopPos = 0; this.play('grin_out'); },
+  play(name, from) {
+    const c = this.data && this.data.clips[name]; if (!c) return;
+    this.clip = name; this.queue = c.slice(from || 0).map((f) => ({ name: f[0], ticks: f[1] })); this.hold = 0;
+  },
+  // 表情の切替。まばたきの途中なら終わってから。反対向きの途中（ニヤッになりかけで落ちた等）なら口の位置が合う所から折り返す
+  transition(name) {
+    const opp = name === 'grin_in' ? 'grin_out' : 'grin_in';
+    if (this.clip === 'blink' || this.clip === 'grin_blink') { this.pending = (this.pending === opp) ? null : name; return; }
+    this.pending = null;
+    if (this.clip === opp && this.queue.length) {
+      const total = this.data.clips[name].length, oppTotal = this.data.clips[opp].length, m = this.queue.length;
+      this.play(name, Math.min(total - 1, Math.floor(total * m / oppTotal)));
+      return;
+    }
+    this.play(name);
+  },
+  grin() { if (this.mode === 'grin') return; this.mode = 'grin'; this.loopPos = 0; this.transition('grin_in'); },
+  normal() { if (this.mode === 'normal') return; this.mode = 'normal'; this.loopPos = 0; this.transition('grin_out'); },
   refill(nowSec) {
+    if (this.pending) { const p = this.pending; this.pending = null; this.play(p); return; }
     const blink = this.mode === 'grin' ? 'grin_blink' : 'blink';
     if (nowSec > this.nextBlink) { this.nextBlink = nowSec + 2.5 + Math.random() * 3; this.play(blink); return; }
-    const loop = this.data.clips[this.mode === 'grin' ? 'grin' : 'idle'];
+    const loopName = this.mode === 'grin' ? 'grin' : 'idle', loop = this.data.clips[loopName];
     const f = loop[this.loopPos % loop.length]; this.loopPos++;
-    this.queue = [{ name: f[0], ticks: f[1] }];
+    this.clip = loopName; this.queue = [{ name: f[0], ticks: f[1] }];
   },
   step(now) {
     const dt = 1000 / (this.data.tick_fps || 30);
     if (!this.lastTick) { this.lastTick = now; this.nextBlink = now / 1000 + 1.5; }
     let n = Math.floor((now - this.lastTick) / dt);
     if (n <= 0) return;
-    if (n > 10) { this.lastTick = now; n = 1; }   // タブ切替などで時間が飛んだ時は追いつかせない
+    if (n > 10) { this.lastTick = now; n = 1; this.nextBlink = now / 1000 + 1; }   // 時間が飛んだ時（タブ切替など）は追いつかせず、まばたきも仕切り直す
     else this.lastTick += n * dt;
     while (n-- > 0) {
       if (this.hold > 0) { this.hold--; continue; }
       if (!this.queue.length) this.refill(now / 1000);
       const f = this.queue.shift(); this.cur = f.name; this.hold = f.ticks - 1;
+      if (n > 0) { this.lastTick -= n * dt; break; }   // 1描画で進めるコマは1つまで（1きざみのコマを飛ばさない）。残りは次の描画へ持ち越す
     }
   },
   draw() {

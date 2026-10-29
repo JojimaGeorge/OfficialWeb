@@ -54,11 +54,14 @@ index, files, total = {}, {}, 0
 for key, names in GROUPS.items():
     cols = 5 if len(names) <= 25 else 6
     rows = (len(names) + cols - 1) // cols
-    sheet = Image.new("RGBA", (cols * fw, rows * fh), (0, 0, 0, 0))
+    G = 2   # コマの間の余白（画面で拡大縮小した時に隣のコマの縁がにじまないように）
+    cw_, ch_ = fw + G, fh + G
+    sheet = Image.new("RGBA", (cols * cw_, rows * ch_), (0, 0, 0, 0))
     for i, n in enumerate(names):
         im = frames[n].crop(box).resize((fw, fh), Image.LANCZOS)
-        sheet.alpha_composite(im, ((i % cols) * fw, (i // cols) * fh))
-        index[n] = {"sheet": key, "x": (i % cols) * fw, "y": (i // cols) * fh}
+        x, y = (i % cols) * cw_ + G // 2, (i // cols) * ch_ + G // 2
+        sheet.alpha_composite(im, (x, y))
+        index[n] = {"sheet": key, "x": x, "y": y}
     out = f"face_sheet_{key}.webp"
     sheet.save(os.path.join(DEST, out), "WEBP", quality=90, method=6)
     files[key] = out
