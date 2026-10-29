@@ -29,7 +29,11 @@ for key, name in PARTS.items():
     im.crop(box).save(os.path.join(DEST, out), "WEBP", quality=92, method=6)
     files[key] = out
     total += os.path.getsize(os.path.join(DEST, out))
-meta = {"size": [box[2] - box[0], box[3] - box[1]], "crop": list(box), "canvas": list(body.size),
+# 口の中心（枠の中の割合）：ニヤッの時はここを軸に口を回す
+mb = Image.open(os.path.join(SRC, PARTS["mouth"])).convert("RGBA").getchannel("A").getbbox()
+w, h = box[2] - box[0], box[3] - box[1]
+mouth_center = [round(((mb[0] + mb[2]) / 2 - box[0]) / w, 4), round(((mb[1] + mb[3]) / 2 - box[1]) / h, 4)]
+meta = {"size": [w, h], "crop": list(box), "canvas": list(body.size), "mouth_center": mouth_center,
         "source": SRC, "synced": time.strftime("%Y-%m-%d %H:%M:%S"), "files": files}
 with open(os.path.join(DEST, "face.json"), "w", encoding="utf-8") as fh:
     json.dump(meta, fh, ensure_ascii=False, separators=(",", ":"))

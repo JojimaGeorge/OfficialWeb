@@ -448,7 +448,14 @@ const faceUI = {
     ctx.drawImage(this.img.body, r.x, r.y, r.w, r.h);
     const eyes = this.mode === 'grin' ? 'eyes_half' : (t < this.blinkUntil ? 'eyes_closed' : 'eyes_open');
     if (this.img[eyes]) ctx.drawImage(this.img[eyes], r.x, r.y, r.w, r.h);
-    if (this.mode === 'grin' && this.img.mouth) ctx.drawImage(this.img.mouth, r.x, r.y, r.w, r.h);
+    // 口はいつもある（動画と同じ）。ニヤッの時は口の中心を軸に右上がりへ回して少し大きく
+    if (this.img.mouth) {
+      const mc = this.data.mouth_center || [0.68, 0.57], mx = r.x + mc[0] * r.w, my = r.y + mc[1] * r.h;
+      ctx.save();
+      if (this.mode === 'grin') { ctx.translate(mx, my); ctx.rotate(-0.35); ctx.scale(1.12, 1.12); ctx.translate(-mx, -my); }
+      ctx.drawImage(this.img.mouth, r.x, r.y, r.w, r.h);
+      ctx.restore();
+    }
     ctx.restore();
   },
 };
