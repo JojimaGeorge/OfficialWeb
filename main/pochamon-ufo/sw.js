@@ -37,7 +37,8 @@ async function assetList() {
     for (const spr of Object.values(con.sprites)) files.add('./assets/' + spr.file);
     return Array.from(files);
   } catch (e) {
-    return [];
+    // 一覧が読めないまま本体だけ溜めて「設置済み」にしない（オフラインで素材欠けを踏む）。install を失敗させて次回やり直す
+    throw new Error('[SW] asset list failed: ' + (e && e.message));
   }
 }
 

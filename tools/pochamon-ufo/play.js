@@ -9,7 +9,7 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => { const m = a.m
 const browserName = args.browser || 'chromium';
 const layout = (args.layout || 'A').toUpperCase();
 const force = args.force ? args.force.split(',') : ['win', 'lose', 'win'];
-const url = (args.url || 'http://localhost:4876/pochamon-ufo/') + '?nosw=1&layout=' + layout;
+const url = (args.url || 'http://localhost:4876/pochamon-ufo/') + '?nosw=1';   // layout はもう無い（--layout は出力フォルダ名にだけ残す）
 const outDir = path.join(__dirname, 'shots', browserName + '-' + layout);
 fs.mkdirSync(outDir, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

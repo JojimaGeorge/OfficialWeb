@@ -10,7 +10,7 @@
 
 // ---------------- 設定（スタッフ用・端末に保存） ----------------
 const LS_KEY = 'pochamon-ufo-settings-v1';
-const DEFAULTS = { luckP: 0.3, luckSlot: 'random', layout: 'A', volume: 0.8, speed: 1.0, muted: false, counters: {} };
+const DEFAULTS = { luckP: 0.3, luckSlot: 'random', volume: 0.8, speed: 1.0, muted: false, counters: {} };
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
@@ -206,8 +206,8 @@ function resize() {
   view.dpr = dpr; view.cw = cw; view.ch = ch;
   if (!scene) return;
   const W = scene.image.width, H = scene.image.height;
-  // 筐体はまんなか・縦いっぱい。両脇の空きに左右の操作盤が入る
-  view.k = Math.min(ch / H, cw * 0.94 / W);
+  // 筐体はまんなか・縦いっぱい。両脇の空きに左右の操作盤が入るので、脇は最低でも幅の 18.5% ずつ残す（4:3 の iPad で操作盤が小さくなりすぎない）
+  view.k = Math.min(ch / H, (cw - 2 * cw * 0.185) / W);
   const imgW = W * view.k, imgH = H * view.k;
   view.ox = (cw - imgW) / 2;
   view.oy = (ch - imgH) / 2;
@@ -238,38 +238,59 @@ function layoutConsoles() {
     const b = con.data.R['btn' + key], c = conPt('R', b.c), r = b.r_cap * k, el = ui['btn' + key];
     el.style.left = (c.x - r) + 'px'; el.style.top = (c.y - r) + 'px'; el.style.width = el.style.height = (2 * r) + 'px'; el.style.fontSize = r + 'px';
   }
+  con.L.cache = con.R.cache = null;   // 大きさが変わったので描き溜めを作り直す
   coinUI.layout();
 }
-function label(text, cx, baseY, px, color) {
-  ctx.save();
-  ctx.font = '900 ' + px + 'px "Zen Maru Gothic", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = color || 'rgba(59,42,74,.85)'; ctx.fillText(text, cx, baseY);
-  ctx.restore();
+function label(g, text, cx, baseY, px, color) {
+  g.save();
+  g.font = '900 ' + px + 'px "Zen Maru Gothic", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  g.fillStyle = color || 'rgba(59,42,74,.85)'; g.fillText(text, cx, baseY);
+  g.restore();
 }
-// 7セグ：1×2 の箱の中の7本（a 上・b 右上・c 右下・d 下・e 左下・f 左上・g 中）
-const SEGS = { a: [0.1, 0, 0.8, 0.16], b: [0.84, 0.06, 0.16, 0.9], c: [0.84, 1.04, 0.16, 0.9], d: [0.1, 1.84, 0.8, 0.16], e: [0, 1.04, 0.16, 0.9], f: [0, 0.06, 0.16, 0.9], g: [0.1, 0.92, 0.8, 0.16] };
+// 動かない部分（足もとの影・本体の絵・板に印刷したラベル）は resize のたびに別の canvas へ描き溜めて、毎フレームは1枚貼るだけにする
+function bakeConsole(side) {
+  const c = con[side], im = con.img['console_' + side];
+  if (!c || !im) return null;
+  const pad = Math.ceil(c.w * 0.35), dpr = view.dpr;
+  const cv = document.createElement('canvas');
+  cv.width = Math.ceil((c.w + pad * 2) * dpr); cv.height = Math.ceil((c.h + pad * 2) * dpr);
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.save(); g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = c.w * 0.18; g.shadowOffsetY = c.w * 0.06;
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(pad + c.w * 0.08, pad + c.h * 0.03, c.w * 0.84, c.h * 0.96); g.restore();
+  g.drawImage(im, pad, pad, c.w, c.h);
+  if (side === 'L') {
+    const L = con.data.L, ox = pad - c.x, oy = pad - c.y;
+    for (const [key, text] of [['led_tries', 'のこり'], ['led_got', 'ゲット']]) { const r = conRect('L', L[key]); label(g, text, r.x + r.w / 2 + ox, r.y - c.k * 20 + oy, c.k * 52); }
+    const sp = conRect('L', L.slot_plate); label(g, 'コイン', sp.x + sp.w / 2 + ox, sp.y - c.k * 18 + oy, c.k * 48);
+  }
+  return { canvas: cv, x: c.x - pad, y: c.y - pad, w: c.w + pad * 2, h: c.h + pad * 2 };
+}
+// 7セグ：1×2 の箱の中の7本（a 上・b 右上・c 右下・d 下・e 左下・f 左上・g 中）。線の太さは箱の幅の 22%
+const SEGS = { a: [0.1, 0, 0.8, 0.22], b: [0.78, 0.06, 0.22, 0.9], c: [0.78, 1.04, 0.22, 0.9], d: [0.1, 1.78, 0.8, 0.22], e: [0, 1.04, 0.22, 0.9], f: [0, 0.06, 0.22, 0.9], g: [0.1, 0.89, 0.8, 0.22] };
 const DIGIT = ['abcdef', 'bc', 'abged', 'abgcd', 'fgbc', 'afgcd', 'afgedc', 'abc', 'abcdefg', 'abcdfg'];
 function draw7seg(x, y, w, h, digit, alpha, color) {
   const lit = DIGIT[digit] || '';
+  const gap = Math.max(0.5, w * 0.045);   // 線どうしの隙間。大きさに比例させる（固定の px だと小さい画面で線が消える）
   ctx.save();
-  ctx.translate(x + w / 2, y + h / 2); ctx.transform(1, 0, -0.1, 1, 0, 0); ctx.translate(-(x + w / 2), -(y + h / 2));   // 少し斜体（本物の数字管の癖）
-  for (const s in SEGS) {
-    const [ux, uy, uw, uh] = SEGS[s];
-    const on = lit.includes(s) && alpha > 0;
-    const px = x + ux * w + 1, py = y + uy * (h / 2) + 1, pw = uw * w - 2, ph = uh * (h / 2) - 2;
-    ctx.globalAlpha = on ? alpha : 0.10; ctx.fillStyle = color;
-    ctx.shadowColor = on && alpha > 0.5 ? color : 'transparent'; ctx.shadowBlur = on ? w * 0.25 : 0;
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, Math.min(pw, ph) / 2); else ctx.rect(px, py, pw, ph);
-    ctx.fill();
-  }
-  ctx.restore();
+  try {
+    ctx.translate(x + w / 2, y + h / 2); ctx.transform(1, 0, -0.1, 1, 0, 0); ctx.translate(-(x + w / 2), -(y + h / 2));   // 少し斜体（本物の数字管の癖）
+    for (const s in SEGS) {
+      const [ux, uy, uw, uh] = SEGS[s];
+      const on = lit.includes(s) && alpha > 0;
+      const px = x + ux * w + gap, py = y + uy * (h / 2) + gap;
+      const pw = Math.max(1, uw * w - 2 * gap), ph = Math.max(1, uh * (h / 2) - 2 * gap);
+      ctx.globalAlpha = on ? alpha : 0.10; ctx.fillStyle = color;
+      ctx.shadowColor = on && alpha > 0.5 ? color : 'transparent'; ctx.shadowBlur = on ? w * 0.25 : 0;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, Math.max(0, Math.min(pw, ph) / 2)); else ctx.rect(px, py, pw, ph);
+      ctx.fill();
+    }
+  } finally { ctx.restore(); }
 }
-function drawLed(r, text, value, key) {
-  const k = con.L.k;
-  label(text, r.x + r.w / 2, r.y - k * 20, k * 52);   // 板に印刷したラベル
-  const h = r.h * 0.68, w = h * 0.55, x = r.x + (r.w - w) / 2, y = r.y + (r.h - h) / 2;
-  let alpha = value == null ? 0 : 1;   // タイトル中は消灯（薄く 8 が見える＝本物の消えた数字管）
+function drawLed(r, value, key) {
+  const h = r.h * 0.76, w = h * 0.56, x = r.x + (r.w - w) / 2, y = r.y + (r.h - h) / 2;
+  let alpha = value == null ? 0 : 1;   // null は消灯（薄く 8 が見える＝本物の消えた数字管）
   const f = con.flash[key];
   if (f != null) { const dt = (performance.now() - f) / 1000; if (dt < 0.9) { if (Math.floor(dt / 0.15) % 2) alpha = 0.12; } else delete con.flash[key]; }
   draw7seg(x, y, w, h, value == null ? 8 : value, alpha, '#ff3b30');
@@ -278,14 +299,11 @@ function drawConsoles() {
   if (!con.L || !con.img.console_L) return;
   ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
   ctx.globalAlpha = 1;
-  // 足もとの影（壁から浮いて見えないように）
   for (const side of ['L', 'R']) {
     const c = con[side];
-    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = c.w * 0.18; ctx.shadowOffsetY = c.w * 0.06;
-    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(c.x + c.w * 0.08, c.y + c.h * 0.03, c.w * 0.84, c.h * 0.96); ctx.restore();
+    if (!c.cache) c.cache = bakeConsole(side);
+    if (c.cache) ctx.drawImage(c.cache.canvas, c.cache.x, c.cache.y, c.cache.w, c.cache.h);
   }
-  ctx.drawImage(con.img.console_L, con.L.x, con.L.y, con.L.w, con.L.h);
-  ctx.drawImage(con.img.console_R, con.R.x, con.R.y, con.R.w, con.R.h);
   const t = performance.now() / 1000;
   // ボタン：押す番の輪を光らせる（脈打つ）→ キャップ（押している間は沈んだ絵）
   for (const key of ['X', 'Y']) {
@@ -300,12 +318,10 @@ function drawConsoles() {
     const name = 'cap' + key + (pressed ? '_down' : '_up');
     if (con.img[name]) { const cr = conRect('R', con.data.sprites[name].rect); ctx.drawImage(con.img[name], cr.x, cr.y, cr.w, cr.h); }
   }
-  // 電光表示（のこり・ゲット）と投入口のラベル
+  // 電光表示（のこり・ゲット）。コインが入った瞬間からクレジットとして点く（phase が変わる前でも）
   const L = con.data.L, inPlay = game.phase !== 'title' && game.phase !== 'loading';
-  drawLed(conRect('L', L.led_tries), 'のこり', inPlay ? CFG.tries - game.tryIndex : null, 'tries');
-  drawLed(conRect('L', L.led_got), 'ゲット', inPlay ? game.got : null, 'got');
-  const sp = conRect('L', L.slot_plate);
-  label('コイン', sp.x + sp.w / 2, sp.y - con.L.k * 18, con.L.k * 48);
+  drawLed(conRect('L', L.led_tries), inPlay ? CFG.tries - game.tryIndex : (con.credit ? CFG.tries : null), 'tries');
+  drawLed(conRect('L', L.led_got), inPlay ? game.got : (con.credit ? 0 : null), 'got');
   // タイトル中：投入口がやわらかく光って「ここに入れる」を教える
   if (game.phase === 'title' && coinUI.state !== 'inserting') {
     const sl = conRect('L', L.slit), g = 0.3 + 0.3 * (0.5 + 0.5 * Math.sin(t * 2 * Math.PI / 1.2));
@@ -319,7 +335,7 @@ function drawConsoles() {
 const easeOut = (u) => 1 - Math.pow(1 - u, 3);
 const coinUI = {
   state: 'hidden',   // hidden | home | drag | inserting | returning
-  frame: 0, pos: { x: 0, y: 0 }, center: null, frames: null, slit: null, slotZone: null, grab: null,
+  frame: 0, pos: { x: 0, y: 0 }, center: null, frames: null, slit: null, slotZone: null, grab: null, timers: [],
   layout() {
     if (!con.L) return;
     const L = con.data.L, k = con.L.k, S = CFG.coinScale;
@@ -328,8 +344,10 @@ const coinUI = {
     const sl = conRect('L', L.slit), sp = conRect('L', L.slot_plate);
     this.slit = { x: sl.x + sl.w / 2, y: sl.y, h: sl.h };
     this.slotZone = { x: sp.x - sp.w * 0.5, y: sp.y - sp.h * 0.3, w: sp.w * 2, h: sp.h * 1.5 };   // この中で離すと入る
-    if (this.state === 'home') { this.place(this.center.x, this.center.y, 0); ui.coin.classList.remove('hidden'); ui.coin.classList.add('bob'); }
+    // トレーにある（戻る途中も）コインは新しい置き場へ。投入中は毎フレーム投入口を読み直すのでここでは触らない
+    if (this.state === 'home' || this.state === 'returning') { this.place(this.center.x, this.center.y, 0); ui.coin.classList.remove('hidden'); if (this.state === 'home') ui.coin.classList.add('bob'); }
   },
+  clearTimers() { for (const id of this.timers) clearTimeout(id); this.timers = []; },
   place(cx, cy, frame) {   // 中心の座標で置く。frame は向き（0 正面 … 3 真横）
     const f = this.frames[frame];
     if (frame !== this.frame || !ui.coinImg.getAttribute('src')) { this.frame = frame; const im = con.img['coin_0' + frame]; if (im) ui.coinImg.src = im.src; }
@@ -338,6 +356,7 @@ const coinUI = {
     this.pos = { x: cx, y: cy };
   },
   toTray(drop) {
+    this.clearTimers(); con.credit = false;   // 投入の途中で中断された時：始まりのタイマーを止め、クレジットの表示を消す
     this.state = 'home';
     if (!this.center) return;   // 置き場が決まる前（最初の読み込み中）は layout() が置く
     ui.coin.className = ''; ui.coin.style.opacity = '';
@@ -355,24 +374,27 @@ const coinUI = {
   insert(fast) {
     if (this.state === 'inserting' || this.state === 'hidden' || !this.slit) return;
     this.state = 'inserting'; ui.coin.classList.remove('bob', 'back', 'dragging', 'nudge');
-    const start = { x: this.pos.x, y: this.pos.y }, end = { x: this.slit.x, y: this.slit.y + this.slit.h * 0.5 };
+    const start = { x: this.pos.x, y: this.pos.y };
+    const end = () => ({ x: this.slit.x, y: this.slit.y + this.slit.h * 0.5 });   // 途中でリサイズされても今の投入口へ
     const T1 = fast ? 0.01 : 0.30, T2 = fast ? 0.01 : 0.22, t0 = performance.now();
     const step = () => {
-      const t = (performance.now() - t0) / 1000;
+      if (this.state !== 'inserting') return;   // 途中で中断（タイトルへ戻された）
+      const t = (performance.now() - t0) / 1000, e = end();
       if (t < T1) {   // 投入口へ寄りながら真横を向く
         const u = easeOut(t / T1);
-        this.place(lerp(start.x, end.x, u), lerp(start.y, end.y, u), Math.min(3, Math.floor(u * 3.99)));
+        this.place(lerp(start.x, e.x, u), lerp(start.y, e.y, u), Math.min(3, Math.floor(u * 3.99)));
         requestAnimationFrame(step); return;
       }
       if (t < T1 + T2) {   // 中へ入っていく
         const u = (t - T1) / T2;
-        this.place(end.x, end.y, 3); ui.coin.style.opacity = String(1 - u); ui.coin.style.transform += ' scale(' + (1 - 0.6 * u) + ')';
+        this.place(e.x, e.y, 3); ui.coin.style.opacity = String(1 - u); ui.coin.style.transform += ' scale(' + (1 - 0.6 * u) + ')';
         requestAnimationFrame(step); return;
       }
       this.hide(); ui.coin.style.opacity = '';
       audio.coinClink();
-      setTimeout(() => { audio.creditBeep(); con.flash.tries = performance.now(); }, 150);
-      setTimeout(() => { if (game.phase === 'title') setPhase('intro'); }, fast ? 30 : 700);
+      this.clearTimers();
+      this.timers.push(setTimeout(() => { audio.creditBeep(); con.credit = true; con.flash.tries = performance.now(); }, 150));   // クレジットが点く（3 が点滅）
+      this.timers.push(setTimeout(() => { if (game.phase === 'title') setPhase('intro'); }, fast ? 30 : 900));
     };
     requestAnimationFrame(step);
   },
