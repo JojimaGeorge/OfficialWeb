@@ -42,6 +42,7 @@ const CFG = {
   g: 9.81,
   slipMin: 0.30, slipMax: 0.72,   // 運枠で外す時、持ち上げのどの辺で落とすか
   coinScale: 1.25,      // コインの絵の拡大（描いた寸法のままだと指で取りにくい）
+  holdSec: 0.75,        // 上げ切った後に止まっている時間（本物のUFOキャッチャーの「間」）
 };
 
 // ---------------- DOM ----------------
@@ -419,44 +420,54 @@ const coinUI = {
 };
 
 // ---------------- 右下で見物しているぽちゃもん（アニメ動画と同じ配置） ----------------
-// 顔はパーツの重ね合わせ：素体＋目（開き／半目／閉じ）＋口。ふだんは開き目で時々まばたき。
-// つかんで持ち上がったらニヤッ（半目＋口）、途中で落ちたら真顔（開き目）に戻る。画面の右下の角に、縁で切れる大きさで置く
+// 絵は AE の元ファイル（詳細コンポ・タービュレントディスプレイス付き）から表情ごとに書き出したコマ表（assets/face_sheet_*.webp・face.json）。
+// つかんで持ち上がったらニヤッ（口が上がる・開き目のまま）、途中で落ちたら真顔に戻る。画面の右下の角に、縁で切れる大きさで置く
 const faceUI = {
-  img: {}, data: null, rect: null, mode: 'normal', blinkUntil: 0, nextBlink: 2, bounceAt: -1, dipAt: -1,
+  // コマ表（AE の「詳細」コンポをタービュレントディスプレイス付きで書き出したもの）を 30 コマ/秒のきざみで回す。
+  // ふだん＝open の 12 コマを秒 6 で回し、時々まばたき（半目→閉じ目→半目）を差し込む。ニヤッ＝grin_in（9コマ・秒30）→ grin の 12 コマを秒 6 で回す。
+  // 戻る＝grin_out（15コマ）→ ふだんへ。揺れの周期はループの途中位置を保って続けるので、表情が変わっても継ぎ目が出ない
+  img: {}, data: null, rect: null, mode: 'normal',
+  queue: [], cur: null, hold: 0, lastTick: 0, loopPos: 0, nextBlink: 0,
   layout() {
     if (!this.data || !con.R) return;
-    const [bw, bh] = this.data.size;
+    const [fw, fh] = this.data.size;
     const b = con.data.R.btnY, c = conPt('R', b.c), bottom = c.y + b.r_bezel * con.R.k;   // 「たて」のボタンにはかぶせない
     const h = Math.max(80, Math.min(view.ch * 0.34, view.ch - bottom - 8));
-    const w = h * bw / bh;
-    this.rect = { x: view.cw - w, y: view.ch - h, w, h };
+    const w = h * fw / fh;
+    this.rect = { x: view.cw - w, y: view.ch - h, w, h };   // 右下の角に、縁で切れる絵をそのまま置く
   },
-  grin() { this.mode = 'grin'; this.bounceAt = performance.now(); },
-  normal(shock) { if (this.mode === 'grin' && shock) this.dipAt = performance.now(); this.mode = 'normal'; },
+  play(name) { const c = this.data && this.data.clips[name]; if (!c) return; this.queue = c.map((f) => ({ name: f[0], ticks: f[1] })); this.hold = 0; },
+  grin() { if (this.mode === 'grin') return; this.mode = 'grin'; this.loopPos = 0; this.play('grin_in'); },
+  normal() { if (this.mode === 'normal') return; this.mode = 'normal'; this.loopPos = 0; this.play('grin_out'); },
+  refill(nowSec) {
+    const blink = this.mode === 'grin' ? 'grin_blink' : 'blink';
+    if (nowSec > this.nextBlink) { this.nextBlink = nowSec + 2.5 + Math.random() * 3; this.play(blink); return; }
+    const loop = this.data.clips[this.mode === 'grin' ? 'grin' : 'idle'];
+    const f = loop[this.loopPos % loop.length]; this.loopPos++;
+    this.queue = [{ name: f[0], ticks: f[1] }];
+  },
+  step(now) {
+    const dt = 1000 / (this.data.tick_fps || 30);
+    if (!this.lastTick) { this.lastTick = now; this.nextBlink = now / 1000 + 1.5; }
+    let n = Math.floor((now - this.lastTick) / dt);
+    if (n <= 0) return;
+    if (n > 10) { this.lastTick = now; n = 1; }   // タブ切替などで時間が飛んだ時は追いつかせない
+    else this.lastTick += n * dt;
+    while (n-- > 0) {
+      if (this.hold > 0) { this.hold--; continue; }
+      if (!this.queue.length) this.refill(now / 1000);
+      const f = this.queue.shift(); this.cur = f.name; this.hold = f.ticks - 1;
+    }
+  },
   draw() {
-    if (!this.rect || !this.img.body) return;
-    const now = performance.now(), t = now / 1000, r = this.rect;
-    if (this.mode !== 'grin' && t > this.nextBlink) { this.blinkUntil = t + 0.13; this.nextBlink = t + 2.5 + Math.random() * 3; }
-    let dy = 0;
-    const sy = 1 + 0.012 * Math.sin(t * 2 * Math.PI / 2.6);   // 息づかい
-    if (this.bounceAt >= 0) { const u = (now - this.bounceAt) / 350; if (u < 1) dy = -r.h * 0.06 * Math.sin(Math.PI * u); else this.bounceAt = -1; }   // ニヤッで跳ねる
-    if (this.dipAt >= 0) { const u = (now - this.dipAt) / 300; if (u < 1) dy = r.h * 0.04 * Math.sin(Math.PI * u); else this.dipAt = -1; }          // 落ちてしょんぼり
+    if (!this.rect || !this.data) return;
+    this.step(performance.now());
+    const fr = this.data.frames[this.cur || 'open_00'], im = fr && this.img[fr.sheet];
+    if (!im) return;
+    const [fw, fh] = this.data.size, r = this.rect;
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
     ctx.globalAlpha = 1;
-    ctx.save();
-    ctx.translate(r.x + r.w / 2, r.y + r.h + dy); ctx.scale(1, sy); ctx.translate(-(r.x + r.w / 2), -(r.y + r.h));   // 下端を基準に伸び縮み
-    ctx.drawImage(this.img.body, r.x, r.y, r.w, r.h);
-    const eyes = this.mode === 'grin' ? 'eyes_half' : (t < this.blinkUntil ? 'eyes_closed' : 'eyes_open');
-    if (this.img[eyes]) ctx.drawImage(this.img[eyes], r.x, r.y, r.w, r.h);
-    // 口はいつもある（動画と同じ）。ニヤッの時は口の中心を軸に右上がりへ回して少し大きく
-    if (this.img.mouth) {
-      const mc = this.data.mouth_center || [0.68, 0.57], mx = r.x + mc[0] * r.w, my = r.y + mc[1] * r.h;
-      ctx.save();
-      if (this.mode === 'grin') { ctx.translate(mx, my); ctx.rotate(-0.35); ctx.scale(1.12, 1.12); ctx.translate(-mx, -my); }
-      ctx.drawImage(this.img.mouth, r.x, r.y, r.w, r.h);
-      ctx.restore();
-    }
-    ctx.restore();
+    ctx.drawImage(im, fr.x, fr.y, fw, fh, r.x, r.y, r.w, r.h);
   },
 };
 
@@ -564,6 +575,7 @@ function setPhase(p) {
       if (game.target) { game.target.state = 'held'; game.target.attach = 0; claw.held = game.target; faceUI.grin(); }   // つかめた→右下の子がニヤッ
       claw.damp = CFG.dampHeld; game.liftStartL = claw.L; audio.whir(); break;
     case 'slipping': audio.slip(); faceUI.normal(true); break;   // 途中で落ちた→真顔に戻る
+    case 'hold': audio.motorOff(); break;   // 上で一呼吸（ぶら下がった子が揺れて止まるのを見せる）
     case 'carry': claw.damp = CFG.dampHeld; guide(''); break;
     case 'release': claw.armTarget = CFG.armOpen; break;
     case 'return': claw.armTarget = CFG.armClosed; claw.damp = CFG.dampFree; break;
@@ -713,7 +725,12 @@ function update(dt) {
       const L0 = claw.cableTop - CFG.raisedZ;
       const prog = (game.liftStartL - claw.L) / Math.max(0.01, game.liftStartL - L0);
       if (game.outcome === 'lose' && claw.held && prog >= game.slipAt) { setPhase('slipping'); break; }
-      if (claw.L <= L0) { claw.L = L0; setPhase(game.outcome === 'win' && claw.held ? 'carry' : 'return'); }
+      if (claw.L <= L0) { claw.L = L0; setPhase('hold'); }   // 上げ切ったら一呼吸止まる（本物と同じ）
+      break;
+    }
+    case 'hold': {
+      acc = stepCarriage(dt, 0, 0, spd);
+      if (game.phaseT > CFG.holdSec) setPhase(game.outcome === 'win' && claw.held ? 'carry' : 'return');
       break;
     }
     case 'slipping': {
