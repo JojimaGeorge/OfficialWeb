@@ -52,6 +52,7 @@ const CFG = {
   bgmVol: 0.5,          // BGM の音量（効果音に対する割合）
   slump: 0.55,          // 持ち上げた子の上に乗っていた子が穴へ沈む深さ（持ち上げた子の高さに対する割合）
   shadowAlpha: 0.6,     // UFO の影の濃さ（Blender の影そのままだと絵の上で穴に見える）
+  clawShadow: false,    // UFO の影を描くか（2026-10-29 本人「不自然だから一旦消す」＝止めている。絵と仕組みは残す）
 };
 Object.assign(CFG.layout, CFG_LAYOUT_OVERRIDE);
 
@@ -306,7 +307,7 @@ function resize() {
   view.k = Math.min(ch / H, (cw - 2 * edge - 2 * gap) / (W + 2 * conWperK));
   const imgW = W * view.k, imgH = H * view.k;
   view.ox = (cw - imgW) / 2;
-  view.oy = ch - imgH;   // 下端に揃える（4:3 で出る上の空きは部屋の色のまま＝梁の平らな天面に見える）
+  view.oy = 0;   // 上端に揃える（本人の指示＝上に隙間を作らない）。4:3 で出る下の空きは draw() が胴体の端の1行を伸ばして埋める
   document.documentElement.style.setProperty('--machine-left', view.ox + 'px');
   document.documentElement.style.setProperty('--machine-width', imgW + 'px');
   layoutConsoles();
@@ -406,9 +407,11 @@ function drawConsoles() {
   ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
   ctx.globalAlpha = 1;
   for (const side of ['L', 'R']) {
-    const c = con[side];
+    const c = con[side], im = con.img['console_' + side];
     if (!c.cache) c.cache = bakeConsole(side);
     if (c.cache) ctx.drawImage(c.cache.canvas, c.cache.x, c.cache.y, c.cache.w, c.cache.h);
+    const bottom = c.y + c.h;   // 4:3 で出る下の空き：足の端の1行を画面の下端まで伸ばす
+    if (im && view.ch > bottom + 0.5) ctx.drawImage(im, 0, im.height - 1, im.width, 1, c.x, bottom - 0.5, c.w, view.ch - bottom + 1);
   }
   const t = frameNow / 1000;
   // 天井の電球：筐体の梁と同じ追いかけ点灯。番号は左の操作盤 0〜2 → 梁 3〜13 → 右の操作盤 14〜16 で一続き。
@@ -1187,6 +1190,7 @@ function pileTopUnder(x, y) {
   return { z, on };
 }
 function drawClawShadow(p, zs) {
+  if (!CFG.clawShadow) return;
   const h = Math.max(0, claw.z - zs);
   const ch = scene.machine.chute;
   const usable = clawShadows.filter((s) => s.h >= 0.04);   // 2cm の絵は触れる寸前の真っ黒な影＝絵の上では穴に見えるので使わない
@@ -1239,6 +1243,10 @@ function draw() {
   if (!img.bg) return;
   ctx.setTransform(view.k * view.dpr, 0, 0, view.k * view.dpr, view.ox * view.dpr, view.oy * view.dpr);
   ctx.drawImage(img.bg, 0, 0);
+  {   // 4:3 で出る下の空き：胴体の端の1行を画面の下端まで伸ばす（筐体が床まで続いて見える）
+    const W = scene.image.width, H = scene.image.height, bottom = (view.ch - view.oy) / view.k;
+    if (bottom > H + 0.5) ctx.drawImage(img.bg, 0, H - 1, W, 1, 0, H - 0.5, W, bottom - H + 1);
+  }
   // 梁の電球：点いているものだけ「点灯−消灯」の差分を足し算で貼る（消えた絵は背景に描いてある）
   frameNow = performance.now();
   const bstep = Math.floor(frameNow / 1000 / CFG.bulbStep);
