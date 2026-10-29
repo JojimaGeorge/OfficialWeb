@@ -260,7 +260,9 @@ async function load() {
   // 左右の操作盤：絵（本体・キャップ・光る輪・コイン）と部品の画面上の位置
   jobs.push(track(fetch('assets/console.json').then((r) => r.json())).then((c) => {
     con.data = c;
-    return Promise.all(Object.entries(c.sprites).map(([key, spr]) => track(loadImage('assets/' + spr.file)).then((im) => { con.img[key] = im; })));
+    const list = Object.entries(c.sprites).map(([key, spr]) => track(loadImage('assets/' + spr.file)).then((im) => { con.img[key] = im; }));
+    if (c.coin) list.push(track(loadImage('assets/' + c.coin.file)).then((im) => { con.img.coin_sheet = im; }));   // コインのコマ表（3度きざみ）
+    return Promise.all(list);
   }));
   // 右下で見物しているぽちゃもん（顔のパーツ）
   jobs.push(track(fetch('assets/face.json').then((r) => r.json())).then((f) => {
@@ -461,10 +463,19 @@ const coinUI = {
     if (!con.L) return;
     const L = con.data.L;
     // コインの絵は console の描き出しの中で 2 倍の大きさで描いてある（細部のため）。画面での直径は画面の高さから決める
-    const keys = Object.keys(con.data.sprites).filter((n) => /^coin_\d\d$/.test(n)).sort();
     this.D = clamp(view.ch * CFG.coinSize, 96, 200);
-    const s = this.D / (2 * (L.coin_r_px || con.data.sprites[keys[0]].rect[2] / 2));   // 絵の px → 画面 px
-    this.frames = keys.map((n) => { const spr = con.data.sprites[n]; return { key: n, deg: spr.deg || 0, w: spr.rect[2] * s, h: spr.rect[3] * s }; });
+    const s = this.D / (2 * (L.coin_r_px || 117));   // 絵（frame px）→ 画面 px
+    if (con.data.coin) {
+      // コマ表：3度きざみの向き。コマ表の px は frame px × scale なので、画面に出す時は s / scale 倍
+      const sh = con.data.coin, ks = s / sh.scale;
+      this.sheet = { w: sh.sheet[0] * ks, h: sh.sheet[1] * ks, ks };
+      this.frames = sh.frames.map((f) => ({ deg: f.deg, x: f.x * ks, y: f.y * ks, w: f.w * ks, h: f.h * ks }));
+    } else {
+      const keys = Object.keys(con.data.sprites).filter((n) => /^coin_\d\d$/.test(n)).sort();
+      this.sheet = null;
+      this.frames = keys.map((n) => { const spr = con.data.sprites[n]; return { key: n, deg: spr.deg || 0, w: spr.rect[2] * s, h: spr.rect[3] * s }; });
+    }
+    this.deg = this.frames[this.frame] ? this.frames[this.frame].deg : 0;
     const sl = conRect('L', L.slit), sp = conRect('L', L.slot_plate);
     this.slit = { x: sl.x + sl.w / 2, y: sl.y, h: sl.h };
     this.slitSize = clamp(sl.h * CFG.coinAtSlit / this.D, 0.12, 1);   // 投入口のそばでの縮尺＝手元から板の上へ（遠近）
@@ -486,23 +497,41 @@ const coinUI = {
   clearTimers() { for (const id of this.timers) clearTimeout(id); this.timers = []; },
   place(cx, cy, frame, size) {   // 中心の座標で置く。frame は向きの絵、size は縮尺（1＝手に持った大きさ）
     const f = this.frames[frame];
-    if (frame !== this.frame || !ui.coinImg.getAttribute('src')) { this.frame = frame; const im = con.img[f.key]; if (im) ui.coinImg.src = im.src; }
     if (size != null) this.size = size;
     const w = f.w * this.size, h = f.h * this.size;
+    if (this.sheet) {
+      // コマ表から切り出す（背景画像の位置ずらし）。大きさは size ぶん縮める
+      const im = con.img.coin_sheet;
+      if (im && !ui.coinImg.dataset.sheet) { ui.coinImg.style.backgroundImage = 'url(' + im.src + ')'; ui.coinImg.dataset.sheet = '1'; }
+      ui.coinImg.style.backgroundSize = (this.sheet.w * this.size) + 'px ' + (this.sheet.h * this.size) + 'px';
+      ui.coinImg.style.backgroundPosition = (-f.x * this.size) + 'px ' + (-f.y * this.size) + 'px';
+    } else if (frame !== this.frame || !ui.coinImg.style.backgroundImage) {
+      const im = con.img[f.key]; if (im) { ui.coinImg.style.backgroundImage = 'url(' + im.src + ')'; ui.coinImg.style.backgroundSize = '100% 100%'; ui.coinImg.style.backgroundPosition = '0 0'; }
+    }
+    this.frame = frame; this.deg = f.deg;
     ui.coin.style.width = w + 'px'; ui.coin.style.height = h + 'px';
     ui.coin.style.transform = 'translate(' + (cx - w / 2) + 'px,' + (cy - h / 2) + 'px)';
     this.pos = { x: cx, y: cy };
   },
-  // ドラッグ中の見え方：投入口に近づくほど小さく（手元から板の上へ）、向きも寝ていく（30°→60°→75°→90°）
+  // 向きをなめらかに：目標の角度へ指数的に追いつく（指が止まっても回り切る）。ドラッグ中は毎コマ回す
+  degTarget: 0, degCur: 0, lastTick: 0,
+  tick() {
+    if (this.state !== 'drag') return;
+    const now = performance.now(), dt = Math.min(0.05, (now - (this.lastTick || now)) / 1000); this.lastTick = now;
+    this.degCur += (this.degTarget - this.degCur) * (1 - Math.exp(-dt * 16));
+    if (Math.abs(this.degTarget - this.degCur) < 0.3) this.degCur = this.degTarget;
+    const p = this.dragPose(this.pos.x, this.pos.y);
+    this.place(this.pos.x, this.pos.y, this.frameFor(this.degCur), p.size);
+    requestAnimationFrame(() => this.tick());
+  },  // ドラッグ中の見え方：投入口に近づくほど小さく（手元から板の上へ）、向きも寝ていく（30°→60°→75°→90°）
   dragPose(cx, cy) {
     const d = Math.hypot(cx - this.slit.x, cy - (this.slit.y + this.slit.h / 2)), R = this.D;
     const u = clamp((2.6 * R - d) / (2.0 * R), 0, 1), e = u * u * (3 - 2 * u);
     const size = lerp(1, this.slitSize, e) * 1.06;   // 持っている間は少し浮いて大きめ
-    const turned = performance.now() - this.dragT > 70 ? 60 : 30;
-    const deg = d < 1.2 * R ? 90 : d < 2.4 * R ? 75 : turned;
-    return { size, frame: this.frameFor(deg) };
-  },
-  toHome(drop) {
+    const v = clamp((2.4 * R - d) / (1.2 * R), 0, 1);   // 口から 2.4R で 60°、1.2R で 90°（間は連続）
+    this.degTarget = lerp(60, 90, v * v * (3 - 2 * v));
+    return { size, frame: this.frameFor(this.degCur) };
+  },  toHome(drop) {
     this.clearTimers(); con.credit = false;   // 投入の途中で中断された時：始まりのタイマーを止め、クレジットの表示を消す
     this.state = 'home';
     if (!this.frames) return;   // 置き場が決まる前（最初の読み込み中）は layout() が置く
@@ -517,11 +546,11 @@ const coinUI = {
     // 今の向き・大きさのまま札の下へ山なりに飛び、途中で正面に戻す（持った時の逆回し）。大きさも飛びながら手に持った大きさへ
     this.clearTimers();
     this.state = 'returning'; ui.coin.classList.remove('bob', 'dragging', 'nudge');
-    const h = this.home(), start = { x: this.pos.x, y: this.pos.y, size: this.size }, f0 = this.frame, t0 = performance.now(), T = 0.45;
+    const h = this.home(), start = { x: this.pos.x, y: this.pos.y, size: this.size }, deg0 = this.deg, t0 = performance.now(), T = 0.45;
     const step = () => {
       if (this.state !== 'returning') return;   // 途中でつかみ直された／タイトルを出た
       const u = Math.min(1, (performance.now() - t0) / 1000 / T), e = 1 - Math.pow(1 - u, 3);
-      const frame = u < 0.65 ? f0 : u < 1 ? Math.min(f0, this.frameFor(30)) : 0;
+      const frame = this.frameFor(lerp(deg0, 0, e));   // 向きも飛びながら正面へ
       this.place(lerp(start.x, h.x, e), lerp(start.y, h.y, e) - Math.sin(u * Math.PI) * this.D * 0.3, frame, lerp(start.size, 1, e));
       if (u < 1) { requestAnimationFrame(step); return; }
       this.state = 'home'; this.place(h.x, h.y, 0, 1); ui.coin.classList.add('bob');
@@ -531,7 +560,7 @@ const coinUI = {
   insert(fast) {
     if (this.state === 'inserting' || this.state === 'hidden' || !this.slit) return;
     this.state = 'inserting'; ui.coin.classList.remove('bob', 'dragging', 'nudge'); ui.coin.classList.add('inserting');
-    const start = { x: this.pos.x, y: this.pos.y, size: this.size }, deg0 = this.frames[this.frame].deg, fe = this.frameFor(90);
+    const start = { x: this.pos.x, y: this.pos.y, size: this.size }, deg0 = this.deg, fe = this.frameFor(90);
     const end = () => ({ x: this.slit.x, y: this.slit.y + this.slit.h * 0.5 });   // 途中でリサイズされても今の投入口へ
     const T1 = fast ? 0.01 : 0.24, T2 = fast ? 0.01 : 0.32, t0 = performance.now();
     const step = () => {
@@ -1340,15 +1369,17 @@ ui.coin.addEventListener('pointerdown', (e) => {
   if (midFlight) coinUI.place(e.clientX, e.clientY, coinUI.frame);
   ui.coin.classList.remove('bob', 'nudge'); ui.coin.classList.add('dragging');
   try { ui.coin.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-  // 持った瞬間に縦向きへ（0°→30°→60° と素早く回す。指が止まっていても回り切るようにタイマーでも進める）
-  coinUI.place(coinUI.pos.x, coinUI.pos.y, coinUI.frameFor(30), 1.06);
-  coinUI.timers.push(setTimeout(() => { if (coinUI.state === 'drag') { const p = coinUI.dragPose(coinUI.pos.x, coinUI.pos.y); coinUI.place(coinUI.pos.x, coinUI.pos.y, p.frame, p.size); } }, 90));
+  // 持った瞬間から縦向きへなめらかに回り始める（0°→60°・指が止まっていても回り切る＝毎コマ回す tick）
+  coinUI.degCur = coinUI.deg; coinUI.lastTick = performance.now();
+  const p0 = coinUI.dragPose(coinUI.pos.x, coinUI.pos.y);
+  coinUI.place(coinUI.pos.x, coinUI.pos.y, coinUI.frameFor(coinUI.degCur), p0.size);
+  requestAnimationFrame(() => coinUI.tick());
 });
 ui.coin.addEventListener('pointermove', (e) => {
   if (coinUI.state !== 'drag' || !coinUI.grab || e.pointerId !== coinUI.grab.id) return;
   e.preventDefault();
   const cx = e.clientX - coinUI.grab.dx, cy = e.clientY - coinUI.grab.dy;
-  const p = coinUI.dragPose(cx, cy);   // 投入口に近づくほど小さく・真横に
+  const p = coinUI.dragPose(cx, cy);   // 投入口に近づくほど小さく（向きは tick がなめらかに追いつく）
   coinUI.place(cx, cy, p.frame, p.size);
 });
 const coinUp = (e) => {
@@ -1459,7 +1490,7 @@ window.__ufo = {
   press: (key, on) => { input[key] = !!on; if (on) input['pressed' + key.toUpperCase()] = true; ui['btn' + key.toUpperCase()].classList.toggle('pressed', !!on); },
   tap: () => { if (game.phase === 'title') coinUI.insert(true); else if (game.phase === 'result') setPhase('title'); },
   insertCoin: (fast) => coinUI.insert(!!fast),
-  coin: () => ({ state: coinUI.state, pos: coinUI.pos, frame: coinUI.frame, size: coinUI.size, D: coinUI.D, slitSize: coinUI.slitSize, slit: coinUI.slit, zone: coinUI.slotZone }),
+  coin: () => ({ state: coinUI.state, pos: coinUI.pos, frame: coinUI.frame, deg: coinUI.deg, degCur: coinUI.degCur, size: coinUI.size, D: coinUI.D, slitSize: coinUI.slitSize, slit: coinUI.slit, zone: coinUI.slotZone }),
   consoles: () => ({ loaded: !!con.data, L: con.L, R: con.R, view: Object.assign({}, view), cab: Object.assign({}, cab) }),
   bgm: () => audio.bgmState(),
   pile: () => toys.map((t) => ({ id: t.id, state: t.state, dz: +t.dz.toFixed(3), rot: +t.rot.toFixed(3), bounce: +(t.bounce || 0).toFixed(3), reactors: (t.reactors || []).map((a) => a.id) })),

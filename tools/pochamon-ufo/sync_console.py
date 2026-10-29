@@ -32,12 +32,34 @@ def put(name, quality):
 
 
 for f in os.listdir(DEST):
-    if f.startswith(("console_", "cap", "ring", "coin_", "bulb_L", "bulb_R")) and f.split(".")[-1] in ("png", "webp"):
+    if f.startswith(("console_", "cap", "ring", "coin_", "bulb_L", "bulb_R")) and f.split(".")[-1] in ("png", "webp"):   # coin_sheet も coin_ で掃除される
         os.remove(os.path.join(DEST, f))
 
 import numpy as np
 base = {side: np.array(Image.open(os.path.join(src, f"console_{side}.png")).convert("RGBA")).astype(np.int16) for side in ("L", "R")}
 base_rect = {side: C["sprites"][f"console_{side}"]["rect"] for side in ("L", "R")}
+# コイン：向きごとの絵（coin_NN.png）を1枚のコマ表にまとめる（ます目は一番大きい絵。0.6倍＝画面 130px の 2x でも 1:1 以上）
+import math
+COIN_SHEET_SCALE = 0.6
+coin_keys = sorted(k for k in C["sprites"] if k.startswith("coin_"))
+if coin_keys:
+    frames = [(C["sprites"][k]["deg"], Image.open(os.path.join(src, C["sprites"][k]["file"])).convert("RGBA"), C["sprites"][k]) for k in coin_keys]
+    cw = max(im.size[0] for _, im, _ in frames); chh = max(im.size[1] for _, im, _ in frames)
+    cols = 8; rows = math.ceil(len(frames) / cols)
+    sheet = Image.new("RGBA", (cw * cols, chh * rows), (0, 0, 0, 0))
+    out_frames = []
+    for i, (deg, im, spr) in enumerate(frames):
+        x = (i % cols) * cw + (cw - im.size[0]) // 2; y = (i // cols) * chh + (chh - im.size[1]) // 2   # ます目の中央に
+        sheet.paste(im, (x, y))
+        out_frames.append({"deg": deg, "x": x * COIN_SHEET_SCALE, "y": y * COIN_SHEET_SCALE, "w": im.size[0] * COIN_SHEET_SCALE, "h": im.size[1] * COIN_SHEET_SCALE})
+        total_in += os.path.getsize(os.path.join(src, spr["file"]))
+    sheet = sheet.resize((round(sheet.size[0] * COIN_SHEET_SCALE), round(sheet.size[1] * COIN_SHEET_SCALE)), Image.LANCZOS)
+    sheet.save(os.path.join(DEST, "coin_sheet.webp"), "WEBP", quality=92, method=6)
+    total_out += os.path.getsize(os.path.join(DEST, "coin_sheet.webp"))
+    C["coin"] = {"file": "coin_sheet.webp", "sheet": [sheet.size[0], sheet.size[1]], "scale": COIN_SHEET_SCALE, "frames": out_frames}
+    for k in coin_keys:
+        del C["sprites"][k]   # 1枚ずつの絵は置かない（コマ表で足りる）
+    print("coin sheet", sheet.size, len(frames), "frames")
 for key, spr in C["sprites"].items():
     if key.startswith("bulb_"):
         # 点灯の絵は「点灯−消灯」の差分（黒＝光なし）。ゲームは足し算（lighter）で貼る
