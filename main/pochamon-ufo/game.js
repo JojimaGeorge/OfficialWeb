@@ -190,6 +190,11 @@ async function load() {
     con.data = c;
     return Promise.all(Object.entries(c.sprites).map(([key, spr]) => track(loadImage('assets/' + spr.file)).then((im) => { con.img[key] = im; })));
   }));
+  // 右下で見物しているぽちゃもん（顔のパーツ）
+  jobs.push(track(fetch('assets/face.json').then((r) => r.json())).then((f) => {
+    faceUI.data = f;
+    return Promise.all(Object.entries(f.files).map(([key, file]) => track(loadImage('assets/' + file)).then((im) => { faceUI.img[key] = im; })));
+  }));
   if (document.fonts && document.fonts.load) jobs.push(track(document.fonts.load('900 20px "Zen Maru Gothic"').catch(() => {})));   // 電光表示のラベルを canvas に描くため
   await Promise.all(jobs);
   // 景品口の「窓」：手前のふちから上に開いた四角（床より下に落ちた分を隠す）
@@ -240,6 +245,7 @@ function layoutConsoles() {
   }
   con.L.cache = con.R.cache = null;   // 大きさが変わったので描き溜めを作り直す
   coinUI.layout();
+  faceUI.layout();
 }
 function label(g, text, cx, baseY, px, color) {
   g.save();
@@ -406,6 +412,41 @@ const coinUI = {
   },
 };
 
+// ---------------- 右下で見物しているぽちゃもん（アニメ動画と同じ配置） ----------------
+// 顔はパーツの重ね合わせ：素体＋目（開き／半目／閉じ）＋口。ふだんは開き目で時々まばたき。
+// つかんで持ち上がったらニヤッ（半目＋口）、途中で落ちたら真顔（開き目）に戻る。画面の右下の角に、縁で切れる大きさで置く
+const faceUI = {
+  img: {}, data: null, rect: null, mode: 'normal', blinkUntil: 0, nextBlink: 2, bounceAt: -1, dipAt: -1,
+  layout() {
+    if (!this.data || !con.R) return;
+    const [bw, bh] = this.data.size;
+    const b = con.data.R.btnY, c = conPt('R', b.c), bottom = c.y + b.r_bezel * con.R.k;   // 「たて」のボタンにはかぶせない
+    const h = Math.max(80, Math.min(view.ch * 0.34, view.ch - bottom - 8));
+    const w = h * bw / bh;
+    this.rect = { x: view.cw - w, y: view.ch - h, w, h };
+  },
+  grin() { this.mode = 'grin'; this.bounceAt = performance.now(); },
+  normal(shock) { if (this.mode === 'grin' && shock) this.dipAt = performance.now(); this.mode = 'normal'; },
+  draw() {
+    if (!this.rect || !this.img.body) return;
+    const now = performance.now(), t = now / 1000, r = this.rect;
+    if (this.mode !== 'grin' && t > this.nextBlink) { this.blinkUntil = t + 0.13; this.nextBlink = t + 2.5 + Math.random() * 3; }
+    let dy = 0;
+    const sy = 1 + 0.012 * Math.sin(t * 2 * Math.PI / 2.6);   // 息づかい
+    if (this.bounceAt >= 0) { const u = (now - this.bounceAt) / 350; if (u < 1) dy = -r.h * 0.06 * Math.sin(Math.PI * u); else this.bounceAt = -1; }   // ニヤッで跳ねる
+    if (this.dipAt >= 0) { const u = (now - this.dipAt) / 300; if (u < 1) dy = r.h * 0.04 * Math.sin(Math.PI * u); else this.dipAt = -1; }          // 落ちてしょんぼり
+    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.save();
+    ctx.translate(r.x + r.w / 2, r.y + r.h + dy); ctx.scale(1, sy); ctx.translate(-(r.x + r.w / 2), -(r.y + r.h));   // 下端を基準に伸び縮み
+    ctx.drawImage(this.img.body, r.x, r.y, r.w, r.h);
+    const eyes = this.mode === 'grin' ? 'eyes_half' : (t < this.blinkUntil ? 'eyes_closed' : 'eyes_open');
+    if (this.img[eyes]) ctx.drawImage(this.img[eyes], r.x, r.y, r.w, r.h);
+    if (this.mode === 'grin' && this.img.mouth) ctx.drawImage(this.img.mouth, r.x, r.y, r.w, r.h);
+    ctx.restore();
+  },
+};
+
 // ---------------- ゲームの流れ ----------------
 function showMsg(text, cls, ms = 1100) {
   const m = ui.msg;
@@ -475,6 +516,7 @@ function setPhase(p) {
       ui.title.classList.add('show'); ui.result.classList.remove('show'); setButtons(false, false); guide('');
       resetClaw(); audio.motorOff();
       coinUI.toHome(prev !== 'loading');   // 遊び終わり（や中断）ならコインが札の下に落ちて戻ってくる
+      faceUI.normal(false);
       break;
     case 'intro':
       ui.title.classList.remove('show'); coinUI.hide(); startGame(); showMsg('1かいめ！', 'round', 900); setButtons(false, false);
@@ -506,15 +548,16 @@ function setPhase(p) {
       game.slipAt = CFG.slipMin + Math.random() * (CFG.slipMax - CFG.slipMin);
       break;
     case 'lift':
-      if (game.target) { game.target.state = 'held'; game.target.attach = 0; claw.held = game.target; }
+      if (game.target) { game.target.state = 'held'; game.target.attach = 0; claw.held = game.target; faceUI.grin(); }   // つかめた→右下の子がニヤッ
       claw.damp = CFG.dampHeld; game.liftStartL = claw.L; audio.whir(); break;
-    case 'slipping': audio.slip(); break;
+    case 'slipping': audio.slip(); faceUI.normal(true); break;   // 途中で落ちた→真顔に戻る
     case 'carry': claw.damp = CFG.dampHeld; guide(''); break;
     case 'release': claw.armTarget = CFG.armOpen; break;
     case 'return': claw.armTarget = CFG.armClosed; claw.damp = CFG.dampFree; break;
-    case 'between': showMsg((game.tryIndex + 1) + 'かいめ！', 'round', 900); game.lastInputAt = performance.now(); break;
+    case 'between': showMsg((game.tryIndex + 1) + 'かいめ！', 'round', 900); game.lastInputAt = performance.now(); faceUI.normal(false); break;
     case 'result': {
       setButtons(false, false); guide(''); audio.motorOff();
+      if (game.got > 0) faceUI.grin(); else faceUI.normal(false);
       ui.resultNum.textContent = game.got;
       ui.resultStickers.innerHTML = '';
       for (let i = 0; i < game.got; i++) {
@@ -690,7 +733,7 @@ function update(dt) {
       if (t && claw.arm <= -11) {
         t.state = 'chute'; t.vz = 0; t.rotV = (Math.random() - 0.5) * 2.5; t.splashed = false;
         claw.held = null; claw.wx += 0.5 * (Math.random() - 0.5);
-        game.got++; updateHud(); showMsg('ゲット！！', 'win', 1400); audio.win();
+        game.got++; updateHud(); showMsg('ゲット！！', 'win', 1400); audio.win(); faceUI.grin();
       }
       if (!claw.held && game.phaseT > 1.0) setPhase('return');
       break;
@@ -896,6 +939,7 @@ function draw() {
   for (const t of toys) if (t.state === 'chute') drawToyDynamic(t, t.hold.z + t.dz - t.below < 0.0);
   drawGantry();
   drawConsoles();
+  faceUI.draw();
 }
 
 // ---------------- メインループ ----------------
@@ -1070,6 +1114,7 @@ window.__ufo = {
   insertCoin: (fast) => coinUI.insert(!!fast),
   coin: () => ({ state: coinUI.state, pos: coinUI.pos, frame: coinUI.frame, slit: coinUI.slit, zone: coinUI.slotZone }),
   consoles: () => ({ loaded: !!con.data, L: con.L, R: con.R }),
+  face: () => ({ mode: faceUI.mode, rect: faceUI.rect }),
   force: (arr) => { game.forcedOutcome = arr; },   // 例: ['win','lose','win']（null で解除）
   setLuck: (p) => { settings.luckP = p; },
   setSlot: (s) => { settings.luckSlot = s; },
