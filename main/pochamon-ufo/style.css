@@ -170,7 +170,6 @@ button.big:active { transform: translateY(4px); box-shadow: 0 2px 0 #1d1326; }
 #coin.dragging { cursor: grabbing; z-index: 21; }
 #coin.dragging img { filter: drop-shadow(0 14px 14px rgba(0,0,0,.45)); animation: none; }   /* 大きさは game.js が決める（投入口に近づくほど小さく） */
 #coin.inserting img { filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); animation: none; }   /* 板の上では影も小さい */
-#coin.back { transition: transform .45s cubic-bezier(.3,1.4,.4,1); }   /* 大きさは遷移させない（向きの絵が変わる時に丸がつぶれる） */
 @keyframes coinbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @keyframes coindrop { 0% { transform: translateY(-90px); opacity: 0; } 25% { opacity: 1; } 60% { transform: translateY(6px); } 80% { transform: translateY(-4px); } 100% { transform: none; } }
 @keyframes coinnudge { 0% { transform: translateY(0); } 30% { transform: translateY(-18px) scale(1.08); } 60% { transform: translateY(4px); } 100% { transform: none; } }

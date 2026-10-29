@@ -46,10 +46,15 @@ for f in os.listdir(DEST):
 S["files"] = {"bg": save_webp(load("bg.png").convert("RGB"), "bg.webp", 90)}
 
 # 電球（枠内のぶんだけ）
+# 点灯の絵は「点灯−消灯（背景）」の差分にする（黒＝光なし）。ゲームは足し算（lighter）で貼るので、コマの縁に継ぎ目が出ず、隣と重なってもよい
+bg_arr = np.array(load("bg.png").convert("RGB")).astype(np.int16)
 tiles = []
 for t in C["bulbs"]["tiles"]:
-    name = save_webp(load(t["file"]).convert("RGB"), os.path.splitext(t["file"])[0] + ".webp", 90)
-    tiles.append({"i": t["i"], "file": name, "rect": t["rect"], "c": t["c"], "r": t["r"]})
+    lit = np.array(load(t["file"]).convert("RGB")).astype(np.int16)
+    x, y, w, h = t["rect"]
+    diff = np.clip(lit - bg_arr[y:y + h, x:x + w] - 3, 0, 255).astype(np.uint8)   # −3 でノイズの差を消す
+    name = save_webp(Image.fromarray(diff), "bulb_%02d.webp" % t["i"], 88)
+    tiles.append({"i": t["i"], "file": name, "rect": t["rect"], "c": t["c"], "r": t["r"], "blend": "lighter"})
 S["bulbs"] = {"tiles": tiles, "pitch_px": C["bulbs"]["pitch_px"], "r_px": C["bulbs"]["r_px"], "n": 17}
 
 # アームのコマ表：高さごとに 6×3 のます目（ますの大きさ＝その高さで一番大きい絵）

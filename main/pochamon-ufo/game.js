@@ -148,36 +148,40 @@ const audio = (() => {
   function motorOff() { if (motorGain) motorGain.gain.setTargetAtTime(0, ac.currentTime, 0.08); }
   // BGM（assets/bgm.mp3）：コインを入れたら切れ目なくループ、タイトルに戻ったら消える。
   // バイト列は最初に取っておき、最初の操作（AudioContext ができた時）に復号する。buffer source の loop は継ぎ目に隙間が出ない
-  let bgmBytes = null, bgmBuf = null, bgmSrc = null, bgmGain = null, bgmWant = false, bgmDecoding = false;
+  let bgmBytes = null, bgmBuf = null, bgmCur = null, bgmWant = false, bgmDecoding = false;   // bgmCur = { src, gain }（音源ごとに音量の節＝止めた直後に始めても二重に鳴らない）
   fetch('assets/bgm.mp3').then((r) => r.arrayBuffer()).then((b) => { bgmBytes = b; decodeBgm(); }).catch(() => {});
   function decodeBgm() {
     if (!ac || !bgmBytes || bgmBuf || bgmDecoding) return;
     bgmDecoding = true;
-    ac.decodeAudioData(bgmBytes.slice(0), (buf) => { bgmBuf = buf; bgmDecoding = false; if (bgmWant) bgmStart(); }, () => { bgmDecoding = false; });
+    try {
+      const p = ac.decodeAudioData(bgmBytes.slice(0), (buf) => { bgmBuf = buf; bgmDecoding = false; if (bgmWant) bgmStart(); }, () => { bgmDecoding = false; });
+      if (p && p.catch) p.catch(() => {});   // 失敗（壊れたファイル等）は無音で続ける（未処理の例外にしない）
+    } catch (e) { bgmDecoding = false; }
   }
   function bgmStart() {
     bgmWant = true;
-    if (!ac || !bgmBuf || bgmSrc) return;
-    if (!bgmGain) { bgmGain = ac.createGain(); bgmGain.connect(master); }
+    if (!ac || !bgmBuf || bgmCur) return;
+    const gain = ac.createGain(); gain.connect(master);
     const now = ac.currentTime;
-    bgmGain.gain.cancelScheduledValues(now); bgmGain.gain.setValueAtTime(0.0001, now);
-    bgmGain.gain.exponentialRampToValueAtTime(settings.muted ? 0.0001 : CFG.bgmVol, now + 0.6);
-    bgmSrc = ac.createBufferSource(); bgmSrc.buffer = bgmBuf;
-    bgmSrc.loop = true; bgmSrc.loopStart = 0; bgmSrc.loopEnd = Math.min(bgmBuf.duration, 182.72);   // 尻の無音 0.6 秒を飛ばしてつなぐ
-    bgmSrc.connect(bgmGain); bgmSrc.start();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(settings.muted ? 0.0001 : CFG.bgmVol, now + 0.6);
+    const src = ac.createBufferSource(); src.buffer = bgmBuf;
+    src.loop = true; src.loopStart = 0; src.loopEnd = Math.min(bgmBuf.duration, 182.72);   // 尻の無音 0.6 秒を飛ばしてつなぐ
+    src.connect(gain); src.start();
+    bgmCur = { src, gain };
   }
   function bgmStop() {
     bgmWant = false;
-    if (!bgmSrc) return;
-    const s = bgmSrc, now = ac.currentTime; bgmSrc = null;
-    bgmGain.gain.cancelScheduledValues(now); bgmGain.gain.setValueAtTime(Math.max(0.0001, bgmGain.gain.value), now);
-    bgmGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
-    setTimeout(() => { try { s.stop(); } catch (e) { /* already stopped */ } }, 800);
+    if (!bgmCur) return;
+    const { src, gain } = bgmCur, now = ac.currentTime; bgmCur = null;
+    gain.gain.cancelScheduledValues(now); gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+    setTimeout(() => { try { src.stop(); } catch (e) { /* already stopped */ } try { gain.disconnect(); } catch (e) { /* ignore */ } }, 800);
   }
-  function bgmMute(m) { if (bgmGain && ac) bgmGain.gain.setTargetAtTime(m ? 0.0001 : CFG.bgmVol, ac.currentTime, 0.05); }
+  function bgmMute(m) { if (bgmCur && ac) bgmCur.gain.gain.setTargetAtTime(m ? 0.0001 : CFG.bgmVol, ac.currentTime, 0.05); }
   return {
     unlock, setVolume, motorOn, motorOff, bgmStart, bgmStop, bgmMute,
-    bgmState: () => ({ loaded: !!bgmBuf, playing: !!bgmSrc, want: bgmWant }),
+    bgmState: () => ({ loaded: !!bgmBuf, playing: !!bgmCur, want: bgmWant }),
     tap: () => tone(880, 0.08, 'square', 0.12),
     clack: () => { noise(0.07, 0.5, 1800, 1.2); tone(220, 0.09, 'triangle', 0.25, 120); },
     bump: () => { noise(0.12, 0.35, 300, 0.7); },
@@ -252,7 +256,7 @@ async function load() {
   clawShadows.sort((a, b) => a.h - b.h || a.angle - b.angle);
   // 梁の電球（点灯の絵。消えた絵は背景に描いてある）
   for (const t of ((scene.bulbs && scene.bulbs.tiles) || [])) {
-    const tile = { img: null, i: t.i, rect: t.rect };
+    const tile = { img: null, i: t.i, rect: t.rect, blend: t.blend };
     bulbTiles.push(tile);
     jobs.push(track(loadImage('assets/' + t.file)).then((im) => { tile.img = im; }));
   }
@@ -389,8 +393,9 @@ function draw7seg(x, y, w, h, digit, alpha, color) {
   } finally { ctx.restore(); }
 }
 // 電球 i がいま点いているか：3つに1つが順に流れる（ゲーセンの看板）。ゲット！の直後は全部が速く点滅
+let frameNow = 0;   // draw() の頭で1回だけ取る時刻（梁と操作盤で同じ値を使う＝点滅がずれない）
 function bulbLit(i, step) {
-  if (game.flashUntil && performance.now() < game.flashUntil) return Math.floor(performance.now() / 90) % 2 === 0;
+  if (game.flashUntil && frameNow < game.flashUntil) return Math.floor(frameNow / 90) % 2 === 0;
   return ((i + step) % 3 + 3) % 3 === 0;
 }
 function drawLed(r, value, key) {
@@ -409,16 +414,18 @@ function drawConsoles() {
     if (!c.cache) c.cache = bakeConsole(side);
     if (c.cache) ctx.drawImage(c.cache.canvas, c.cache.x, c.cache.y, c.cache.w, c.cache.h);
   }
-  const t = performance.now() / 1000;
-  // 天井の電球：筐体の梁と同じ追いかけ点灯（消えた絵は本体に描いてあり、点いた絵を上に貼る）
+  const t = frameNow / 1000;
+  // 天井の電球：筐体の梁と同じ追いかけ点灯。番号は左の操作盤 0〜2 → 梁 3〜13 → 右の操作盤 14〜16 で一続き。
+  // 点灯の絵は「点灯−消灯」の差分なので足し算（lighter）で貼る（縁に継ぎ目が出ない）
   const step = Math.floor(t / CFG.bulbStep);
   for (const side of ['L', 'R']) {
     const list = con.data[side].bulbs || [];
     for (let i = 0; i < list.length; i++) {
-      if (!bulbLit(i, step)) continue;
-      const im = con.img[list[i].sprite]; if (!im) continue;
-      const r = conRect(side, con.data.sprites[list[i].sprite].rect);
-      ctx.drawImage(im, r.x, r.y, r.w, r.h);
+      if (!bulbLit(side === 'R' ? i + 14 : i, step)) continue;
+      const spr = con.data.sprites[list[i].sprite], im = con.img[list[i].sprite]; if (!im) continue;
+      const r = conRect(side, spr.rect);
+      ctx.save(); if (spr.blend === 'lighter') ctx.globalCompositeOperation = 'lighter';
+      ctx.drawImage(im, r.x, r.y, r.w, r.h); ctx.restore();
     }
   }
   // ボタン：押す番は蓋そのものが光る（中の電球）＋輪が脈打つ＋まわりにほのかな光。押している間は沈んだ絵
@@ -518,15 +525,23 @@ const coinUI = {
   hide() { this.state = 'hidden'; ui.coin.className = 'hidden'; ui.coin.style.clipPath = ''; },
   nudge() { if (this.state !== 'home') return; ui.coin.classList.remove('nudge'); void ui.coin.offsetWidth; ui.coin.classList.add('nudge'); audio.tap(); },
   springBack() {
-    // 今の向きのまま札の下へ飛んで、着地で正面に戻す（持った時の逆回し）。大きさは手に持った大きさへ戻す
-    this.state = 'returning'; ui.coin.classList.add('back');
-    const h = this.home(); this.place(h.x, h.y, this.frame, 1);
-    this.timers.push(setTimeout(() => { if (this.state === 'returning') this.place(h.x, h.y, Math.min(this.frame, this.frameFor(30)), 1); }, 300));
-    this.timers.push(setTimeout(() => { ui.coin.classList.remove('back'); if (this.state === 'returning') { this.state = 'home'; this.place(h.x, h.y, 0, 1); ui.coin.classList.add('bob'); } }, 450));
+    // 今の向き・大きさのまま札の下へ山なりに飛び、途中で正面に戻す（持った時の逆回し）。大きさも飛びながら手に持った大きさへ
+    this.clearTimers();
+    this.state = 'returning'; ui.coin.classList.remove('bob', 'dragging', 'nudge');
+    const h = this.home(), start = { x: this.pos.x, y: this.pos.y, size: this.size }, f0 = this.frame, t0 = performance.now(), T = 0.45;
+    const step = () => {
+      if (this.state !== 'returning') return;   // 途中でつかみ直された／タイトルを出た
+      const u = Math.min(1, (performance.now() - t0) / 1000 / T), e = 1 - Math.pow(1 - u, 3);
+      const frame = u < 0.65 ? f0 : u < 1 ? Math.min(f0, this.frameFor(30)) : 0;
+      this.place(lerp(start.x, h.x, e), lerp(start.y, h.y, e) - Math.sin(u * Math.PI) * this.D * 0.3, frame, lerp(start.size, 1, e));
+      if (u < 1) { requestAnimationFrame(step); return; }
+      this.state = 'home'; this.place(h.x, h.y, 0, 1); ui.coin.classList.add('bob');
+    };
+    requestAnimationFrame(step);
   },
   insert(fast) {
     if (this.state === 'inserting' || this.state === 'hidden' || !this.slit) return;
-    this.state = 'inserting'; ui.coin.classList.remove('bob', 'back', 'dragging', 'nudge'); ui.coin.classList.add('inserting');
+    this.state = 'inserting'; ui.coin.classList.remove('bob', 'dragging', 'nudge'); ui.coin.classList.add('inserting');
     const start = { x: this.pos.x, y: this.pos.y, size: this.size }, deg0 = this.frames[this.frame].deg, fe = this.frameFor(90);
     const end = () => ({ x: this.slit.x, y: this.slit.y + this.slit.h * 0.5 });   // 途中でリサイズされても今の投入口へ
     const T1 = fast ? 0.01 : 0.24, T2 = fast ? 0.01 : 0.32, t0 = performance.now();
@@ -901,9 +916,9 @@ function updateToys(dt) {
       if (t.settleDelay > 0) t.settleDelay -= dt;
       else {
         const tg = t.target;
-        if (t.dz > tg.dz) {
+        if (t.dz > tg.dz || t.vz > 0) {   // 落ちる（弾んで上がっている間も）
           t.vz -= CFG.g * 0.7 * dt; t.dz += t.vz * dt;
-          if (t.dz <= tg.dz) { t.dz = tg.dz; t.vz = t.vz < -0.35 ? -t.vz * 0.28 : 0; }
+          if (t.dz <= tg.dz && t.vz <= 0) { t.dz = tg.dz; t.vz = t.vz < -0.35 ? -t.vz * 0.28 : 0; }
         } else { t.dz = approach(t.dz, tg.dz, 0.25 * dt); t.vz = 0; }
         t.rot = approach(t.rot, tg.rot, 2.2 * dt); t.dx = approach(t.dx, tg.dx, 0.12 * dt); t.dy = approach(t.dy, tg.dy, 0.12 * dt);
         if (t.dz === tg.dz && t.vz === 0 && t.rot === tg.rot && t.dx === tg.dx && t.dy === tg.dy) { t.state = 'rest'; restPose(t); }
@@ -1139,9 +1154,9 @@ function drawCable(p) {
 }
 function drawGantry() {
   const m = scene.machine;
-  const a = project(claw.cx, m.rails.y_front, m.gantry.z), b = project(claw.cx, m.rails.y_back, m.gantry.z);
+  const a = project(claw.cx, m.rails.y_front + 0.03, m.gantry.z), b = project(claw.cx, m.rails.y_back, m.gantry.z);   // 手前の端はレールの裏（見えない）
   const d = (a.d + b.d) / 2;
-  // 手前の梁（上の太いピンク）と手前のレールの裏には出ない。棒の手前の端はレールの下にぶら下がる金具（丸いキャップの棒が「鉤」に見えていた）
+  // 手前の梁（上の太いピンク）と手前のレールの裏には出ない（丸いキャップの棒がレールの上に出て「鉤」に見えていた）
   ctx.save();
   clipBehindFront();
   ctx.lineCap = 'butt';
@@ -1151,14 +1166,6 @@ function drawGantry() {
   ctx.beginPath(); ctx.moveTo(a.u, a.v); ctx.lineTo(b.u, b.v); ctx.stroke();
   ctx.strokeStyle = '#eef0f4'; ctx.lineWidth = lenPx(0.005, d);
   ctx.beginPath(); ctx.moveTo(a.u - lenPx(0.004, d), a.v); ctx.lineTo(b.u - lenPx(0.004, d), b.v); ctx.stroke();
-  {   // レールをつかむ金具（手前の端）
-    const bw = lenPx(0.046, a.d), bh = lenPx(0.03, a.d), br = Math.max(1, bw * 0.18);
-    ctx.fillStyle = '#8a8e9a'; ctx.strokeStyle = '#5a5e6a'; ctx.lineWidth = Math.max(0.8, bw * 0.04); ctx.lineJoin = 'round';
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(a.u - bw / 2, a.v - bh * 0.75, bw, bh, br); else ctx.rect(a.u - bw / 2, a.v - bh * 0.75, bw, bh);
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#c9cdd6'; ctx.beginPath(); ctx.rect(a.u - bw * 0.36, a.v - bh * 0.55, bw * 0.72, bh * 0.16); ctx.fill();
-  }
   // 台車（箱）
   const sz = m.carriage.size, cz = m.carriage.z;
   const hx = sz[0] / 2, hy = sz[1] / 2, hz = sz[2] / 2;
@@ -1236,9 +1243,16 @@ function draw() {
   if (!img.bg) return;
   ctx.setTransform(view.k * view.dpr, 0, 0, view.k * view.dpr, view.ox * view.dpr, view.oy * view.dpr);
   ctx.drawImage(img.bg, 0, 0);
-  // 梁の電球：点いているものだけ点灯の絵を貼る（消えた絵は背景に描いてある）
-  const bstep = Math.floor(performance.now() / 1000 / CFG.bulbStep);
-  for (const b of bulbTiles) if (b.img && bulbLit(b.i, bstep)) ctx.drawImage(b.img, b.rect[0], b.rect[1]);
+  // 梁の電球：点いているものだけ「点灯−消灯」の差分を足し算で貼る（消えた絵は背景に描いてある）
+  frameNow = performance.now();
+  const bstep = Math.floor(frameNow / 1000 / CFG.bulbStep);
+  ctx.save();
+  for (const b of bulbTiles) {
+    if (!b.img || !bulbLit(b.i, bstep)) continue;
+    ctx.globalCompositeOperation = b.blend === 'lighter' ? 'lighter' : 'source-over';
+    ctx.drawImage(b.img, b.rect[0], b.rect[1]);
+  }
+  ctx.restore();
   // 影
   for (const t of toys) {
     if (t.state === 'gone' || t.state === 'chute' || !t.shImg) continue;
@@ -1324,7 +1338,7 @@ ui.coin.addEventListener('pointerdown', (e) => {
   const midFlight = coinUI.state === 'returning';   // 飛んでる途中は見た目の位置が pos と違うので、指の位置へ寄せる
   coinUI.state = 'drag'; coinUI.grab = midFlight ? { id: e.pointerId, dx: 0, dy: 0 } : { id: e.pointerId, dx: e.clientX - coinUI.pos.x, dy: e.clientY - coinUI.pos.y }; coinUI.dragT = performance.now();
   if (midFlight) coinUI.place(e.clientX, e.clientY, coinUI.frame);
-  ui.coin.classList.remove('bob', 'back', 'nudge'); ui.coin.classList.add('dragging');
+  ui.coin.classList.remove('bob', 'nudge'); ui.coin.classList.add('dragging');
   try { ui.coin.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
   // 持った瞬間に縦向きへ（0°→30°→60° と素早く回す。指が止まっていても回り切るようにタイマーでも進める）
   coinUI.place(coinUI.pos.x, coinUI.pos.y, coinUI.frameFor(30), 1.06);
