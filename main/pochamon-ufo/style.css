@@ -33,12 +33,9 @@ html, body {
   touch-action: none;
 }
 body {
-  /* 筐体の両脇：ゲーセンの壁っぽい薄い水玉 */
-  background:
-    radial-gradient(circle at 12% 20%, rgba(255,255,255,.08) 0 10px, transparent 11px),
-    radial-gradient(circle at 70% 60%, rgba(255,255,255,.07) 0 8px, transparent 9px),
-    radial-gradient(circle at 40% 85%, rgba(255,255,255,.06) 0 12px, transparent 13px),
-    linear-gradient(180deg, #7d6fbf 0%, #5a4e95 55%, #3f3660 100%);
+  /* 筐体のまわり＝ゲームセンターの店内（2026-10-30 本人「背景が寂しい」）：紫の壁にほかの台の灯りのぼけ、床はカーペット。
+     1枚の絵（tools/pochamon-ufo/make_room.py → assets/room.webp）。CSS の全画面の重ね塗りで作ると WebKit で毎コマ重くなった */
+  background: #2f2858 url('assets/room.webp') center bottom / cover no-repeat;
 }
 
 #scene { position: fixed; inset: 0; display: block; }

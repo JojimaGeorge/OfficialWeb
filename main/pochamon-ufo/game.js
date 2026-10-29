@@ -724,7 +724,8 @@ function restingToys() { return toys.filter((t) => t.state === 'rest' || t.state
 // ---------------- 山の反応（崩れ） ----------------
 // 持ち上げた子の上に乗っていた子は、乗っていた割合だけ穴へ沈んで傾く（連鎖もする）。落ちてきた子は沈んだ子の上に乗って少し傾く。
 // つかむ時は爪の下の子とその隣が押されて跳ね返る。絵は描き直さず、位置（dx/dy/dz＝m）と画面の回転（rot）と上下の弾み（bounce）で動かす
-function floorZAt(y) { const m = scene.machine; return y > m.ramp_y0 ? m.ramp_h * (y - m.ramp_y0) / (m.back - m.ramp_y0) : 0; }
+// 床の高さ＝アクリルアイスの上面（floor_z。2026-10-30〜 ぬいぐるみは石の上に乗っている）＋奥の坂
+function floorZAt(y) { const m = scene.machine; return (m.floor_z || 0) + (y > m.ramp_y0 ? m.ramp_h * (y - m.ramp_y0) / (m.back - m.ramp_y0) : 0); }
 function buildSupports() {
   for (const t of toys) { t.supports = []; t.floorF = t.data.zbottom < floorZAt(t.data.center[1]) + 0.035 ? 1 : 0; t.u = t.data.screen_center[0]; }
   for (const a of toys) for (const b of toys) {
