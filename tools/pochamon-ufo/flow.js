@@ -77,7 +77,7 @@ fs.mkdirSync(outDir, { recursive: true });
     }
     await sleep(20);
   }
-  await waitPhase('between'); await waitPhase('moveX'); await sleep(200);
+  await waitPhase('moveX'); await sleep(200);   // 'between' は 1.1 秒で過ぎるので待たない
   // 2回目：取る（奥へ）
   await page.evaluate(() => window.__ufo.press('x', true)); await sleep(1400); await page.evaluate(() => window.__ufo.press('x', false));
   await waitPhase('moveY'); await sleep(200);

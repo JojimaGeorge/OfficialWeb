@@ -51,9 +51,11 @@ for key, spr in C["sprites"].items():
         if sx1 > sx0 and sy1 > sy0:
             sub[sy0 - (y - by):sy1 - (y - by), sx0 - (x - bx):sx1 - (x - bx)] = base[side][sy0:sy1, sx0:sx1]
         diff = np.clip(lit[:, :, :3] - sub[:, :, :3] - 3, 0, 255).astype(np.uint8)
+        # 透明情報＝操作盤の輪郭（天井の上の空きに足すと canvas では不透明な黒になるので、操作盤の外は透明にしておく）
+        rgba = np.dstack([diff, sub[:, :, 3].astype(np.uint8)])
         total_in += os.path.getsize(os.path.join(src, spr["file"]))
         out = key + ".webp"
-        Image.fromarray(diff).save(os.path.join(DEST, out), "WEBP", quality=88, method=6)
+        Image.fromarray(rgba, "RGBA").save(os.path.join(DEST, out), "WEBP", quality=88, method=6)
         total_out += os.path.getsize(os.path.join(DEST, out))
         spr["file"] = out; spr["blend"] = "lighter"
         continue

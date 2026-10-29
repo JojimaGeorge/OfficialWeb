@@ -24,7 +24,7 @@ const qs = new URLSearchParams(location.search);
 if (qs.get('p')) settings.luckP = Math.max(0, Math.min(1, parseFloat(qs.get('p'))));
 if (qs.get('slot')) settings.luckSlot = qs.get('slot');
 // 配置の比較用（確認の時だけ）：?edge=0.018&gap=0.012&conh=0.9
-for (const [q, key] of [['edge', 'edge'], ['gap', 'gap'], ['conh', 'conH']]) if (qs.get(q) != null && !isNaN(parseFloat(qs.get(q)))) CFG_LAYOUT_OVERRIDE[key] = parseFloat(qs.get(q));
+for (const [q, key] of [['edge', 'edge'], ['gap', 'gap']]) if (qs.get(q) != null && !isNaN(parseFloat(qs.get(q)))) CFG_LAYOUT_OVERRIDE[key] = parseFloat(qs.get(q));
 const todayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
 // ---------------- 動きの定数（メートル・秒） ----------------
@@ -47,10 +47,11 @@ const CFG = {
   coinSize: 0.17,       // 手に持ったコインの直径（画面の高さに対する割合。iPad 768px で約130px＝実物の500円玉に近い）
   coinAtSlit: 0.85,     // 投入口のそばでのコインの直径（投入口の縦幅に対する割合＝遠近で小さくなって口に入る）
   holdSec: 0.75,        // 上げ切った後に止まっている時間（本物のUFOキャッチャーの「間」）
-  layout: { edge: 0.018, gap: 0.012, conH: 0.90 },   // 画面の端の余白・操作盤と筐体の隙間（幅に対する割合）・操作盤の高さ（筐体の床から梁までに対する割合）
+  layout: { edge: 0.018, gap: 0.012 },   // 画面の端の余白・操作盤と筐体の隙間（幅に対する割合）。操作盤の高さ＝筐体の絵の上端から画面の下端まで（配置 B・2026-10-29 本人が選択）
   bulbStep: 0.22,       // 電球の追いかけ点灯の1コマ（秒）
   bgmVol: 0.5,          // BGM の音量（効果音に対する割合）
   slump: 0.55,          // 持ち上げた子の上に乗っていた子が穴へ沈む深さ（持ち上げた子の高さに対する割合）
+  shadowAlpha: 0.6,     // UFO の影の濃さ（Blender の影そのままだと絵の上で穴に見える）
 };
 Object.assign(CFG.layout, CFG_LAYOUT_OVERRIDE);
 
@@ -297,20 +298,15 @@ function resize() {
   view.dpr = dpr; view.cw = cw; view.ch = ch;
   if (!scene) return;
   const W = scene.image.width, H = scene.image.height, LY = CFG.layout;
-  // 筐体はまんなか。両脇の操作盤は筐体と同じ床の線に足を置き、高さは筐体（床から梁まで）の conH 倍。
-  // 横に入り切らない時（4:3 の iPad）は筐体を少し縮めて、端の余白と隙間を保つ（三つが詰まって見えない）
+  // 筐体はまんなか・絵の下端を画面の下端に揃える（胴体は画面の下で切れる）。両脇の操作盤は筐体の絵と同じ高さ（配置 B・2026-10-29 本人が選択）＝天井を絵の上端、足の底を画面の下端に。
+  // 横に入り切らない時（4:3 の iPad）は筐体を少し縮めて、端の余白と隙間を保つ
   const edge = cw * LY.edge, gap = cw * LY.gap;
-  let conW = 0;   // 操作盤の幅（筐体の k=1 のときの px）
-  if (con.data) {
-    const r = con.data.sprites.console_L.rect, L = con.data.L;
-    const bodyPx = (L.foot_bottom || L.bottom_edge) - L.top_edge;   // 操作盤の本体（天井から足の底まで・frame px）
-    con.kPerK = (cab.floorV || H) * LY.conH / bodyPx;                // 筐体の k=1 のとき、操作盤の frame px → 画面 px
-    conW = r[2] * con.kPerK;
-  }
-  view.k = Math.min(ch / H, (cw - 2 * edge - 2 * gap) / (W + 2 * conW));
+  const bodyPx = con.data ? ((con.data.L.foot_bottom || con.data.L.bottom_edge) - con.data.L.top_edge) : 0;   // 操作盤の本体（天井から足の底まで・frame px）
+  const conWperK = (con.data && bodyPx) ? con.data.sprites.console_L.rect[2] * H / bodyPx : 0;   // 筐体の k=1 のときの操作盤の幅
+  view.k = Math.min(ch / H, (cw - 2 * edge - 2 * gap) / (W + 2 * conWperK));
   const imgW = W * view.k, imgH = H * view.k;
   view.ox = (cw - imgW) / 2;
-  view.oy = (ch - imgH) / 2;
+  view.oy = ch - imgH;   // 下端に揃える（4:3 で出る上の空きは部屋の色のまま＝梁の平らな天面に見える）
   document.documentElement.style.setProperty('--machine-left', view.ox + 'px');
   document.documentElement.style.setProperty('--machine-width', imgW + 'px');
   layoutConsoles();
@@ -327,10 +323,10 @@ function layoutConsoles() {
   if (!con.data || !scene) return;
   const cw = view.cw, LY = CFG.layout;
   const rect = con.data.sprites.console_L.rect, L = con.data.L;   // 左右は同じ大きさ
-  const k = (con.kPerK || 0.3) * view.k, w = rect[2] * k, h = rect[3] * k;
+  const bodyPx = (L.foot_bottom || L.bottom_edge) - L.top_edge;
+  const k = scene.image.height * view.k / bodyPx, w = rect[2] * k, h = rect[3] * k;   // 天井の上端〜足の底＝筐体の絵の高さ
   const gap = cw * LY.gap;
-  const footLine = view.oy + (cab.floorV || scene.image.height) * view.k;   // 筐体の床の線（画面 px）
-  const y = footLine - ((L.foot_bottom || L.bottom_edge) - rect[1]) * k;    // 足の底を床の線に合わせる
+  const y = view.oy - (L.top_edge - rect[1]) * k;   // 天井の上端を筐体の絵の上端に
   con.L = { x: view.ox - gap - w, y, w, h, k, rect };
   con.R = { x: view.ox + scene.image.width * view.k + gap, y, w, h, k, rect: con.data.sprites.console_R.rect };
   // ボタンの押す場所（HTML）をキャップの上に重ねる。文字の大きさはキャップの半径
@@ -584,9 +580,10 @@ const faceUI = {
     if (!this.data || !con.R) return;
     const [fw, fh] = this.data.size;
     const b = con.data.R.btnY, c = conPt('R', b.c), bottom = c.y + b.r_bezel * con.R.k;   // 「たて」のボタンにはかぶせない
-    const h = Math.round(Math.max(80, Math.min(view.ch * 0.34, view.ch - bottom - 8)));
+    const h = Math.round(Math.max(80, view.ch * 0.5));
     const w = Math.round(h * fw / fh);
-    this.rect = { x: view.cw - w, y: view.ch - h, w, h };   // 右下の角に、縁で切れる絵をそのまま。整数に丸める（端数だと隣のコマの縁がにじむ）
+    const y = Math.round(Math.max(view.ch - h * 0.84, bottom + 8));   // 体の下は画面の外へ（縁で切れる絵）。「たて」のボタンにはかぶせない
+    this.rect = { x: view.cw - w, y, w, h };   // 右下の角。整数に丸める（端数だと隣のコマの縁がにじむ）
   },
   play(name, from) {
     const c = this.data && this.data.clips[name]; if (!c) return;
@@ -746,7 +743,9 @@ function pileReact(src, drop, depth) {
     const dir = Math.sign(src.u - a.u) || 1;   // 穴の側へ傾く（画面の回転）
     const nx = src.data.center[0] - a.data.center[0], ny = src.data.center[1] - a.data.center[1], nl = Math.hypot(nx, ny) || 1;
     a.target = { dx: base.dx + nx / nl * 0.02 * lean, dy: base.dy + ny / nl * 0.02 * lean, dz: base.dz - amount, rot: clamp(base.rot + dir * 0.28 * lean, -0.5, 0.5) };
-    a.state = 'settle'; a.vz = 0; a.settleDelay = 0.10 + 0.10 * depth;
+    a.settleFrom = { dx: a.dx, dy: a.dy, dz: a.dz, rot: a.rot }; a.settleT = 0;
+    a.settleDur = 0.45 + Math.random() * 0.25; a.settleDelay = 0.04 + Math.random() * 0.16 + 0.08 * depth;   // 子ごとに少しずらす＝一斉に動かない
+    a.state = 'settle'; a.vz = 0;
     if (depth === 0 && drop == null) (src.reactors || (src.reactors = [])).push(a);
     if (s) pileReact(a, amount, depth + 1);
   }
@@ -780,7 +779,7 @@ function setPhase(p) {
       game.lastInputAt = performance.now(); break;
     case 'moveX':
       input.pressedX = false; input.x = false; setButtons(true, false);
-      guide('ひかっている「→よこ」を おしているあいだ よこに うごくよ'); break;
+      guide('「→よこ」を おしているあいだ よこに うごくよ'); break;
     case 'moveY':
       input.pressedY = false; input.y = false; setButtons(false, true);
       guide('つぎは「↑たて」！ はなすと アームが おりるよ'); break;
@@ -802,8 +801,8 @@ function setPhase(p) {
       claw.armTarget = game.target ? game.target.armHold : CFG.armClosed;
       audio.bump(); setTimeout(() => audio.clack(), 260);
       // 爪が山に当たる：真下の子は押されて沈み、まわりも少し揺れる
-      if (game.target) nudgeToy(game.target, 0.45);
-      pressAround(claw.x, claw.y, 0.14, 0.22);
+      if (game.target) nudgeToy(game.target, 0.3);
+      pressAround(claw.x, claw.y, 0.14, 0.15);
       game.outcome = decideOutcome(game.tryIndex);
       game.slipAt = CFG.slipMin + Math.random() * (CFG.slipMax - CFG.slipMin);
       break;
@@ -882,7 +881,7 @@ function updateToys(dt) {
     if (t.state === 'rest' || t.state === 'settle') {
       // 上下の弾み（押された・落ちてきた子に押された）：減衰するばね
       if (t.bounce || t.bv) {
-        t.bv += (-t.bounce * 180 - t.bv * 12) * dt; t.bounce += t.bv * dt;
+        t.bv += (-t.bounce * 90 - t.bv * 9) * dt; t.bounce += t.bv * dt;   // ゆっくりめのばね（1.5Hz）＝押されてふわっと戻る
         if (Math.abs(t.bounce) < 0.0004 && Math.abs(t.bv) < 0.004) { t.bounce = 0; t.bv = 0; }
       }
     }
@@ -912,17 +911,15 @@ function updateToys(dt) {
         else { t.vz = 0; t.dx = t.restDx || 0; t.dy = t.restDy || 0; t.rot = t.landRot || 0; t.state = 'rest'; t.shadowA = 1; restPose(t); if (!t.landedMsg) { t.landedMsg = true; showMsg('おしい…！', 'miss', 1300); audio.miss(); } }
       }
     } else if (t.state === 'settle') {
-      // 穴へ沈む（落ちる・弾む）／押し戻される（上へはそっと）
-      if (t.settleDelay > 0) t.settleDelay -= dt;
-      else {
-        const tg = t.target;
-        if (t.dz > tg.dz || t.vz > 0) {   // 落ちる（弾んで上がっている間も）
-          t.vz -= CFG.g * 0.7 * dt; t.dz += t.vz * dt;
-          if (t.dz <= tg.dz && t.vz <= 0) { t.dz = tg.dz; t.vz = t.vz < -0.35 ? -t.vz * 0.28 : 0; }
-        } else { t.dz = approach(t.dz, tg.dz, 0.25 * dt); t.vz = 0; }
-        t.rot = approach(t.rot, tg.rot, 2.2 * dt); t.dx = approach(t.dx, tg.dx, 0.12 * dt); t.dy = approach(t.dy, tg.dy, 0.12 * dt);
-        if (t.dz === tg.dz && t.vz === 0 && t.rot === tg.rot && t.dx === tg.dx && t.dy === tg.dy) { t.state = 'rest'; restPose(t); }
+      // 穴へ沈む：ゆっくり始まり、少し行き過ぎて戻って落ち着く（ぬいぐるみが崩れて収まる感じ）。時間で動かすのでカクつかない
+      t.settleT += dt;
+      const u = clamp((t.settleT - t.settleDelay) / t.settleDur, 0, 1);
+      if (u > 0) {
+        const c1 = 1.2, e = 1 + (c1 + 1) * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2);   // ease-out-back（行き過ぎ 1.2）
+        const f = t.settleFrom, tg = t.target;
+        t.dx = lerp(f.dx, tg.dx, e); t.dy = lerp(f.dy, tg.dy, e); t.dz = lerp(f.dz, tg.dz, e); t.rot = lerp(f.rot, tg.rot, e);
       }
+      if (u >= 1) { const tg = t.target; t.dx = tg.dx; t.dy = tg.dy; t.dz = tg.dz; t.rot = tg.rot; t.state = 'rest'; restPose(t); }
     } else if (t.state === 'chute') {
       t.vz -= CFG.g * dt; t.dz += t.vz * dt;
       t.rot += t.rotV * dt; t.rotV *= 0.98;
@@ -1192,30 +1189,29 @@ function pileTopUnder(x, y) {
 function drawClawShadow(p, zs) {
   const h = Math.max(0, claw.z - zs);
   const ch = scene.machine.chute;
-  if (!top_onChute() && clawShadows.length) {
-    // Blender で床に落とした本物の影（同じ照明）。高さは両どなりの絵を混ぜ、開き具合は開いた絵と閉じた絵を混ぜる。一番高い絵より上はさらに薄く
-    const hs = []; for (const s of clawShadows) if (!hs.includes(s.h)) hs.push(s.h);
+  const usable = clawShadows.filter((s) => s.h >= 0.04);   // 2cm の絵は触れる寸前の真っ黒な影＝絵の上では穴に見えるので使わない
+  if (!top_onChute() && usable.length) {
+    // Blender で床に落とした本物の影（同じ照明）。高さは両どなりの絵を混ぜる。開き具合は近い方の絵だけ（混ぜると爪の塊が4つになる）。一番高い絵より上はさらに薄く
+    const hs = []; for (const s of usable) if (!hs.includes(s.h)) hs.push(s.h);
     hs.sort((a, b) => a - b);
     const hc = clamp(h, hs[0], hs[hs.length - 1]);
     let i = 0; while (i < hs.length - 2 && hc > hs[i + 1]) i++;
     const t = hs.length > 1 ? (hc - hs[i]) / (hs[i + 1] - hs[i]) : 0;
     const fade = h > hs[hs.length - 1] ? clamp(1 - (h - hs[hs.length - 1]) / 0.3, 0, 1) : 1;
     if (fade <= 0) return;
-    const ang = clamp((claw.arm + 18) / 34, 0, 1);
+    const wantOpen = claw.arm < -1;
     const parts = [];
     for (const [hh, hw] of (hs.length > 1 ? [[hs[i], 1 - t], [hs[i + 1], t]] : [[hs[0], 1]])) {
       if (hw < 0.02) continue;
-      const open = clawShadows.find((s) => s.h === hh && s.angle < 0) || clawShadows.find((s) => s.h === hh);
-      const closed = clawShadows.find((s) => s.h === hh && s.angle > 0) || open;
-      if (open && 1 - ang > 0.02) parts.push([open, hw * (1 - ang)]);
-      if (closed && ang > 0.02) parts.push([closed, hw * ang]);
+      const spr = usable.find((s) => s.h === hh && (wantOpen ? s.angle < 0 : s.angle > 0)) || usable.find((s) => s.h === hh);
+      if (spr) parts.push([spr, hw]);
     }
     parts.sort((a, b) => b[1] - a[1]);
     let acc = 0;
     ctx.save();
     for (const [spr, w] of parts) {
       if (!spr.img) continue;
-      const alpha = (acc === 0 ? 1 : w / (acc + w)) * fade;
+      const alpha = (acc === 0 ? 1 : w / (acc + w)) * fade * CFG.shadowAlpha;
       acc += w;
       const s = spr.depth / p.d;
       ctx.globalAlpha = alpha;
@@ -1262,8 +1258,15 @@ function draw() {
   ctx.globalAlpha = 1;
   const rest = restingToys();
   const cb = clawBox();
-  const padDepth = project(claw.x, claw.y, claw.z + CFG.padDz).d;
-  const iClaw = insertionIndex(rest, padDepth, cb.box);
+  // UFO の層（ケーブル・UFO・持った子）をどの子の後に描くか：UFO の箱だけでなく、ぶら下がった子の範囲と奥行き（手前にある方）も見る
+  let layerDepth = project(claw.x, claw.y, claw.z + CFG.padDz).d, layerBox = cb.box;
+  if (claw.held) {
+    const t = claw.held, h = t.hold, p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz), s = t.holdUV.d / p1.d, r = t.data.sprite.rect;
+    const x0 = p1.u - (t.holdUV.u - r[0]) * s, y0 = p1.v - (t.holdUV.v - r[1]) * s, w = r[2] * s, hh = r[3] * s, mg = Math.max(w, hh) * 0.15;
+    layerBox = [Math.min(layerBox[0], x0 - mg), Math.min(layerBox[1], y0 - mg), Math.max(layerBox[2], x0 + w + mg), Math.max(layerBox[3], y0 + hh + mg)];
+    layerDepth = Math.min(layerDepth, project(t.data.center[0] + t.dx, t.data.center[1] + t.dy, t.data.center[2] + t.dz).d);
+  }
+  const iClaw = insertionIndex(rest, layerDepth, layerBox);
   const top = pileTopUnder(claw.x, claw.y);
   const zs = top.z;
   const sp = project(claw.x, claw.y, zs);
