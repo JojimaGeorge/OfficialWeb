@@ -211,7 +211,8 @@ async function load() {
   UNIT = Math.hypot(MC[0], MC[4], MC[8]);
   claw.cableTop = scene.machine.cable.top_z;
   park = { x: scene.machine.claw.park[0], y: scene.machine.claw.park[1] };
-  bounds = scene.machine.play_bounds;
+  // 右の端は 0.325m まで：右端（0.386）まで寄せると台車の箱・UFO の右半分・右の爪が筐体の絵の外（店内の地の上）へはみ出た（前の版から・10/30 検品。台車の箱の幅から決めた値）
+  bounds = Object.assign({}, scene.machine.play_bounds, { x1: Math.min(scene.machine.play_bounds.x1, 0.325) });
   const jobs = [];
   let done = 0, total = 0;
   const track = (p) => { total++; return p.then((v) => { done++; ui.loadProg.textContent = done + ' / ' + total; return v; }); };
@@ -719,9 +720,7 @@ function pickToy(x, y) {
     for (const o of toys) {
       if (o === t || (o.state !== 'rest' && o.state !== 'settle')) continue;
       // 上に乗られているか：ふつうの子はつかむ点から11cm、びろーん（幅26cm）は外形の箱で見る
-      const over = isFlat(o)
-        ? (t.hold.x > o.data.bbox[0][0] && t.hold.x < o.data.bbox[1][0] && t.hold.y > o.data.bbox[0][1] && t.hold.y < o.data.bbox[1][1])
-        : Math.hypot(o.hold.x - t.hold.x, o.hold.y - t.hold.y) < 0.11;
+      const over = isFlat(o) ? flatAbove(o, t) : boxOver(o, t);
       if (over && o.hold.z + o.dz > t.hold.z + t.dz + 0.04) { covered = 0.09; break; }
     }
     // 高い所の子ほど選ばれやすい（上に出ている）。びろーんは山のてっぺんに乗せてあるので重みを弱める（狙いから6.5cm 横へ寄った・10/30 検品）
@@ -729,6 +728,20 @@ function pickToy(x, y) {
     if (score < bestScore) { bestScore = score; best = t; }
   }
   return best;
+}
+// びろーん o が、子 t のつかむ点の真上にかぶさっているか。外形の箱だけで見ると手前の子まで「乗られている」扱いになった（10/30 再検品）。
+// びろーんは後ろへ寝かせて（奥ほど高く）置いてあるので、箱の中でその奥行きの所の高さを直線で見積もって比べる
+function flatAbove(o, t) {
+  const b = o.data.bbox, x = t.hold.x + t.dx - o.dx, y = t.hold.y + t.dy - o.dy;
+  if (x < b[0][0] || x > b[1][0] || y < b[0][1] || y > b[1][1]) return false;
+  const k = (y - b[0][1]) / Math.max(0.01, b[1][1] - b[0][1]);
+  return b[0][2] + k * (b[1][2] - b[0][2]) + o.dz > t.hold.z + t.dz + 0.04;
+}
+// ふつうの子 o の外形の箱（8割に縮める）が、子 t のつかむ点の上にかぶっているか。前は「つかむ点から11cm以内」で見ていて、
+// 横に並んだ背の高い子まで「乗られている」扱いになり、手前の寝顔4番がどこを狙っても取れなかった（10/30 再検品・格子で数えて確かめた）
+function boxOver(o, t) {
+  const b = o.data.bbox, cx = (b[0][0] + b[1][0]) / 2 + o.dx, cy = (b[0][1] + b[1][1]) / 2 + o.dy;
+  return Math.abs(t.hold.x + t.dx - cx) < (b[1][0] - b[0][0]) * 0.4 && Math.abs(t.hold.y + t.dy - cy) < (b[1][1] - b[0][1]) * 0.4;
 }
 function restingToys() { return toys.filter((t) => t.state === 'rest' || t.state === 'settle' || t.state === 'falling'); }
 
@@ -1055,7 +1068,7 @@ function update(dt) {
       acc = stepCarriage(dt, 0, 0, spd);
       const t = claw.held;
       if (t && claw.arm <= -11) {
-        t.state = 'chute'; t.vz = 0; t.rotV = isFlat(t) ? 0 : (Math.random() - 0.5) * 2.5; t.splashed = false;   // 幅の広い子は回さず落とす
+        t.state = 'chute'; t.vz = 0; t.rotV = isFlat(t) ? 0 : (Math.random() - 0.5) * 2.5; t.splashed = false; t.fallAfter = null;   // 幅の広い子は回さず落とす
         claw.held = null; claw.wx += 0.5 * (Math.random() - 0.5);
         game.got++; updateHud(); showMsg('ゲット！！', 'win', 1400); audio.win(); faceUI.grin();
         game.flashUntil = performance.now() + 1500;   // 電球が全部、速く点滅
@@ -1337,7 +1350,11 @@ function draw() {
     const c = t.data.center, h = t.hold, r = t.data.sprite.rect;
     const p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz), s = t.holdUV.d / p1.d;
     const x0 = p1.u - (t.holdUV.u - r[0]) * s, y0 = p1.v - (t.holdUV.v - r[1]) * s;
-    fallAt.set(t, insertionIndex(rest, project(c[0] + t.dx, c[1] + t.dy, c[2] + t.dz).d, [x0, y0, x0 + r[2] * s, y0 + r[3] * s]));
+    // 一度手前に出たら戻さない（仕切りにかぶさった子と前後が2〜3コマ入れ替わってちらついた・10/30 再検品）
+    const idx = insertionIndex(rest, project(c[0] + t.dx, c[1] + t.dy, c[2] + t.dz).d, [x0, y0, x0 + r[2] * s, y0 + r[3] * s]);
+    const k = Math.max(idx, t.fallAfter ? rest.indexOf(t.fallAfter) + 1 : 0);   // fallAfter＝前のコマで直前に描いた子
+    t.fallAfter = k > 0 ? rest[k - 1] : null;
+    fallAt.set(t, k);
   }
   const drawFalling = (t, clip) => { ctx.save(); clipCabOpen(); drawToyDynamic(t, clip); ctx.restore(); };
   for (let i = 0; i <= rest.length; i++) {
