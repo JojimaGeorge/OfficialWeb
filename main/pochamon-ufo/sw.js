@@ -1,15 +1,16 @@
 // ぽちゃもん UFOキャッチャー Service Worker
 // 会場のオフライン対策：本体と素材を全部 precache する。
 // index.html / game.js / style.css / 素材を変えたら CACHE_NAME を bump すること（cache-first のため）。
-const CACHE_NAME = 'pochamon-ufo-v1';
+const CACHE_NAME = 'pochamon-ufo-v2';
 
 const CORE = [
   './',
   './index.html',
-  './style.css?v=1',
-  './game.js?v=1',
+  './style.css?v=2',
+  './game.js?v=2',
   './manifest.json',
   './assets/scene.json',
+  './assets/console.json',
   './assets/pochamon_idle.png',
   './assets/icon-180.png',
   './assets/icon-512.png',
@@ -30,6 +31,10 @@ async function assetList() {
       if (t.shadow) files.add('./assets/' + t.shadow.file);
     }
     for (const c of s.claw_sprites) files.add('./assets/' + c.file);
+    // 左右の操作盤（本体・キャップ・光る輪・コイン）
+    const cr = await fetch('./assets/console.json', { cache: 'reload' });
+    const con = await cr.json();
+    for (const spr of Object.values(con.sprites)) files.add('./assets/' + spr.file);
     return Array.from(files);
   } catch (e) {
     return [];

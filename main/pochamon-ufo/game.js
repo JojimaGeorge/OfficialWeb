@@ -20,7 +20,6 @@ function loadSettings() {
 function saveSettings() { try { localStorage.setItem(LS_KEY, JSON.stringify(settings)); } catch (e) { /* private mode */ } }
 const settings = loadSettings();
 const qs = new URLSearchParams(location.search);
-if (qs.get('layout')) settings.layout = qs.get('layout').toUpperCase() === 'B' ? 'B' : 'A';
 if (qs.get('p')) settings.luckP = Math.max(0, Math.min(1, parseFloat(qs.get('p'))));
 if (qs.get('slot')) settings.luckSlot = qs.get('slot');
 const todayKey = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -42,6 +41,7 @@ const CFG = {
   dampFree: 0.9, dampHeld: 1.3, dampGround: 9,
   g: 9.81,
   slipMin: 0.30, slipMax: 0.72,   // 運枠で外す時、持ち上げのどの辺で落とすか
+  coinScale: 1.25,      // コインの絵の拡大（描いた寸法のままだと指で取りにくい）
 };
 
 // ---------------- DOM ----------------
@@ -49,7 +49,7 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('scene');
 const ctx = canvas.getContext('2d', { alpha: true });
 const ui = {
-  hudGot: $('hudGot'), lamps: Array.from(document.querySelectorAll('.hud-lamps i')),
+  coin: $('coin'), coinImg: $('coinImg'),
   msg: $('msg'), guide: $('guide'), btnX: $('btnX'), btnY: $('btnY'),
   title: $('title'), result: $('result'), loading: $('loading'), loadProg: $('loadProg'), admin: $('admin'),
   resultNum: $('resultNum'), resultStickers: $('resultStickers'), resultBtn: $('resultBtn'), muteBtn: $('muteBtn'),
@@ -144,6 +144,11 @@ const audio = (() => {
     win: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'square', 0.16, null, i * 0.11)); tone(1568, 0.5, 'triangle', 0.14, null, 0.46); },
     miss: () => { tone(392, 0.25, 'triangle', 0.18); tone(330, 0.4, 'triangle', 0.18, null, 0.22); },
     fanfare: () => { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone(f, 0.18, 'square', 0.15, null, i * 0.12)); },
+    // 操作盤：コインの投入（チャリン）・クレジットの点灯（ピッ）・コインの返却（ガチャン）・ボタンのカチッ
+    coinClink: () => { noise(0.05, 0.35, 5200, 2.5); tone(4200, 0.22, 'sine', 0.10, 3000); tone(6300, 0.16, 'triangle', 0.05, 5200, 0.015); tone(2600, 0.12, 'sine', 0.06, 2200, 0.05); },
+    creditBeep: () => { tone(1568, 0.08, 'square', 0.10); tone(2093, 0.14, 'square', 0.10, null, 0.09); },
+    coinReturn: () => { noise(0.10, 0.35, 1200, 0.9); tone(240, 0.10, 'triangle', 0.22, 150); tone(3600, 0.12, 'sine', 0.05, 2800, 0.06); },
+    click: () => { noise(0.025, 0.2, 2600, 1.6); tone(760, 0.04, 'square', 0.05); },
   };
 })();
 
@@ -180,6 +185,12 @@ async function load() {
     jobs.push(track(loadImage('assets/' + c.file)).then((im) => { spr.img = im; }));
   }
   clawHeights = Array.from(new Set(clawSprites.map((s) => s.z))).sort((a, b) => a - b);
+  // 左右の操作盤：絵（本体・キャップ・光る輪・コイン）と部品の画面上の位置
+  jobs.push(track(fetch('assets/console.json').then((r) => r.json())).then((c) => {
+    con.data = c;
+    return Promise.all(Object.entries(c.sprites).map(([key, spr]) => track(loadImage('assets/' + spr.file)).then((im) => { con.img[key] = im; })));
+  }));
+  if (document.fonts && document.fonts.load) jobs.push(track(document.fonts.load('900 20px "Zen Maru Gothic"').catch(() => {})));   // 電光表示のラベルを canvas に描くため
   await Promise.all(jobs);
   // 景品口の「窓」：手前のふちから上に開いた四角（床より下に落ちた分を隠す）
   const ch = scene.machine.chute;
@@ -195,27 +206,179 @@ function resize() {
   view.dpr = dpr; view.cw = cw; view.ch = ch;
   if (!scene) return;
   const W = scene.image.width, H = scene.image.height;
-  const maxW = settings.layout === 'B' ? cw * 0.70 : cw * 0.94;
-  view.k = Math.min(ch / H, maxW / W);
+  // 筐体はまんなか・縦いっぱい。両脇の空きに左右の操作盤が入る
+  view.k = Math.min(ch / H, cw * 0.94 / W);
   const imgW = W * view.k, imgH = H * view.k;
-  view.ox = settings.layout === 'B' ? Math.max(0, cw * 0.015) : (cw - imgW) / 2;
+  view.ox = (cw - imgW) / 2;
   view.oy = (ch - imgH) / 2;
   document.documentElement.style.setProperty('--machine-left', view.ox + 'px');
   document.documentElement.style.setProperty('--machine-width', imgW + 'px');
-  // ボタンの大きさ：筐体の脇の空きに収まる範囲で、画面の高さの 22% まで
-  const side = settings.layout === 'B' ? (cw - view.ox - imgW) - cw * 0.08 : (cw - imgW) / 2 - cw * 0.04;
-  const btn = clamp(Math.min(ch * 0.22, cw * 0.15, side), 84, 260);
-  document.documentElement.style.setProperty('--btn', btn + 'px');
+  layoutConsoles();
 }
 window.addEventListener('resize', resize, { passive: true });
 window.addEventListener('orientationchange', () => setTimeout(resize, 60), { passive: true });
 
-// ---------------- ゲームの流れ ----------------
-function applyLayout() {
-  document.body.classList.toggle('layout-A', settings.layout !== 'B');
-  document.body.classList.toggle('layout-B', settings.layout === 'B');
-  resize();
+// ---------------- 左右の操作盤（Blender で描いた絵・ボタンのキャップ・電光表示・コイン） ----------------
+// console.json の座標は描き出しの枠（frame）のピクセル。各操作盤は自分の切り抜き rect ぶんずらして画面に置く
+const con = { data: null, img: {}, L: null, R: null, flash: {} };
+function conPt(side, p) { const c = con[side]; return { x: c.x + (p[0] - c.rect[0]) * c.k, y: c.y + (p[1] - c.rect[1]) * c.k }; }
+function conRect(side, r) { const c = con[side]; return { x: c.x + (r[0] - c.rect[0]) * c.k, y: c.y + (r[1] - c.rect[1]) * c.k, w: r[2] * c.k, h: r[3] * c.k }; }
+function layoutConsoles() {
+  if (!con.data || !scene) return;
+  const cw = view.cw, ch = view.ch;
+  const rect = con.data.sprites.console_L.rect;   // 左右は同じ大きさ
+  const side = view.ox;                            // 筐体の脇の幅（左右同じ）
+  const gap = Math.max(6, cw * 0.006);
+  const w = Math.max(60, Math.min(side - gap * 2, (ch - gap * 2) * rect[2] / rect[3]));
+  const k = w / rect[2], h = rect[3] * k, y = (ch - h) / 2;
+  con.L = { x: (side - w) / 2, y, w, h, k, rect };
+  con.R = { x: view.ox + scene.image.width * view.k + (side - w) / 2, y, w, h, k, rect: con.data.sprites.console_R.rect };
+  // ボタンの押す場所（HTML）をキャップの上に重ねる。文字の大きさはキャップの半径
+  for (const key of ['X', 'Y']) {
+    const b = con.data.R['btn' + key], c = conPt('R', b.c), r = b.r_cap * k, el = ui['btn' + key];
+    el.style.left = (c.x - r) + 'px'; el.style.top = (c.y - r) + 'px'; el.style.width = el.style.height = (2 * r) + 'px'; el.style.fontSize = r + 'px';
+  }
+  coinUI.layout();
 }
+function label(text, cx, baseY, px, color) {
+  ctx.save();
+  ctx.font = '900 ' + px + 'px "Zen Maru Gothic", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = color || 'rgba(59,42,74,.85)'; ctx.fillText(text, cx, baseY);
+  ctx.restore();
+}
+// 7セグ：1×2 の箱の中の7本（a 上・b 右上・c 右下・d 下・e 左下・f 左上・g 中）
+const SEGS = { a: [0.1, 0, 0.8, 0.16], b: [0.84, 0.06, 0.16, 0.9], c: [0.84, 1.04, 0.16, 0.9], d: [0.1, 1.84, 0.8, 0.16], e: [0, 1.04, 0.16, 0.9], f: [0, 0.06, 0.16, 0.9], g: [0.1, 0.92, 0.8, 0.16] };
+const DIGIT = ['abcdef', 'bc', 'abged', 'abgcd', 'fgbc', 'afgcd', 'afgedc', 'abc', 'abcdefg', 'abcdfg'];
+function draw7seg(x, y, w, h, digit, alpha, color) {
+  const lit = DIGIT[digit] || '';
+  ctx.save();
+  ctx.translate(x + w / 2, y + h / 2); ctx.transform(1, 0, -0.1, 1, 0, 0); ctx.translate(-(x + w / 2), -(y + h / 2));   // 少し斜体（本物の数字管の癖）
+  for (const s in SEGS) {
+    const [ux, uy, uw, uh] = SEGS[s];
+    const on = lit.includes(s) && alpha > 0;
+    const px = x + ux * w + 1, py = y + uy * (h / 2) + 1, pw = uw * w - 2, ph = uh * (h / 2) - 2;
+    ctx.globalAlpha = on ? alpha : 0.10; ctx.fillStyle = color;
+    ctx.shadowColor = on && alpha > 0.5 ? color : 'transparent'; ctx.shadowBlur = on ? w * 0.25 : 0;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, Math.min(pw, ph) / 2); else ctx.rect(px, py, pw, ph);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+function drawLed(r, text, value, key) {
+  const k = con.L.k;
+  label(text, r.x + r.w / 2, r.y - k * 20, k * 52);   // 板に印刷したラベル
+  const h = r.h * 0.68, w = h * 0.55, x = r.x + (r.w - w) / 2, y = r.y + (r.h - h) / 2;
+  let alpha = value == null ? 0 : 1;   // タイトル中は消灯（薄く 8 が見える＝本物の消えた数字管）
+  const f = con.flash[key];
+  if (f != null) { const dt = (performance.now() - f) / 1000; if (dt < 0.9) { if (Math.floor(dt / 0.15) % 2) alpha = 0.12; } else delete con.flash[key]; }
+  draw7seg(x, y, w, h, value == null ? 8 : value, alpha, '#ff3b30');
+}
+function drawConsoles() {
+  if (!con.L || !con.img.console_L) return;
+  ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+  ctx.globalAlpha = 1;
+  // 足もとの影（壁から浮いて見えないように）
+  for (const side of ['L', 'R']) {
+    const c = con[side];
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = c.w * 0.18; ctx.shadowOffsetY = c.w * 0.06;
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(c.x + c.w * 0.08, c.y + c.h * 0.03, c.w * 0.84, c.h * 0.96); ctx.restore();
+  }
+  ctx.drawImage(con.img.console_L, con.L.x, con.L.y, con.L.w, con.L.h);
+  ctx.drawImage(con.img.console_R, con.R.x, con.R.y, con.R.w, con.R.h);
+  const t = performance.now() / 1000;
+  // ボタン：押す番の輪を光らせる（脈打つ）→ キャップ（押している間は沈んだ絵）
+  for (const key of ['X', 'Y']) {
+    const el = ui['btn' + key];
+    const active = el.classList.contains('active'), pressed = el.classList.contains('pressed');
+    if (active && con.img['ring' + key]) {
+      const r = conRect('R', con.data.sprites['ring' + key].rect);
+      const pulse = 0.5 + 0.5 * (0.5 + 0.5 * Math.sin(t * 2 * Math.PI / 1.1));
+      ctx.save(); ctx.globalAlpha = pulse; ctx.shadowColor = 'rgba(255,110,165,.95)'; ctx.shadowBlur = r.w * 0.14;
+      ctx.drawImage(con.img['ring' + key], r.x, r.y, r.w, r.h); ctx.restore();
+    }
+    const name = 'cap' + key + (pressed ? '_down' : '_up');
+    if (con.img[name]) { const cr = conRect('R', con.data.sprites[name].rect); ctx.drawImage(con.img[name], cr.x, cr.y, cr.w, cr.h); }
+  }
+  // 電光表示（のこり・ゲット）と投入口のラベル
+  const L = con.data.L, inPlay = game.phase !== 'title' && game.phase !== 'loading';
+  drawLed(conRect('L', L.led_tries), 'のこり', inPlay ? CFG.tries - game.tryIndex : null, 'tries');
+  drawLed(conRect('L', L.led_got), 'ゲット', inPlay ? game.got : null, 'got');
+  const sp = conRect('L', L.slot_plate);
+  label('コイン', sp.x + sp.w / 2, sp.y - con.L.k * 18, con.L.k * 48);
+  // タイトル中：投入口がやわらかく光って「ここに入れる」を教える
+  if (game.phase === 'title' && coinUI.state !== 'inserting') {
+    const sl = conRect('L', L.slit), g = 0.3 + 0.3 * (0.5 + 0.5 * Math.sin(t * 2 * Math.PI / 1.2));
+    const cx = sl.x + sl.w / 2, cy = sl.y + sl.h / 2, rr = sl.h * 0.9;
+    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
+    grd.addColorStop(0, 'rgba(255,170,205,' + g + ')'); grd.addColorStop(1, 'rgba(255,170,205,0)');
+    ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.fill();
+  }
+}
+// コイン：タイトルでトレーにある → 投入口へドラッグ → 入る（チャリン）→ 表示が点く → スタート。「おしまい」で次の子のためにトレーへ戻る
+const easeOut = (u) => 1 - Math.pow(1 - u, 3);
+const coinUI = {
+  state: 'hidden',   // hidden | home | drag | inserting | returning
+  frame: 0, pos: { x: 0, y: 0 }, center: null, frames: null, slit: null, slotZone: null, grab: null,
+  layout() {
+    if (!con.L) return;
+    const L = con.data.L, k = con.L.k, S = CFG.coinScale;
+    this.center = conPt('L', L.coin_rest);
+    this.frames = [0, 1, 2, 3].map((i) => { const r = con.data.sprites['coin_0' + i].rect; return { w: r[2] * k * S, h: r[3] * k * S }; });
+    const sl = conRect('L', L.slit), sp = conRect('L', L.slot_plate);
+    this.slit = { x: sl.x + sl.w / 2, y: sl.y, h: sl.h };
+    this.slotZone = { x: sp.x - sp.w * 0.5, y: sp.y - sp.h * 0.3, w: sp.w * 2, h: sp.h * 1.5 };   // この中で離すと入る
+    if (this.state === 'home') { this.place(this.center.x, this.center.y, 0); ui.coin.classList.remove('hidden'); ui.coin.classList.add('bob'); }
+  },
+  place(cx, cy, frame) {   // 中心の座標で置く。frame は向き（0 正面 … 3 真横）
+    const f = this.frames[frame];
+    if (frame !== this.frame || !ui.coinImg.getAttribute('src')) { this.frame = frame; const im = con.img['coin_0' + frame]; if (im) ui.coinImg.src = im.src; }
+    ui.coin.style.width = f.w + 'px'; ui.coin.style.height = f.h + 'px';
+    ui.coin.style.transform = 'translate(' + (cx - f.w / 2) + 'px,' + (cy - f.h / 2) + 'px)';
+    this.pos = { x: cx, y: cy };
+  },
+  toTray(drop) {
+    this.state = 'home';
+    if (!this.center) return;   // 置き場が決まる前（最初の読み込み中）は layout() が置く
+    ui.coin.className = ''; ui.coin.style.opacity = '';
+    this.place(this.center.x, this.center.y, 0);
+    if (drop) { audio.coinReturn(); ui.coin.classList.add('drop'); setTimeout(() => ui.coin.classList.remove('drop'), 750); }
+    ui.coin.classList.add('bob');
+  },
+  hide() { this.state = 'hidden'; ui.coin.className = 'hidden'; },
+  nudge() { if (this.state !== 'home') return; ui.coin.classList.remove('nudge'); void ui.coin.offsetWidth; ui.coin.classList.add('nudge'); audio.tap(); },
+  springBack() {
+    this.state = 'returning'; ui.coin.classList.add('back');
+    this.place(this.center.x, this.center.y, 0);
+    setTimeout(() => { ui.coin.classList.remove('back'); if (this.state === 'returning') { this.state = 'home'; ui.coin.classList.add('bob'); } }, 450);
+  },
+  insert(fast) {
+    if (this.state === 'inserting' || this.state === 'hidden' || !this.slit) return;
+    this.state = 'inserting'; ui.coin.classList.remove('bob', 'back', 'dragging', 'nudge');
+    const start = { x: this.pos.x, y: this.pos.y }, end = { x: this.slit.x, y: this.slit.y + this.slit.h * 0.5 };
+    const T1 = fast ? 0.01 : 0.30, T2 = fast ? 0.01 : 0.22, t0 = performance.now();
+    const step = () => {
+      const t = (performance.now() - t0) / 1000;
+      if (t < T1) {   // 投入口へ寄りながら真横を向く
+        const u = easeOut(t / T1);
+        this.place(lerp(start.x, end.x, u), lerp(start.y, end.y, u), Math.min(3, Math.floor(u * 3.99)));
+        requestAnimationFrame(step); return;
+      }
+      if (t < T1 + T2) {   // 中へ入っていく
+        const u = (t - T1) / T2;
+        this.place(end.x, end.y, 3); ui.coin.style.opacity = String(1 - u); ui.coin.style.transform += ' scale(' + (1 - 0.6 * u) + ')';
+        requestAnimationFrame(step); return;
+      }
+      this.hide(); ui.coin.style.opacity = '';
+      audio.coinClink();
+      setTimeout(() => { audio.creditBeep(); con.flash.tries = performance.now(); }, 150);
+      setTimeout(() => { if (game.phase === 'title') setPhase('intro'); }, fast ? 30 : 700);
+    };
+    requestAnimationFrame(step);
+  },
+};
+
+// ---------------- ゲームの流れ ----------------
 function showMsg(text, cls, ms = 1100) {
   const m = ui.msg;
   m.className = ''; void m.offsetWidth;
@@ -230,8 +393,10 @@ function setButtons(x, y) {
   ui.btnX.classList.toggle('ready', ready); ui.btnY.classList.toggle('ready', ready);
 }
 function updateHud() {
-  ui.hudGot.textContent = game.got;
-  ui.lamps.forEach((el, i) => el.classList.toggle('off', i < game.tryIndex));
+  // 電光表示は毎フレーム canvas に描く。増えた時だけ点滅させる
+  if (game.got > (updateHud.got || 0)) con.flash.got = performance.now();
+  if (game.tryIndex > (updateHud.tries || 0)) con.flash.tries = performance.now();
+  updateHud.got = game.got; updateHud.tries = game.tryIndex;
 }
 function resetClaw() {
   claw.cx = park.x; claw.cy = park.y; claw.vx = claw.vy = 0;
@@ -274,21 +439,24 @@ function pickToy(x, y) {
 function restingToys() { return toys.filter((t) => t.state === 'rest' || t.state === 'falling'); }
 
 function setPhase(p) {
+  const prev = game.phase;
   game.phase = p; game.phaseT = 0;
   document.body.className = document.body.className.replace(/\bphase-\S+/g, '').trim() + ' phase-' + p;
   switch (p) {
     case 'title':
       ui.title.classList.add('show'); ui.result.classList.remove('show'); setButtons(false, false); guide('');
-      resetClaw(); audio.motorOff(); break;
+      resetClaw(); audio.motorOff();
+      coinUI.toTray(prev !== 'loading');   // 遊び終わり（や中断）ならコインがトレーに戻ってくる
+      break;
     case 'intro':
-      ui.title.classList.remove('show'); startGame(); showMsg('1かいめ！', 'round', 900); setButtons(false, false);
+      ui.title.classList.remove('show'); coinUI.hide(); startGame(); showMsg('1かいめ！', 'round', 900); setButtons(false, false);
       game.lastInputAt = performance.now(); break;
     case 'moveX':
       input.pressedX = false; input.x = false; setButtons(true, false);
-      guide(settings.layout === 'B' ? '「→よこ」を おしているあいだ よこに うごくよ' : 'ひだりの ボタンを おしているあいだ よこに うごくよ'); break;
+      guide('ひかっている「→よこ」を おしているあいだ よこに うごくよ'); break;
     case 'moveY':
       input.pressedY = false; input.y = false; setButtons(false, true);
-      guide('つぎは おくへ！ はなすと アームが おりるよ'); break;
+      guide('つぎは「↑たて」！ はなすと アームが おりるよ'); break;
     case 'settle': {
       setButtons(false, false); guide('');
       // 景品口の上では何もつかめないので、山のはしまで自動で寄せる
@@ -699,6 +867,7 @@ function draw() {
   }
   for (const t of toys) if (t.state === 'chute') drawToyDynamic(t, t.hold.z + t.dz - t.below < 0.0);
   drawGantry();
+  drawConsoles();
 }
 
 // ---------------- メインループ ----------------
@@ -726,6 +895,7 @@ function bindHold(btn, key) {
     if (e.pointerType !== 'mouse' || e.button === 0) {
       e.preventDefault(); audio.unlock(); game.lastInputAt = performance.now();
       if (!btn.classList.contains('active')) return;
+      audio.click();
       input[key] = true; input['pressed' + key.toUpperCase()] = true; input[key + 'Id'] = e.pointerId; btn.classList.add('pressed');
       try { btn.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     }
@@ -744,6 +914,30 @@ function bindHold(btn, key) {
 }
 bindHold(ui.btnX, 'x');
 bindHold(ui.btnY, 'y');
+// コイン：トレーから投入口へドラッグ。投入口のまわりで離すと入る。それ以外はトレーへ戻る
+ui.coin.addEventListener('pointerdown', (e) => {
+  if (coinUI.state !== 'home' || game.phase !== 'title') return;
+  e.preventDefault(); audio.unlock(); game.lastInputAt = performance.now();
+  coinUI.state = 'drag'; coinUI.grab = { id: e.pointerId, dx: e.clientX - coinUI.pos.x, dy: e.clientY - coinUI.pos.y };
+  ui.coin.classList.remove('bob', 'back', 'nudge'); ui.coin.classList.add('dragging');
+  try { ui.coin.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+});
+ui.coin.addEventListener('pointermove', (e) => {
+  if (coinUI.state !== 'drag' || !coinUI.grab || e.pointerId !== coinUI.grab.id) return;
+  e.preventDefault();
+  const cx = e.clientX - coinUI.grab.dx, cy = e.clientY - coinUI.grab.dy;
+  const d = Math.hypot(cx - coinUI.slit.x, cy - (coinUI.slit.y + coinUI.slit.h / 2)), R = coinUI.frames[0].w;
+  coinUI.place(cx, cy, d < R * 0.7 ? 2 : d < R * 1.4 ? 1 : 0);   // 投入口に近づくほど横を向く
+});
+const coinUp = (e) => {
+  if (coinUI.state !== 'drag' || (coinUI.grab && e.pointerId !== coinUI.grab.id)) return;
+  ui.coin.classList.remove('dragging');
+  const z = coinUI.slotZone, p = coinUI.pos;
+  if (p.x > z.x && p.x < z.x + z.w && p.y > z.y && p.y < z.y + z.h) coinUI.insert(false); else coinUI.springBack();
+};
+ui.coin.addEventListener('pointerup', coinUp);
+ui.coin.addEventListener('pointercancel', coinUp);
+ui.coin.addEventListener('lostpointercapture', coinUp);
 // 取りこぼしの保険：押している指そのものの pointerup を window でも拾う
 window.addEventListener('pointerup', (e) => {
   if (input.xId != null && e.pointerId === input.xId) release('x');
@@ -756,7 +950,7 @@ document.addEventListener('dblclick', (e) => e.preventDefault());
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('touchmove', (e) => { if (!e.target.closest('.admin-card')) e.preventDefault(); }, { passive: false });
 
-// タイトル：タップでスタート（「ぽちゃもん」の文字だけ、2秒の長押しで設定）
+// タイトル：始めるのはコインの投入。タップはコインの場所を教えるだけ（「ぽちゃもん」の文字だけ、2秒の長押しで設定）
 let pressTimer = null, longPressed = false;
 const titleSub = document.querySelector('.title-sub');
 ui.title.addEventListener('pointerdown', (e) => {
@@ -769,7 +963,7 @@ const titleUp = (e) => {
   clearTimeout(pressTimer); audio.unlock();
   if (e.target.closest('#muteBtn')) return;
   if (longPressed) return;
-  if (game.phase === 'title' && performance.now() - game.titleShownAt > 350) { audio.tap(); setPhase('intro'); }
+  if (game.phase === 'title' && performance.now() - game.titleShownAt > 350) coinUI.nudge();
 };
 ui.title.addEventListener('pointerup', titleUp);
 ui.title.addEventListener('pointercancel', () => clearTimeout(pressTimer));
@@ -787,7 +981,7 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   if (e.key === 'ArrowRight' && ui.btnX.classList.contains('active')) { input.x = true; input.pressedX = true; ui.btnX.classList.add('pressed'); }
   if (e.key === 'ArrowUp' && ui.btnY.classList.contains('active')) { input.y = true; input.pressedY = true; ui.btnY.classList.add('pressed'); }
-  if (e.key === 'Enter' || e.key === ' ') { if (game.phase === 'title') setPhase('intro'); else if (game.phase === 'result') setPhase('title'); }
+  if (e.key === 'Enter' || e.key === ' ') { if (game.phase === 'title') coinUI.insert(true); else if (game.phase === 'result') setPhase('title'); }
 });
 window.addEventListener('keyup', (e) => {
   if (e.key === 'ArrowRight') { input.x = false; ui.btnX.classList.remove('pressed'); }
@@ -795,11 +989,11 @@ window.addEventListener('keyup', (e) => {
 });
 
 // ---------------- 設定画面 ----------------
-const adm = { luckP: $('luckP'), luckPVal: $('luckPVal'), luckSlot: $('luckSlot'), layout: $('layoutSel'), volume: $('volume'), volVal: $('volVal'),
+const adm = { luckP: $('luckP'), luckPVal: $('luckPVal'), luckSlot: $('luckSlot'), volume: $('volume'), volVal: $('volVal'),
               speed: $('speed'), speedVal: $('speedVal'), cntGames: $('cntGames'), cntStickers: $('cntStickers'), cntReset: $('cntReset'),
               save: $('adminSave'), close: $('adminClose'), toTitle: $('adminToTitle') };
 function openAdmin() {
-  adm.luckP.value = Math.round(settings.luckP * 100); adm.luckSlot.value = settings.luckSlot; adm.layout.value = settings.layout;
+  adm.luckP.value = Math.round(settings.luckP * 100); adm.luckSlot.value = settings.luckSlot;
   adm.volume.value = Math.round(settings.volume * 100); adm.speed.value = Math.round(settings.speed * 100);
   const c = settings.counters[todayKey()] || { games: 0, stickers: 0 };
   adm.cntGames.textContent = c.games; adm.cntStickers.textContent = c.stickers;
@@ -822,9 +1016,9 @@ adm.cntReset.addEventListener('click', () => {
 });
 adm.toTitle.addEventListener('click', () => { ui.admin.classList.remove('show'); setPhase('title'); game.titleShownAt = performance.now(); });
 adm.save.addEventListener('click', () => {
-  settings.luckP = adm.luckP.value / 100; settings.luckSlot = adm.luckSlot.value; settings.layout = adm.layout.value;
+  settings.luckP = adm.luckP.value / 100; settings.luckSlot = adm.luckSlot.value;
   settings.volume = adm.volume.value / 100; settings.speed = adm.speed.value / 100;
-  saveSettings(); audio.setVolume(settings.volume); applyLayout(); ui.admin.classList.remove('show');
+  saveSettings(); audio.setVolume(settings.volume); ui.admin.classList.remove('show');
 });
 adm.close.addEventListener('click', () => ui.admin.classList.remove('show'));
 window.addEventListener('hashchange', () => { if (location.hash === '#admin') openAdmin(); });
@@ -840,7 +1034,10 @@ window.__ufo = {
                   claw: { x: claw.x, y: claw.y, z: claw.z, cx: claw.cx, cy: claw.cy, arm: claw.arm, thx: claw.thx, L: claw.L },
                   held: claw.held ? claw.held.id : null, toys: toys.map((t) => ({ id: t.id, state: t.state })) }),
   press: (key, on) => { input[key] = !!on; if (on) input['pressed' + key.toUpperCase()] = true; ui['btn' + key.toUpperCase()].classList.toggle('pressed', !!on); },
-  tap: () => { if (game.phase === 'title') setPhase('intro'); else if (game.phase === 'result') setPhase('title'); },
+  tap: () => { if (game.phase === 'title') coinUI.insert(true); else if (game.phase === 'result') setPhase('title'); },
+  insertCoin: (fast) => coinUI.insert(!!fast),
+  coin: () => ({ state: coinUI.state, pos: coinUI.pos, frame: coinUI.frame, slit: coinUI.slit, zone: coinUI.slotZone }),
+  consoles: () => ({ loaded: !!con.data, L: con.L, R: con.R }),
   force: (arr) => { game.forcedOutcome = arr; },   // 例: ['win','lose','win']（null で解除）
   setLuck: (p) => { settings.luckP = p; },
   setSlot: (s) => { settings.luckSlot = s; },
@@ -866,7 +1063,7 @@ window.__ufo = {
 
 // ---------------- 起動 ----------------
 async function init() {
-  applyLayout();
+  resize();
   try {
     await load();
   } catch (e) {

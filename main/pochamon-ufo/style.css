@@ -1,5 +1,5 @@
 /* ぽちゃもん UFOキャッチャー — 画面の見た目。
-   盤面（筐体・ぬいぐるみ・アーム）は canvas、文字とボタンは HTML。 */
+   盤面（筐体・ぬいぐるみ・アーム）と左右の操作盤（キャップ・光る輪・電光表示）は canvas、文字とボタンの当たり・コインは HTML。 */
 
 @font-face { font-family: 'Zen Maru Gothic'; font-weight: 700; font-display: swap; src: url('assets/fonts/ZenMaruGothic-Bold.woff2') format('woff2'); }
 @font-face { font-family: 'Zen Maru Gothic'; font-weight: 900; font-display: swap; src: url('assets/fonts/ZenMaruGothic-Black.woff2') format('woff2'); }
@@ -16,7 +16,6 @@
   --ink: #3B2A4A;
   --sun: #FFE066;
   --sky: #5FB9FF;
-  --btn: min(22vh, 15vw);
   --machine-left: 0px;
   --machine-width: 100vw;
 }
@@ -48,27 +47,6 @@ body {
 #ui > * { pointer-events: none; }
 #ui button, #ui .screen.show { pointer-events: auto; }
 
-/* ---------- HUD ---------- */
-#hud {
-  position: absolute; top: max(10px, env(safe-area-inset-top)); left: 0; right: 0;
-  display: flex; justify-content: space-between; padding: 0 2vw;
-}
-.hud-box {
-  display: flex; align-items: center; gap: .5em;
-  background: rgba(255,255,255,.92); border: 3px solid var(--pink);
-  border-radius: 999px; padding: .35em 1em; font-weight: 900; font-size: clamp(16px, 2.6vh, 26px);
-  box-shadow: 0 4px 0 rgba(0,0,0,.12);
-}
-.hud-label { color: var(--pink-dark); }
-.hud-num { font-size: 1.35em; color: var(--ink); min-width: 1.2em; text-align: center; }
-.hud-lamps { display: inline-flex; gap: .3em; }
-.hud-lamps i {
-  width: .9em; height: .9em; border-radius: 50%; background: var(--pink);
-  box-shadow: 0 0 0 2px #fff, 0 0 8px rgba(249,139,179,.8);
-  transition: background .3s, box-shadow .3s;
-}
-.hud-lamps i.off { background: #d9d3dc; box-shadow: 0 0 0 2px #fff; }
-
 /* ---------- 中央メッセージ ---------- */
 #msg {
   position: absolute; left: var(--machine-left); width: var(--machine-width); top: 34%;
@@ -98,37 +76,22 @@ body {
 #guide:empty { display: none; }
 @keyframes guidein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
-/* ---------- ボタン ---------- */
+/* ---------- ボタン（右の操作盤の上。位置と大きさは game.js がキャップに合わせて置く・font-size はキャップの半径） ---------- */
 .ctl {
-  position: absolute; bottom: max(3vh, env(safe-area-inset-bottom));
-  width: var(--btn); height: var(--btn); border-radius: 50%;
-  border: none; padding: 0; cursor: pointer;
-  background: radial-gradient(circle at 35% 30%, #ffc3da 0%, var(--pink) 45%, var(--pink-deep) 100%);
-  box-shadow: 0 10px 0 var(--pink-dark), 0 16px 24px rgba(0,0,0,.35), inset 0 -6px 12px rgba(0,0,0,.08);
+  position: absolute; left: 0; top: 0; width: 100px; height: 100px; border-radius: 50%;
+  border: none; padding: 0; margin: 0; background: transparent; cursor: pointer;
   color: #fff; font-family: inherit; font-weight: 900;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
-  transition: transform .08s, box-shadow .08s, filter .25s, opacity .25s;
   touch-action: none; -webkit-touch-callout: none;
-  opacity: 0; transform: translateY(20px); pointer-events: none !important;
+  opacity: 0; pointer-events: none !important;
+  transition: opacity .25s;
 }
-.ctl-arrow { font-size: calc(var(--btn) * .42); line-height: 1; text-shadow: 0 3px 0 rgba(0,0,0,.18); }
-.ctl-label { font-size: calc(var(--btn) * .17); line-height: 1.2; letter-spacing: .05em; }
-#btnX { left: 3vw; }
-#btnY { right: 3vw; }
-.ctl.ready { opacity: 1; transform: none; pointer-events: auto !important; }
-.ctl.ready:not(.active) { filter: saturate(.25) brightness(.85); opacity: .7; }
-.ctl.active { animation: beat 1.1s ease-in-out infinite; }
-.ctl.active.pressed, .ctl.active:active {
-  transform: translateY(7px); box-shadow: 0 3px 0 var(--pink-dark), 0 6px 12px rgba(0,0,0,.3); animation: none;
-}
-@keyframes beat { 0%,100% { box-shadow: 0 10px 0 var(--pink-dark), 0 16px 24px rgba(0,0,0,.35), 0 0 0 0 rgba(255,224,102,.0); }
-                  50% { box-shadow: 0 10px 0 var(--pink-dark), 0 16px 24px rgba(0,0,0,.35), 0 0 0 14px rgba(255,224,102,.35); } }
-
-/* レイアウトB：右に操作盤（ボタンを縦に2つ） */
-.layout-B #btnX { left: auto; right: 4vw; bottom: calc(max(3vh, env(safe-area-inset-bottom)) + var(--btn) + 4vh); }
-.layout-B #btnY { right: 4vw; }
-.layout-B #hud { left: auto; right: 2vw; width: calc(var(--btn) + 8vw); flex-direction: column; gap: 10px; align-items: stretch; padding: 0; }
-.layout-B .hud-box { justify-content: space-between; }
+.ctl > span { transition: transform .06s; }
+.ctl-arrow { font-size: .74em; line-height: 1; text-shadow: 0 2px 0 rgba(0,0,0,.18); }
+.ctl-label { font-size: .30em; line-height: 1.2; letter-spacing: .05em; margin-top: .04em; }
+.ctl.ready { opacity: 1; pointer-events: auto !important; }
+.ctl.ready:not(.active) { opacity: .6; }
+.ctl.pressed > span { transform: translateY(.07em); }
 
 /* ---------- 画面（タイトル・結果など） ---------- */
 .screen {
@@ -136,6 +99,11 @@ body {
   background: rgba(40,28,60,.55);
 }
 .screen.show { display: flex; animation: fadein .3s ease-out; }
+/* 筐体の上だけ覆う画面：左右の操作盤（コイン・電光表示）はそのまま見える・触れる */
+.screen.cab { left: var(--machine-left); width: var(--machine-width); right: auto; }
+.screen.cab .card { max-width: 94%; }
+#admin { z-index: 60; }
+#loading { z-index: 70; }
 @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 .card {
   background: var(--cream); border: 5px solid var(--pink); border-radius: 28px;
@@ -145,7 +113,7 @@ body {
 .small-card { font-size: clamp(18px, 3.5vh, 34px); font-weight: 900; }
 #loadProg { font-size: .7em; font-weight: 700; color: var(--pink-dark); }
 
-.title-card { padding: 3.5vh 6vw 3vh; animation: cardin .5s cubic-bezier(.2,1.5,.4,1); }
+.title-card { padding: 3.5vh 5vw 3vh; animation: cardin .5s cubic-bezier(.2,1.5,.4,1); }
 @keyframes cardin { from { transform: scale(.8) translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
 .title-sub { font-size: clamp(20px, 4vh, 40px); font-weight: 900; color: var(--pink-dark); letter-spacing: .1em; }
 .title-main {
@@ -155,12 +123,13 @@ body {
   margin: .05em 0 .15em;
 }
 .title-rule { display: flex; flex-direction: column; gap: .2em; font-size: clamp(15px, 2.8vh, 28px); font-weight: 700; color: var(--ink); }
+/* 「コインを いれて」はボタンではないので塗らない。矢印が左のトレーを指す */
 .title-tap {
-  margin-top: 2.2vh; display: inline-block; background: var(--pink-deep); color: #fff; border-radius: 999px;
-  padding: .55em 1.6em; font-size: clamp(18px, 3.4vh, 34px); font-weight: 900;
-  box-shadow: 0 6px 0 var(--pink-dark); animation: tapbeat 1.2s ease-in-out infinite;
+  margin-top: 2.2vh; display: inline-flex; align-items: center; gap: .25em;
+  color: var(--pink-dark); font-size: clamp(18px, 3.4vh, 34px); font-weight: 900;
 }
-@keyframes tapbeat { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.title-arrow { display: inline-block; animation: arrowL 1s ease-in-out infinite; }
+@keyframes arrowL { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-.35em); } }
 .mini {
   position: absolute; right: 2vw; bottom: max(14px, env(safe-area-inset-bottom)); width: 52px; height: 52px; border-radius: 50%;
   border: 3px solid #fff; background: var(--lav-deep); color: #fff; font-size: 22px; font-weight: 900; cursor: pointer;
@@ -187,6 +156,21 @@ button.big {
   box-shadow: 0 6px 0 #1d1326;
 }
 button.big:active { transform: translateY(4px); box-shadow: 0 2px 0 #1d1326; }
+
+/* ---------- コイン（左の操作盤のトレーにある。位置・大きさは game.js が置く） ---------- */
+#coin { position: absolute; left: 0; top: 0; z-index: 20; pointer-events: auto; touch-action: none; cursor: grab; will-change: transform; }
+#coin::before { content: ''; position: absolute; inset: -18px; }   /* 指で取りやすいように当たりを広げる */
+#coin img { display: block; width: 100%; height: 100%; -webkit-user-drag: none; filter: drop-shadow(0 6px 6px rgba(0,0,0,.35)); }
+#coin.hidden { display: none; }
+#coin.bob img { animation: coinbob 1.6s ease-in-out infinite; }
+#coin.drop img { animation: coindrop .7s cubic-bezier(.3,1.6,.5,1); }
+#coin.nudge img { animation: coinnudge .6s ease-out; }
+#coin.dragging { cursor: grabbing; z-index: 21; }
+#coin.dragging img { transform: scale(1.1); filter: drop-shadow(0 14px 14px rgba(0,0,0,.45)); animation: none; }
+#coin.back { transition: transform .45s cubic-bezier(.3,1.4,.4,1), width .45s, height .45s; }
+@keyframes coinbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes coindrop { 0% { transform: translateY(-90px); opacity: 0; } 25% { opacity: 1; } 60% { transform: translateY(6px); } 80% { transform: translateY(-4px); } 100% { transform: none; } }
+@keyframes coinnudge { 0% { transform: translateY(0); } 30% { transform: translateY(-18px) scale(1.08); } 60% { transform: translateY(4px); } 100% { transform: none; } }
 
 /* ---------- 設定 ---------- */
 .admin-card { text-align: left; font-size: clamp(14px, 2.2vh, 20px); max-height: 92vh; overflow: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; }

@@ -15,40 +15,28 @@
   </script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=1">
+  <link rel="stylesheet" href="style.css?v=2">
   <title>ぽちゃもん UFOキャッチャー</title>
 </head>
-<body class="layout-A phase-loading">
+<body class="phase-loading">
   <canvas id="scene"></canvas>
 
   <div id="ui">
-    <!-- 上の表示 -->
-    <div id="hud">
-      <div class="hud-box hud-tries">
-        <span class="hud-label">のこり</span>
-        <span class="hud-lamps"><i></i><i></i><i></i></span>
-      </div>
-      <div class="hud-box hud-got">
-        <span class="hud-label">ゲット</span>
-        <span class="hud-num" id="hudGot">0</span>
-      </div>
-    </div>
-
     <!-- 中央メッセージ -->
     <div id="msg"></div>
     <!-- 下の案内 -->
     <div id="guide"></div>
 
-    <!-- ボタン -->
+    <!-- ボタン：見た目（キャップ・光る輪）は canvas に描く。ここは押す場所と文字だけ -->
     <button id="btnX" class="ctl" type="button" aria-label="よこにうごかす">
       <span class="ctl-arrow">→</span><span class="ctl-label">よこ</span>
     </button>
-    <button id="btnY" class="ctl" type="button" aria-label="おくにうごかす">
-      <span class="ctl-arrow">↑</span><span class="ctl-label">おく</span>
+    <button id="btnY" class="ctl" type="button" aria-label="たてにうごかす">
+      <span class="ctl-arrow">↑</span><span class="ctl-label">たて</span>
     </button>
 
-    <!-- タイトル -->
-    <div id="title" class="screen">
+    <!-- タイトル：筐体の上だけを覆う（左右の操作盤はそのまま触れる＝コインを入れて始める） -->
+    <div id="title" class="screen cab">
       <div class="card title-card">
         <div class="title-sub">ぽちゃもん</div>
         <div class="title-main">UFOキャッチャー</div>
@@ -56,13 +44,13 @@
           <span>3かい チャレンジ！</span>
           <span>とれた かずだけ ステッカーが もらえるよ</span>
         </div>
-        <div class="title-tap">タップして スタート</div>
+        <div class="title-tap"><span class="title-arrow">←</span>コインを いれて スタート</div>
       </div>
       <button id="muteBtn" class="mini" type="button" aria-label="おと">♪</button>
     </div>
 
     <!-- 結果 -->
-    <div id="result" class="screen">
+    <div id="result" class="screen cab">
       <div class="card result-card">
         <div class="result-head">けっか はっぴょう！</div>
         <div class="result-stickers" id="resultStickers"></div>
@@ -88,11 +76,6 @@
             <option value="first">1回目</option>
             <option value="last">3回目</option>
           </select></label>
-        <label>レイアウト
-          <select id="layoutSel">
-            <option value="A">A：筐体まんなか・ボタン左右の角</option>
-            <option value="B">B：右に操作盤</option>
-          </select></label>
         <label>音量 <span id="volVal"></span>
           <input type="range" id="volume" min="0" max="100" step="10"></label>
         <label>速さ <span id="speedVal"></span>
@@ -107,8 +90,11 @@
         <div class="admin-hint">ひらきかた：タイトル画面の「ぽちゃもん」を 2秒 おしつづける ／ URLに #admin</div>
       </div>
     </div>
+
+    <!-- ぽちゃもんコイン：トレーから投入口へドラッグして入れる -->
+    <div id="coin" class="hidden" aria-label="ぽちゃもんコイン"><img id="coinImg" alt="" draggable="false"></div>
   </div>
 
-  <script src="game.js?v=1"></script>
+  <script src="game.js?v=2"></script>
 </body>
 </html>

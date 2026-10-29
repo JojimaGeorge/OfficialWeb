@@ -1,0 +1,46 @@
+"""Blender の操作盤の書き出し（console_export.py の出力フォルダ）をゲームの assets/ に取り込む。
+
+  py -I tools/pochamon-ufo/sync_console.py <export_console_dir> [--png]
+
+PNG を WebP（可逆ではなく高品質）に変換して置き、console.json はファイル名を差し替えて assets/console.json に書く。
+"""
+import sys, os, json, shutil, time
+from PIL import Image
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+DEST = os.path.normpath(os.path.join(HERE, "..", "..", "main", "pochamon-ufo", "assets"))
+src = sys.argv[1]
+use_png = "--png" in sys.argv
+os.makedirs(DEST, exist_ok=True)
+
+C = json.load(open(os.path.join(src, "console.json"), encoding="utf-8"))
+total_in = total_out = 0
+
+
+def put(name, quality):
+    global total_in, total_out
+    p = os.path.join(src, name)
+    total_in += os.path.getsize(p)
+    if use_png:
+        shutil.copy2(p, os.path.join(DEST, name))
+        total_out += os.path.getsize(os.path.join(DEST, name))
+        return name
+    out = os.path.splitext(name)[0] + ".webp"
+    Image.open(p).save(os.path.join(DEST, out), "WEBP", quality=quality, method=6)
+    total_out += os.path.getsize(os.path.join(DEST, out))
+    return out
+
+
+for f in os.listdir(DEST):
+    if f.startswith(("console_", "cap", "ring", "coin_")) and f.split(".")[-1] in ("png", "webp"):
+        os.remove(os.path.join(DEST, f))
+
+for key, spr in C["sprites"].items():
+    spr["file"] = put(spr["file"], 92)
+C["synced"] = time.strftime("%Y-%m-%d %H:%M:%S")
+C["source"] = os.path.abspath(src)
+with open(os.path.join(DEST, "console.json"), "w", encoding="utf-8") as fh:
+    json.dump(C, fh, ensure_ascii=False, separators=(",", ":"))
+print("assets ->", DEST)
+print("images: %.2f MB -> %.2f MB" % (total_in / 1e6, total_out / 1e6))
+print("sprites", len(C["sprites"]))
