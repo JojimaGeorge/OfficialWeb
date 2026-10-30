@@ -797,8 +797,9 @@ function domeZ(t, x, y) {
   const rx = x >= gx ? b[1][0] + t.dx - gx : gx - (b[0][0] + t.dx);
   const ry = y >= gy ? b[1][1] + t.dy - gy : gy - (b[0][1] + t.dy);
   if (rx < 0.005 || ry < 0.005) return null;
-  // 裾の形は角の丸い四角（|x|³+|y|³<1）：斜めに寝そべった子は外形の箱の角まで体がある（楕円だと 22番の角が抜けて、目印が下の0番に落ちた・10/30 (0.08,0.05)）
-  const q = Math.abs((x - gx) / rx) ** 3 + Math.abs((y - gy) / ry) ** 3;
+  // 裾の形は角の丸い四角（|x|⁴+|y|⁴<1）：斜めに寝そべった子は外形の箱の角まで体がある（楕円や 3乗だと 22番の角が抜けて、目印が下の0番に落ちた・10/30 (0.08,0.05)）。
+  // 広げすぎた分（体の無い角）は、絵の中に写るかの確かめで落ちる
+  const q = Math.abs((x - gx) / rx) ** 4 + Math.abs((y - gy) / ry) ** 4;
   if (q >= 1) return null;
   const zm = (t.data.ztop + t.data.zbottom) / 2;
   return zm + (t.data.ztop - zm) * Math.sqrt(1 - q) + t.dz;
@@ -827,12 +828,22 @@ function toyCovers(t, u, v) {
   const x = Math.round(lx - r[0]), y = Math.round(ly - r[1]);
   return x >= 0 && y >= 0 && x < m.w && y < m.h && m.a[y * m.w + x] > 100;
 }
-// (x, y) の真下の表面：床か、一番高いぬいぐるみの面。on＝その子（目印を描く順番に使う）
+// (x, y) の真下の表面：床か、一番高いぬいぐるみの面。on＝その子（目印を描く順番に使う）・px/py＝輪を置く所（ふつうは (x, y)）
 function surfaceUnder(x, y) {
-  // びろーんの上（輪郭＋爪の広がり3cm）なら、つかむ判定（descend）と同じくびろーんに下りる＝その高さ。
-  // 前は輪郭ちょうどで見ていて、外の3cmの帯では目印が床や下の子に出るのに、爪はびろーんの上で止まって空振りした（10/30 検品）
+  // びろーんの上（輪郭＋爪の広がり3cm）なら、つかむ判定（descend）と同じくびろーんに下りる。
+  // 前は輪郭ちょうどで見ていて、外の3cmの帯では目印が床や下の子に出るのに、爪はびろーんの上で止まって空振りした（10/30 検品）。
+  // 輪はびろーんの面の上に置く：帯（輪郭の外）では輪郭の内側の一番近い所へ寄せる。つかむ高さの宙に描くと、
+  // 絵の上では手前の子の頭や壁に乗って見えた（10/30 再検品・格子の 9.8%・最大27px）
   const fl = flatLanding(x, y);
-  if (fl) return { z: fl.z, on: fl.toy };
+  if (fl) {
+    const t = fl.toy;
+    let px = x, py = y;
+    if (!inFootprint(t, x, y, 0.008)) { const q = nearestInside(t, x, y, 0.008); px = q.x; py = q.y; }
+    let zs = flatEdgeAt(t, px, py).zSurf + t.dz;
+    // 面の見積もりが絵の外に写る時は、絵の中に写る高さまで下げる（ふつうの子と同じ確かめ方）
+    for (let i = 0, z0 = t.data.zbottom + t.dz, zt = zs; i <= 8; i++) { const zi = zt - (zt - z0) * i / 8, p = project(px, py, zi); if (toyCovers(t, p.u, p.v)) { zs = zi; break; } }
+    return { z: zs, on: t, px, py };
+  }
   let z = floorZAt(y), on = null;
   for (const t of toys) {
     if ((t.state !== 'rest' && t.state !== 'settle') || isFlat(t)) continue;
@@ -851,7 +862,22 @@ function surfaceUnder(x, y) {
     if (hit == null) continue;
     z = hit; on = t;
   }
-  return { z, on };
+  return { z, on, px: x, py: y };
+}
+// びろーん t の床に落とした輪郭（凸）の内側へ inset だけ入った所で、(x, y) に一番近い点（輪郭の外から寄せる時に使う）
+function nearestInside(t, x, y, inset) {
+  const fp = t.data.footprint;
+  let cx = 0, cy = 0;
+  for (const p of fp) { cx += p[0]; cy += p[1]; }
+  cx = cx / fp.length + t.dx; cy = cy / fp.length + t.dy;
+  let best = { x, y }, bd = Infinity;
+  for (let i = 0; i < fp.length; i++) {
+    const a = fp[i], b = fp[(i + 1) % fp.length], ax = a[0] + t.dx, ay = a[1] + t.dy, ex = b[0] - a[0], ey = b[1] - a[1];
+    const s = clamp(((x - ax) * ex + (y - ay) * ey) / (ex * ex + ey * ey || 1), 0, 1), qx = ax + ex * s, qy = ay + ey * s, d = Math.hypot(x - qx, y - qy);
+    if (d < bd) { bd = d; best = { x: qx, y: qy }; }
+  }
+  const dx = cx - best.x, dy = cy - best.y, dl = Math.hypot(dx, dy) || 1;   // 重心の方へ inset だけ入れる
+  return { x: best.x + dx / dl * inset, y: best.y + dy / dl * inset };
 }
 // びろーんを上の縁のつまむ所 k で持つ：つかむ点・吊った姿のコマを、そのつまむ所の物に切り替える（つまむ所ごとに Blender で描いてある）
 function setGrip(t, k) {
@@ -1527,14 +1553,14 @@ function drawClawShadow(p, zs) {
 // 線の太さは画面の px で決める（絵の縮尺 k で割る）
 const PTR_R = 0.025;
 function pointerRing(ps, r) {
-  const x = claw.cx, y = claw.cy, z = ps.z + 0.004;
+  const x = ps.px, y = ps.py, z = ps.z + 0.004;
   ctx.beginPath();
   for (let i = 0; i <= 32; i++) { const th = i / 32 * Math.PI * 2, p = project(x + r * Math.cos(th), y + r * Math.sin(th), z); if (i) ctx.lineTo(p.u, p.v); else ctx.moveTo(p.u, p.v); }
   ctx.closePath();
 }
 // 線の両端：上＝アームの下、下＝輪の奥の縁（輪の真ん中まで引くと輪を横切った・10/30 検品）
 function pointerLineEnds(ps) {
-  const x = claw.cx, y = claw.cy, z = ps.z + 0.004;
+  const x = ps.px, y = ps.py, z = ps.z + 0.004;
   return { top: project(x, y, claw.z + scene.machine.claw.pad_bottom - 0.012), bot: project(x, y + PTR_R, z) };
 }
 function drawPointerLine(ps, ghost) {
@@ -1671,18 +1697,19 @@ function draw() {
   let iPtr = -1, iLine = -1, ghostRing = false, ghostLine = false;
   if (ptr) {
     iPtr = ptr.on ? rest.indexOf(ptr.on) + 1 : 0;
-    const x = claw.cx, y = claw.cy, z = ptr.z + 0.004;
+    const x = ptr.px, y = ptr.py, z = ptr.z + 0.004;
     // 輪：真ん中と縁の8点のうち、後から描く子に覆われる点が2つ以上なら、透ける輪も重ねる
     let hid = 0;
     for (let i = 0; i <= 8; i++) { const r = i ? PTR_R : 0, th = i * Math.PI / 4, p = project(x + r * Math.cos(th), y + r * Math.sin(th), z); if (coveredAfter(rest, iPtr, p.u, p.v)) hid++; }
     ghostRing = hid >= 2;
     if (CFG.pointer === 'line') {
       const { top, bot } = pointerLineEnds(ptr), mid = project(x, y, (z + claw.z + scene.machine.claw.pad_bottom) / 2);
-      iLine = Math.max(iPtr, insertionIndex(rest, mid.d, [Math.min(top.u, bot.u) - 4, top.v, Math.max(top.u, bot.u) + 4, bot.v]));
+      // 輪が手前の子に隠れている時は、線も輪と同じ層（隠している子の裏）に置く。線だけ後ろの層に差すと、隠している子の手前を通って透ける輪に入った（10/30 再検品 (-0.32,-0.05)）
+      iLine = ghostRing ? iPtr : Math.max(iPtr, insertionIndex(rest, mid.d, [Math.min(top.u, bot.u) - 4, top.v, Math.max(top.u, bot.u) + 4, bot.v]));
       for (let i = 1; i < 6 && !ghostLine; i++) if (coveredAfter(rest, iLine, lerp(top.u, bot.u, i / 6), lerp(top.v, bot.v, i / 6))) ghostLine = true;
     }
   }
-  dbg.pointer = ptr ? { a: pointer.a, x: claw.cx, y: claw.cy, z: ptr.z, on: ptr.on ? ptr.on.id : null, layer: iPtr, lineLayer: iLine, ghostRing, ghostLine, uv: project(claw.cx, claw.cy, ptr.z) } : null;
+  dbg.pointer = ptr ? { a: pointer.a, x: ptr.px, y: ptr.py, z: ptr.z, on: ptr.on ? ptr.on.id : null, layer: iPtr, lineLayer: iLine, ghostRing, ghostLine, uv: project(ptr.px, ptr.py, ptr.z) } : null;
   for (let i = 0; i <= rest.length; i++) {
     if (i === iSh) drawClawShadow(sp, zs);
     if (i === iPtr) drawPointerRing(ptr, false);
@@ -1883,7 +1910,7 @@ window.__ufo = {
   timeScale: (k) => { game.timeScale = k; },
   aimAt: (x, y) => { claw.cx = x; claw.cy = y; claw.vx = claw.vy = 0; },   // 台車をその場所へ（目印の確かめ用）
   // その場所の真下の表面と、丸屋根の見積もりに入った子（目印の確かめ用）
-  surfaceAt: (x, y) => { const r = surfaceUnder(x, y); return { z: r.z, on: r.on ? r.on.id : null, cands: toys.filter((t) => !isFlat(t) && (t.state === 'rest' || t.state === 'settle')).map((t) => ({ id: t.id, dome: domeZ(t, x, y), zb: t.data.zbottom, zt: t.data.ztop })).filter((c) => c.dome != null) }; },
+  surfaceAt: (x, y) => { const r = surfaceUnder(x, y); return { z: r.z, on: r.on ? r.on.id : null, px: r.px, py: r.py, cands: toys.filter((t) => !isFlat(t) && (t.state === 'rest' || t.state === 'settle')).map((t) => ({ id: t.id, dome: domeZ(t, x, y), zb: t.data.zbottom, zt: t.data.ztop })).filter((c) => c.dome != null) }; },
   settings, CFG, decideOutcome: (i) => decideOutcome(i), makeSlots,
   // ルールの検算：n ゲーム回して取れた枚数の分布を返す（実際の判定関数を使う）
   simulate: (n, p) => {
