@@ -228,6 +228,9 @@ async function load() {
   const track = (p) => { total++; return p.then((v) => { done++; ui.loadProg.textContent = done + ' / ' + total; return v; }); };
   jobs.push(track(loadImage('assets/' + (scene.files && scene.files.bg || 'bg.png'))).then((im) => { img.bg = im; }));
   if (CFG.deco) jobs.push(track(loadImage('assets/retro_sign.webp')).then((im) => { img.sign = im; }));   // 上の梁の看板（tools/pochamon-ufo/make_retro.js で焼いた絵）
+  // 結果画面のステッカーの絵は最初に読んで手元に持つ。結果画面で読みに行くと、遊んで数分たった後の読み込みが落ちて「?」になることがあった
+  // （10/30 本番の WebKit で通した時・HTTP2 の通信層のエラー。会場の不安定な回線でもご褒美の絵が欠けないように）
+  jobs.push(track(loadImage('assets/pochamon_idle.png')).then((im) => { img.sticker = im; }));
   const byId = {};
   for (const t of scene.toys) {
     const hold = { x: t.grab[0], y: t.grab[1], z: t.ztop - CFG.holdDzToy * t.scale };
@@ -1068,7 +1071,8 @@ function setPhase(p) {
       ui.resultStickers.innerHTML = '';
       for (let i = 0; i < game.got; i++) {
         const d = document.createElement('div'); d.className = 'sticker'; d.style.animationDelay = (0.15 + i * 0.18) + 's';
-        const im = document.createElement('img'); im.src = 'assets/pochamon_idle.png'; im.alt = ''; d.appendChild(im); ui.resultStickers.appendChild(d);
+        const im = img.sticker ? img.sticker.cloneNode() : Object.assign(document.createElement('img'), { src: 'assets/pochamon_idle.png' });   // 読み込み済みの絵を写す
+        im.alt = ''; d.appendChild(im); ui.resultStickers.appendChild(d);
       }
       ui.result.classList.add('show'); game.resultShownAt = performance.now();
       audio.fanfare();

@@ -1,5 +1,5 @@
 // ぽちゃもん UFOキャッチャーを Playwright で通しで遊び、要所のスクショを撮る。
-//   node tools/pochamon-ufo/play.js [--browser=chromium|webkit] [--layout=A|B] [--force=win,lose,win] [--url=...]
+//   node tools/pochamon-ufo/play.js [--browser=chromium|webkit] [--layout=A|B] [--force=win,lose,win] [--url=...] [--localjs]
 // 事前に: py -m http.server 4876 --directory main   （URL は http://localhost:4876/pochamon-ufo/）
 const path = require('path');
 const fs = require('fs');
@@ -22,6 +22,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const errors = [];
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });
+  page.on('requestfailed', (r) => errors.push('requestfailed: ' + r.url() + ' :: ' + (r.failure() && r.failure().errorText)));   // どのファイルの読み込みが落ちたか（コンソールのエラーには URL が出ない）
   const shot = async (name) => { await page.screenshot({ path: path.join(outDir, name + '.png') }); console.log('shot', name); };
   const state = () => page.evaluate(() => window.__ufo.state());
   // p は段階の名前か、そのどれかでよい名前の配列
@@ -32,6 +33,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     throw new Error('timeout waiting for phase ' + ps.join('|') + ' (now ' + (await state()).phase + ')');
   };
 
+  // --localjs：本番の絵と回線のまま、game.js だけ手元の版に差し替えて確かめる（push 前の直しを本番の条件で見る）
+  if (args.localjs) await page.route('**/pochamon-ufo/game.js*', (r) => r.fulfill({ path: path.join(__dirname, '..', '..', 'main', 'pochamon-ufo', 'game.js'), contentType: 'application/javascript' }));
   await page.goto(url, { waitUntil: 'load' });
   await page.waitForFunction(() => window.__ufo && window.__ufo.state().phase === 'title', null, { timeout: 60000 });
   await sleep(800);
