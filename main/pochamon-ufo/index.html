@@ -15,7 +15,7 @@
   </script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css?v=15">
   <title>ぽちゃもん UFOキャッチャー</title>
 </head>
 <body class="phase-loading">
@@ -36,11 +36,16 @@
       <span class="ctl-arrow"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 38 H50 V17 L89 50 L50 83 V62 H12 Z" transform="rotate(-90 50 50)"/></svg></span><span class="ctl-label">たて</span>
     </button>
 
-    <!-- タイトル：筐体の上だけを覆う（左右の操作盤はそのまま触れる＝コインを入れて始める） -->
+    <!-- タイトル：筐体の上だけを覆う（左右の操作盤はそのまま触れる＝コインを入れて始める）。
+         札は表紙風（2026-10-30 本人が T1 を選択）：紺の地に二重線のネオン文字・青い星の列・青いネオンの線。
+         字は推しゴを絵に焼いたもの（tools/pochamon-ufo/make_retro.js）。width/height は絵の寸法＝読み込む前から札の高さが決まる（コインの定位置がずれない） -->
     <div id="title" class="screen cab">
       <div class="card title-card">
-        <div class="title-sub">ぽちゃもん</div>
-        <div class="title-main">UFOキャッチャー</div>
+        <div class="neon-line"></div>
+        <img class="title-stars" src="assets/title_stars.webp" alt="" width="1004" height="90">
+        <div class="title-sub"><img src="assets/title_sub.webp" alt="ぽちゃもん" width="558" height="136"></div>
+        <div class="title-main"><img src="assets/title_logo.webp" alt="UFOキャッチャー" width="1327" height="242"></div>
+        <div class="neon-line"></div>
         <div class="title-rule">
           <span>3かい チャレンジ！</span>
           <span>とれた かずだけ ステッカーが もらえるよ</span>
@@ -96,6 +101,6 @@
     <div id="coin" class="hidden" aria-label="ぽちゃもんコイン"><div id="coinImg"></div></div>
   </div>
 
-  <script src="game.js?v=14"></script>
+  <script src="game.js?v=15"></script>
 </body>
 </html>

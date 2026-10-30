@@ -113,24 +113,30 @@ body {
 .small-card { font-size: clamp(18px, 3.5vh, 34px); font-weight: 900; }
 #loadProg { font-size: .7em; font-weight: 700; color: var(--pink-dark); }
 
-.title-card { padding: 3.5vh 3vw 3vh; animation: cardin .5s cubic-bezier(.2,1.5,.4,1); }
-@keyframes cardin { from { transform: scale(.8) translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
-.title-sub { font-size: clamp(20px, 4vh, 40px); font-weight: 900; color: var(--pink-dark); letter-spacing: .1em; }
-.title-main {
-  font-family: 'Cherry Bomb One', 'Zen Maru Gothic', sans-serif; font-weight: 900;
-  /* 8文字が札の幅（筐体の 94% − 余白）に1行で収まる大きさ。縦でも横でも足りない方に合わせる（折り返すと「ー」だけ2行目に落ちる） */
-  font-size: clamp(40px, min(10vh, calc((var(--machine-width) * 0.94 - 6vw) / 7.2)), 104px); line-height: 1.05; color: var(--pink-deep);
-  white-space: nowrap;
-  -webkit-text-stroke: 1px var(--pink-dark); text-shadow: 0 5px 0 var(--pink-dark), 0 8px 0 rgba(0,0,0,.12);
-  margin: .05em 0 .15em;
+/* タイトルの札＝表紙風（2026-10-30 本人が T1 を選択。参考＝宝島社「SEGA UFO CATCHER ほんものそっくりポーチBOOK」の表紙）：
+   紺の地に二重線のネオン文字・青い星の列・青いネオンの線。字は推しゴを絵に焼いたもの（tools/pochamon-ufo/make_retro.js） */
+.title-card {
+  background: radial-gradient(130% 100% at 50% 0%, #1d2a6b 0%, #121a4a 55%, #0b1030 100%);
+  border: none; border-radius: 10px; box-shadow: 0 20px 40px rgba(0,0,0,.5);
+  padding: 1.6vh 3.2vw 2.8vh; animation: cardin .5s cubic-bezier(.2,1.5,.4,1);
 }
-.title-rule { display: flex; flex-direction: column; gap: .2em; font-size: clamp(15px, 2.8vh, 28px); font-weight: 700; color: var(--ink); }
+@keyframes cardin { from { transform: scale(.8) translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.title-card img { display: block; margin: 0 auto; height: auto; pointer-events: none; -webkit-user-drag: none; }   /* 長押しは .title-sub（設定を開く）が受ける */
+.neon-line { height: 2px; margin: 1.1vh 0; border-radius: 2px; background: #8fdcff; box-shadow: 0 0 6px 1px #4fb8ff, 0 0 14px 2px rgba(79,184,255,.55); }
+.title-stars { width: auto; height: clamp(14px, 2.6vh, 26px) !important; }
+.title-sub { margin-top: .8vh; line-height: 0; }
+.title-sub img { width: auto; height: clamp(22px, 4.4vh, 44px) !important; }
+/* 字の幅は筐体の 8 割まで（札は筐体の 94% に収まる・4:3 の 1024×768 でも1行） */
+.title-main { margin-top: .2vh; line-height: 0; }
+.title-main img { width: min(calc(var(--machine-width) * 0.8), 680px); }
+.title-rule { display: flex; flex-direction: column; gap: .2em; font-size: clamp(15px, 2.8vh, 28px); font-weight: 700; color: #fff; }
+.title-rule span:first-child { color: #ff8ec4; font-size: 1.15em; font-weight: 900; }
 /* 「コインを いれて」はボタンではないので塗らない。矢印が札の下のコインを指す */
 .title-tap {
   margin-top: 2.2vh; display: inline-flex; align-items: center; gap: .25em;
-  color: var(--pink-dark); font-size: clamp(18px, 3.4vh, 34px); font-weight: 900;
+  color: #fff; font-size: clamp(18px, 3.4vh, 34px); font-weight: 900;
 }
-.title-arrow { display: inline-block; animation: arrowD 1s ease-in-out infinite; }
+.title-arrow { display: inline-block; color: #8fdcff; animation: arrowD 1s ease-in-out infinite; }
 @keyframes arrowD { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(.3em); } }
 .mini {
   position: absolute; right: 2vw; bottom: max(14px, env(safe-area-inset-bottom)); width: 52px; height: 52px; border-radius: 50%;

@@ -52,6 +52,10 @@ const CFG = {
   // 狙いの目印（2026-10-30 本人「どの位置にいるかが分かりづらい。ぬいぐるみのどの真下を通っているか分かるように」）：
   // line＝台車の真下の表面に光る点＋アームの下から点までの点線／dot＝点だけ／off＝出さない。比べる時は URL に ?ptr=dot
   pointer: ['line', 'dot', 'off'].includes(qs.get('ptr')) ? qs.get('ptr') : 'line',
+  // 80〜90年代の筐体の飾り（2026-10-30・参考＝宝島社「SEGA UFO CATCHER ほんものそっくりポーチBOOK」の付録のポーチ）：
+  // 上の梁の前面に白い看板（assets/retro_sign.webp）・操作盤の外側のふちに星のはしご・ガラスの下の前板に赤と青のライン。?deco=0 で前の筐体
+  deco: qs.get('deco') !== '0',
+  decoPinV: 1776,       // ガラスの下の前板の上端（背景の絵の px・絵の明るさで実測）。赤と青のラインはここから下へ
 };
 
 // ---------------- DOM ----------------
@@ -222,6 +226,7 @@ async function load() {
   let done = 0, total = 0;
   const track = (p) => { total++; return p.then((v) => { done++; ui.loadProg.textContent = done + ' / ' + total; return v; }); };
   jobs.push(track(loadImage('assets/' + (scene.files && scene.files.bg || 'bg.png'))).then((im) => { img.bg = im; }));
+  if (CFG.deco) jobs.push(track(loadImage('assets/retro_sign.webp')).then((im) => { img.sign = im; }));   // 上の梁の看板（tools/pochamon-ufo/make_retro.js で焼いた絵）
   const byId = {};
   for (const t of scene.toys) {
     const hold = { x: t.grab[0], y: t.grab[1], z: t.ztop - CFG.holdDzToy * t.scale };
@@ -376,6 +381,7 @@ function bakeConsole(side) {
   g.save(); g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = c.w * 0.18; g.shadowOffsetY = c.w * 0.06;
   g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(pad + c.w * 0.08, pad + c.h * 0.03, c.w * 0.84, c.h * 0.96); g.restore();
   g.drawImage(im, pad, pad, c.w, c.h);
+  if (CFG.deco) drawLadder(g, side === 'L' ? pad + c.w * 0.012 : pad + c.w * 0.838, pad + c.h * 0.19, c.w * 0.15, c.h * 0.56, c.w / 207);
   if (side === 'L') {
     const L = con.data.L, ox = pad - c.x, oy = pad - c.y;
     for (const [key, text] of [['tries', 'のこり'], ['got', 'ゲット']]) {
@@ -385,6 +391,25 @@ function bakeConsole(side) {
     const sp = conRect('L', L.slot_plate); label(g, 'コイン', sp.x + sp.w / 2 + ox, sp.y - c.k * 18 + oy, c.k * 48);
   }
   return { canvas: cv, x: c.x - pad, y: c.y - pad, w: c.w + pad * 2, h: c.h + pad * 2 };
+}
+// 星のはしご（ポーチの柱の飾り）：白い板に外から青・白・赤の細い枠、ふちだけの星を縦に6つ。u＝見本（操作盤の幅 207px）の 1px
+function drawLadder(g, x, y, w, h, u) {
+  const rr = (k, fill) => { const d = 2 * u * k; g.beginPath(); if (g.roundRect) g.roundRect(x + d, y + d, w - 2 * d, h - 2 * d, Math.max(0, 6 * u - d)); else g.rect(x + d, y + d, w - 2 * d, h - 2 * d); g.fillStyle = fill; g.fill(); };
+  g.save();
+  g.shadowColor = 'rgba(0,0,0,.25)'; g.shadowBlur = 4 * u; g.shadowOffsetY = 2 * u;
+  rr(0, '#2b4fb5');
+  g.restore();
+  rr(1, '#fffdfd'); rr(2, '#e2333f'); rr(3, '#fffdfd');
+  const n = 6, r = w * 0.3;
+  g.save();
+  g.lineWidth = 1.8 * u; g.lineJoin = 'round'; g.strokeStyle = '#2b4fb5'; g.fillStyle = '#fffdfd';
+  for (let i = 0; i < n; i++) {
+    const cx = x + w / 2, cy = y + 10 * u + (h - 20 * u) * (i + 0.5) / n;
+    g.beginPath();
+    for (let j = 0; j < 10; j++) { const rj = j % 2 ? r * 0.45 : r, a = -Math.PI / 2 + j * Math.PI / 5; g.lineTo(cx + rj * Math.cos(a), cy + rj * Math.sin(a)); }
+    g.closePath(); g.fill(); g.stroke();
+  }
+  g.restore();
 }
 // 7セグ：1×2 の箱の中の7本（a 上・b 右上・c 右下・d 下・e 左下・f 左上・g 中）。線の太さは箱の幅の 22%
 const SEGS = { a: [0.1, 0, 0.8, 0.22], b: [0.78, 0.06, 0.22, 0.9], c: [0.78, 1.04, 0.22, 0.9], d: [0.1, 1.78, 0.8, 0.22], e: [0, 1.04, 0.22, 0.9], f: [0, 0.06, 0.22, 0.9], g: [0.1, 0.89, 0.8, 0.22] };
@@ -1522,16 +1547,24 @@ function draw() {
     const W = scene.image.width, H = scene.image.height, bottom = (view.ch - view.oy) / view.k;
     if (bottom > H + 0.5) ctx.drawImage(img.bg, 0, H - 1, W, 1, 0, H - 0.5, W, bottom - H + 1);
   }
-  // 梁の電球：点いているものだけ「点灯−消灯」の差分を足し算で貼る（消えた絵は背景に描いてある）
   frameNow = performance.now();
-  const bstep = Math.floor(frameNow / 1000 / CFG.bulbStep);
-  ctx.save();
-  for (const b of bulbTiles) {
-    if (!b.img || !bulbLit(b.i, bstep)) continue;
-    ctx.globalCompositeOperation = b.blend === 'lighter' ? 'lighter' : 'source-over';
-    ctx.drawImage(b.img, b.rect[0], b.rect[1]);
+  if (CFG.deco && img.sign) {
+    // 80〜90年代の飾り：ガラスの下の前板に赤と青のライン、上の梁の前面に白い看板（梁の電球は看板の裏になるので描かない。操作盤の上の電球は残る）
+    const W = scene.image.width, y = CFG.decoPinV;
+    ctx.fillStyle = '#e2333f'; ctx.fillRect(0, y, W, 6);
+    ctx.fillStyle = '#2b4fb5'; ctx.fillRect(0, y + 11, W, 6);
+    ctx.drawImage(img.sign, 0, 0);
+  } else {
+    // 梁の電球：点いているものだけ「点灯−消灯」の差分を足し算で貼る（消えた絵は背景に描いてある）
+    const bstep = Math.floor(frameNow / 1000 / CFG.bulbStep);
+    ctx.save();
+    for (const b of bulbTiles) {
+      if (!b.img || !bulbLit(b.i, bstep)) continue;
+      ctx.globalCompositeOperation = b.blend === 'lighter' ? 'lighter' : 'source-over';
+      ctx.drawImage(b.img, b.rect[0], b.rect[1]);
+    }
+    ctx.restore();
   }
-  ctx.restore();
   // 影
   for (const t of toys) {
     if (t.state === 'gone' || t.state === 'chute' || !t.shImg) continue;
