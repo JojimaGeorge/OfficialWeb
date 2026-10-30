@@ -15,7 +15,7 @@
   </script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
   <title>ぽちゃもん UFOキャッチャー</title>
 </head>
 <body class="phase-loading">
@@ -27,12 +27,13 @@
     <!-- 下の案内 -->
     <div id="guide"></div>
 
-    <!-- ボタン：見た目（キャップ・光る輪）は canvas に描く。ここは押す場所と文字だけ -->
+    <!-- ボタン：見た目（キャップ・光る輪）は canvas に描く。ここは押す場所と文字だけ。
+         矢印は太い図形（文字の「→」「↑」は線が細くてキャップの上で小さく見えた・2026-10-30 本人「もう少し目立つ矢印に」） -->
     <button id="btnX" class="ctl" type="button" aria-label="よこにうごかす">
-      <span class="ctl-arrow">→</span><span class="ctl-label">よこ</span>
+      <span class="ctl-arrow"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 38 H50 V17 L89 50 L50 83 V62 H12 Z"/></svg></span><span class="ctl-label">よこ</span>
     </button>
     <button id="btnY" class="ctl" type="button" aria-label="たてにうごかす">
-      <span class="ctl-arrow">↑</span><span class="ctl-label">たて</span>
+      <span class="ctl-arrow"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 38 H50 V17 L89 50 L50 83 V62 H12 Z" transform="rotate(-90 50 50)"/></svg></span><span class="ctl-label">たて</span>
     </button>
 
     <!-- タイトル：筐体の上だけを覆う（左右の操作盤はそのまま触れる＝コインを入れて始める） -->
@@ -95,6 +96,6 @@
     <div id="coin" class="hidden" aria-label="ぽちゃもんコイン"><div id="coinImg"></div></div>
   </div>
 
-  <script src="game.js?v=13"></script>
+  <script src="game.js?v=14"></script>
 </body>
 </html>

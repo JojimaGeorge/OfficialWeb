@@ -49,6 +49,9 @@ const CFG = {
   slump: 0.55,          // 持ち上げた子の上に乗っていた子が穴へ沈む深さ（持ち上げた子の高さに対する割合）
   shadowAlpha: 0.6,     // UFO の影の濃さ（Blender の影そのままだと絵の上で穴に見える）
   clawShadow: false,    // UFO の影を描くか（2026-10-29 本人「不自然だから一旦消す」＝止めている。絵と仕組みは残す）
+  // 狙いの目印（2026-10-30 本人「どの位置にいるかが分かりづらい。ぬいぐるみのどの真下を通っているか分かるように」）：
+  // line＝台車の真下の表面に光る点＋アームの下から点までの点線／dot＝点だけ／off＝出さない。比べる時は URL に ?ptr=dot
+  pointer: ['line', 'dot', 'off'].includes(qs.get('ptr')) ? qs.get('ptr') : 'line',
 };
 
 // ---------------- DOM ----------------
@@ -79,6 +82,7 @@ const claw = { cx: 0, cy: 0, vx: 0, vy: 0, L: 0.07, thx: 0, thy: 0, wx: 0, wy: 0
 const game = { phase: 'loading', phaseT: 0, tryIndex: 0, got: 0, slots: [], outcome: null, target: null,
                zTarget: 0, slipAt: 0, settleTarget: null, liftStartL: 0, timeScale: 1, lastInputAt: 0 };
 let park = { x: 0, y: 0 };
+const pointer = { a: 0 };  // 狙いの目印の濃さ（0〜1・操作中だけ 1 へ）
 let bounds = null;
 let chuteClip = null;      // 画面上の多角形（景品口の「窓」）
 let cabOpen = null;        // 画面上の多角形（筐体の前の開口部＝左右の柱の内側）
@@ -756,24 +760,52 @@ function flatLanding(x, y) {
   for (const t of toys) {
     if ((t.state !== 'rest' && t.state !== 'settle') || !isFlat(t) || !t.data.footprint || !t.data.grips) continue;
     if (!inFootprint(t, x, y, -0.03)) continue;
-    const G = t.data.grips, a = G[0].grab, b = G[G.length - 1].grab;
-    // 上の縁＝左右のつまむ所を結んだ線を、幅の端まで（両側へ1/4ずつ）伸ばしたもの
-    const ax = a[0] + (a[0] - b[0]) / 4 + t.dx, ay = a[1] + (a[1] - b[1]) / 4 + t.dy;
-    const ex = (b[0] - a[0]) * 1.5, ey = (b[1] - a[1]) * 1.5, L2 = ex * ex + ey * ey || 1;
-    const s = clamp(((x - ax) * ex + (y - ay) * ey) / L2, 0, 1);
-    const dist = Math.hypot(x - (ax + ex * s), y - (ay + ey * s));
+    const G = t.data.grips, e = flatEdgeAt(t, x, y);
     let grip = -1, z;
-    if (dist <= 0.06) {
-      grip = [1 / 6, 0.5, 5 / 6].reduce((bi, sk, k, arr) => (Math.abs(s - sk) < Math.abs(s - arr[bi]) ? k : bi), 0);
+    if (e.dist <= 0.06) {
+      grip = [1 / 6, 0.5, 5 / 6].reduce((bi, sk, k, arr) => (Math.abs(e.s - sk) < Math.abs(e.s - arr[bi]) ? k : bi), 0);
       z = G[grip].z + t.dz;
-    } else {
-      const zEdge = s < 0.5 ? lerp(G[0].z, G[1].z, clamp((s - 1 / 6) * 3, 0, 1)) : lerp(G[1].z, G[2].z, clamp((s - 0.5) * 3, 0, 1));
-      const dMax = Math.max(0.05, ...t.data.footprint.map((p) => Math.abs((p[0] + t.dx - ax) * ey - (p[1] + t.dy - ay) * ex) / Math.sqrt(L2)));
-      z = lerp(zEdge, t.data.zbottom + 0.02, clamp(dist / dMax, 0, 1)) + t.dz;
-    }
+    } else z = e.zSurf + t.dz;
     if (!best || z > best.z) best = { toy: t, grip, z };
   }
   return best;
+}
+// びろーん t の上の縁から見た (x, y)：s＝縁に沿った割合（0〜1）・dist＝縁からの距離（m）・
+// zSurf＝その所の面の高さ（縁から離れるほど下の端へ下がる面で見積もる・dz 抜き）。つかむ判定（flatLanding）と狙いの目印で同じ見積もりを使う
+function flatEdgeAt(t, x, y) {
+  const G = t.data.grips, a = G[0].grab, b = G[G.length - 1].grab;
+  // 上の縁＝左右のつまむ所を結んだ線を、幅の端まで（両側へ1/4ずつ）伸ばしたもの
+  const ax = a[0] + (a[0] - b[0]) / 4 + t.dx, ay = a[1] + (a[1] - b[1]) / 4 + t.dy;
+  const ex = (b[0] - a[0]) * 1.5, ey = (b[1] - a[1]) * 1.5, L2 = ex * ex + ey * ey || 1;
+  const s = clamp(((x - ax) * ex + (y - ay) * ey) / L2, 0, 1);
+  const dist = Math.hypot(x - (ax + ex * s), y - (ay + ey * s));
+  const zEdge = s < 0.5 ? lerp(G[0].z, G[1].z, clamp((s - 1 / 6) * 3, 0, 1)) : lerp(G[1].z, G[2].z, clamp((s - 0.5) * 3, 0, 1));
+  const dMax = Math.max(0.05, ...t.data.footprint.map((p) => Math.abs((p[0] + t.dx - ax) * ey - (p[1] + t.dy - ay) * ex) / Math.sqrt(L2)));
+  return { s, dist, zSurf: lerp(zEdge, t.data.zbottom + 0.02, clamp(dist / dMax, 0, 1)) };
+}
+// ふつうの子 t の (x, y) での表面の高さ（無ければ null）：一番上の点（grab）を頂上にした楕円の丸屋根。
+// 裾の広がりは外形の箱の 85%（耳やしっぽの出っ張りぶん縮める）、裾の高さは箱の高さの真ん中（横から見て一番太い所）
+function domeZ(t, x, y) {
+  const b = t.data.bbox, gx = t.data.grab[0] + t.dx, gy = t.data.grab[1] + t.dy;
+  const rx = (x >= gx ? b[1][0] + t.dx - gx : gx - (b[0][0] + t.dx)) * 0.85;
+  const ry = (y >= gy ? b[1][1] + t.dy - gy : gy - (b[0][1] + t.dy)) * 0.85;
+  if (rx < 0.005 || ry < 0.005) return null;
+  const q = ((x - gx) / rx) ** 2 + ((y - gy) / ry) ** 2;
+  if (q >= 1) return null;
+  const zm = (t.data.ztop + t.data.zbottom) / 2;
+  return zm + (t.data.ztop - zm) * Math.sqrt(1 - q) + t.dz;
+}
+// (x, y) の真下の表面：床か、一番高いぬいぐるみの面。on＝その子（目印を描く順番に使う）
+function surfaceUnder(x, y) {
+  let z = floorZAt(y), on = null;
+  for (const t of toys) {
+    if (t.state !== 'rest' && t.state !== 'settle') continue;
+    let zt = null;
+    if (isFlat(t)) { if (t.data.footprint && t.data.grips && inFootprint(t, x, y, 0)) zt = flatEdgeAt(t, x, y).zSurf + t.dz; }
+    else zt = domeZ(t, x, y);
+    if (zt != null && zt > z) { z = zt; on = t; }
+  }
+  return { z, on };
 }
 // びろーんを上の縁のつまむ所 k で持つ：つかむ点・吊った姿のコマを、そのつまむ所の物に切り替える（つまむ所ごとに Blender で描いてある）
 function setGrip(t, k) {
@@ -1213,6 +1245,12 @@ function update(dt) {
   claw.arm = approach(claw.arm, claw.armTarget, CFG.armRate * dt);
   stepPendulum(dt, acc.ax, acc.ay, rumble);
   updateToys(dt);
+  {   // 狙いの目印：操作中（よこ・たて・寄せ）だけ出す。景品口の上（床が無い）と、下り始めたら 0.25 秒で消える
+    const ch = scene.machine.chute;
+    const aiming = game.phase === 'moveX' || game.phase === 'moveY' || game.phase === 'settle';
+    const want = CFG.pointer !== 'off' && aiming && !(claw.cx < ch.x1 && claw.cy < ch.y1);
+    pointer.a = approach(pointer.a, want ? 1 : 0, dt / 0.25);
+  }
   // 途中で子が去った時：操作待ちのまま一定時間たったらタイトルへ（次の子に回数を引き継がない）。ゲーム内の時間で数える
   if (game.phase === 'moveX' || game.phase === 'moveY') {
     game.idleT = (input.x || input.y) ? 0 : (game.idleT || 0) + dt;
@@ -1436,6 +1474,44 @@ function drawClawShadow(p, zs) {
   function top_onChute() { return claw.x < ch.x1 && claw.y < ch.y1 && zs <= 0.001; }
 }
 
+// 狙いの目印：台車の真下の表面に、床に寝かせた丸（ピンクの輪＋点）を描く。line の時はアームの下から点まで点線を下ろす。
+// 描く順番は、乗っている子の直後（手前の子には隠れる＝奥にいることが分かる）。線の太さは画面の px で決める（絵の縮尺 k で割る）。
+// ghost＝全部の子の上に重ねる薄い点線の輪と線：手前の子の裏に隠れても、どこにいるかは透けて見える（奥の真ん中で輪がまるごと隠れた・10/30）
+function drawPointer(ps, ghost) {
+  const x = claw.cx, y = claw.cy, z = ps.z + 0.004, k = view.k;
+  const ring = (r) => {
+    ctx.beginPath();
+    for (let i = 0; i <= 32; i++) { const th = i / 32 * Math.PI * 2, p = project(x + r * Math.cos(th), y + r * Math.sin(th), z); if (i) ctx.lineTo(p.u, p.v); else ctx.moveTo(p.u, p.v); }
+    ctx.closePath();
+  };
+  ctx.save();
+  try {
+    clipBehindFront(); clipCabOpen();
+    ctx.globalAlpha = pointer.a * (ghost ? 0.5 : 1);
+    ctx.lineCap = 'round';
+    if (CFG.pointer === 'line') {
+      const top = project(x, y, claw.z + scene.machine.claw.pad_bottom - 0.012), bot = project(x, y, z);
+      if (top.v < bot.v) {
+        ctx.setLineDash([7 / k, 6 / k]);
+        ctx.beginPath(); ctx.moveTo(top.u, top.v); ctx.lineTo(bot.u, bot.v);
+        ctx.strokeStyle = 'rgba(200,36,104,.55)'; ctx.lineWidth = 4.4 / k; ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 2.2 / k; ctx.stroke();
+      }
+    }
+    if (ghost) {   // 透けて見える輪：塗らずに点線の縁だけ
+      ctx.setLineDash([5 / k, 4 / k]);
+      ring(0.025); ctx.lineWidth = 4.4 / k; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.stroke();
+      ctx.lineWidth = 2.4 / k; ctx.strokeStyle = '#ff3d8f'; ctx.stroke();
+      return;
+    }
+    ctx.setLineDash([]);
+    ring(0.032); ctx.fillStyle = 'rgba(255,61,143,.24)'; ctx.fill();
+    ring(0.025); ctx.lineWidth = 5.5 / k; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.stroke();
+    ctx.lineWidth = 2.8 / k; ctx.strokeStyle = '#ff3d8f'; ctx.stroke();
+    ring(0.009); ctx.fillStyle = '#ff3d8f'; ctx.fill(); ctx.lineWidth = 1.8 / k; ctx.strokeStyle = '#fff'; ctx.stroke();
+  } finally { ctx.restore(); }
+}
+
 function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1521,13 +1597,18 @@ function draw() {
     fallAt.set(t, k);
   }
   const drawFalling = (t, clip) => { ctx.save(); clipCabOpen(); drawToyDynamic(t, clip); ctx.restore(); };
+  const ptr = pointer.a > 0.01 ? surfaceUnder(claw.cx, claw.cy) : null;
+  const iPtr = ptr ? (ptr.on ? rest.indexOf(ptr.on) + 1 : 0) : -1;
+  dbg.pointer = ptr ? { a: pointer.a, x: claw.cx, y: claw.cy, z: ptr.z, on: ptr.on ? ptr.on.id : null, layer: iPtr, uv: project(claw.cx, claw.cy, ptr.z) } : null;
   for (let i = 0; i <= rest.length; i++) {
     if (i === iSh) drawClawShadow(sp, zs);
+    if (i === iPtr) drawPointer(ptr);
     for (const [t, k] of fallAt) if (k === i) drawFalling(t, false);
     if (i === iClaw) drawClawLayer();
     if (i < rest.length) drawToyRest(rest[i]);
   }
   for (const t of toys) if (t.state === 'chute' && !fallAt.has(t)) drawFalling(t, true);
+  if (ptr) drawPointer(ptr, true);
   drawGantry();
   drawConsoles();
   faceUI.draw();
