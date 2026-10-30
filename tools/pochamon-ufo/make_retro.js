@@ -3,7 +3,7 @@
 // 2026-10-30 本人がタイトル＝T1（表紙風）を選び、筐体の飾りは「実際に絵にしてみて」。
 //   node tools/pochamon-ufo/make_retro.js     （表示用サーバー http://localhost:4876 が要る）
 // 出力（main/pochamon-ufo/assets/）：
-//   retro_sign.webp   上の梁の前面に貼る看板（絵の px そのまま 1800×250）
+//   retro_sign.webp   上の梁の前面に貼る看板（絵の px そのまま 1800×250）＝公式ロゴ＋UFOキャッチャー
 //   title_logo.webp   タイトルの「UFOキャッチャー」（二重線のネオン）
 //   title_sub.webp    タイトルの「ぽちゃもん」＝公式のロゴ（pochamon/assets/img/logo.svg）をピンクに塗り替えたもの
 const path = require('path');
@@ -68,6 +68,20 @@ const PAGE_LIB = () => {
       <defs><filter id="${id}" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur stdDeviation="${h * 0.045}" result="b"/><feFlood flood-color="#ff5fae" flood-opacity=".75"/><feComposite in2="b" operator="in" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
       <g filter="url(#${id})"><g transform="translate(${m - vb[0] * k} ${m - vb[1] * k}) scale(${k})" fill="${fill}">${inner}</g></g></svg>`, w: w + 2 * m, h: h + 2 * m };
   };
+  // ロゴ（1色の SVG）を看板の字と同じ作り（ピンクの塗り＋紺のふち＋内側の白い線）に。h＝ロゴの高さ・ref＝横に並べる字の大きさ（ふちと白い線の太さを揃える）
+  window.mkLogoSvgPouch = (src, h, ref) => {
+    const vb = src.match(/viewBox="([^"]+)"/)[1].split(/\s+/).map(Number);
+    const ds = [...src.matchAll(/<path[^>]*?\sd="([^"]+)"/g)].map((m) => m[1]);
+    const k = h / vb[3], m = ref * 0.1, w = vb[2] * k, id = 'lp' + (uid++);
+    const tf = `translate(${m - vb[0] * k} ${m - vb[1] * k}) scale(${k})`, sw = (px) => px / k;
+    const shapes = ds.map((d) => `<path d="${d}"/>`).join('');
+    return { html: `<svg width="${w + 2 * m}" height="${h + 2 * m}" viewBox="0 0 ${w + 2 * m} ${h + 2 * m}" style="display:block;overflow:visible"><defs>
+      <clipPath id="${id}c" transform="${tf}">${shapes}</clipPath>
+      <linearGradient id="${id}g" gradientUnits="userSpaceOnUse" x1="0" y1="${vb[1]}" x2="0" y2="${vb[1] + vb[3]}"><stop offset="0" stop-color="#ffa3cf"/><stop offset="1" stop-color="#ef5299"/></linearGradient></defs>
+      <g transform="${tf}" fill="#1d2a6b" stroke="#1d2a6b" stroke-width="${sw(ref * 0.13)}" stroke-linejoin="round">${shapes}</g>
+      <g transform="${tf}" fill="url(#${id}g)">${shapes}</g>
+      <g clip-path="url(#${id}c)"><g transform="${tf}" fill="none" stroke-linejoin="round"><g stroke="#fff" stroke-width="${sw(ref * 0.105)}">${shapes}</g><g stroke="url(#${id}g)" stroke-width="${sw(ref * 0.06)}">${shapes}</g></g></g></svg>`, w: w + 2 * m, h: h + 2 * m };
+  };
   // ★★★★ POCHAMON ★★★★ の列（glow＝青く光らせる）
   window.mkStarRow = (n, r, color, size, glow) => {
     const tb = measure('POCHAMON', 'Bahn', size, 700), gap = r * 0.9, sw = n * (2 * r + gap), m = glow ? r * 0.8 : 0;
@@ -109,12 +123,13 @@ const PAGE_LIB = () => {
   // 1) 看板
   await page.evaluate(({ W, H }) => {
     const sign = document.getElementById('sign');
-    const row1 = `<div class="row1" style="top:${H * 0.08}px">${mkStarRow(4, H * 0.062, '#1d2a6b', H * 0.135, false).html}</div>`;
-    const pochi = mkLogo('ぽちゃもん', 'Oshigo', H * 0.19, 'red'), logo = mkLogo('UFOキャッチャー', 'Oshigo', H * 0.42, 'pouch');
+    // 2026-10-30 本人「看板も公式のロゴに。★POCHAMON★と赤いぽちゃもんは取っていい」＝公式ロゴ＋UFOキャッチャーの1行（上の段が空いた分、看板の真ん中に大きめに）
+    const fs = H * 0.46;
+    const pochi = mkLogoSvgPouch(window.__logoSvg, H * 0.4, fs), logo = mkLogo('UFOキャッチャー', 'Oshigo', fs, 'pouch');
     const lines = '<div class="lines"><i></i><i></i><i></i></div>';
-    const row2 = `<div class="row2" style="top:${H * 0.28}px;height:${H * 0.54}px;padding:0 ${W * 0.03}px">${lines}<div style="align-self:flex-start;margin-top:${H * 0.05}px">${pochi.html}</div>${logo.html}${lines}</div>`;
+    const row2 = `<div class="row2" style="top:${H * 0.08}px;height:${H * 0.74}px;padding:0 ${W * 0.03}px">${lines}${pochi.html}${logo.html}${lines}</div>`;
     const pin = `<div class="pin" style="top:${H * 0.86}px"><i style="background:#e2333f"></i><i style="background:#2b4fb5"></i></div>`;
-    sign.innerHTML = row1 + row2 + pin;
+    sign.innerHTML = row2 + pin;
   }, { W: SIGN.w, H: SIGN.h });
   await page.waitForTimeout(200);
   const shots = {};
