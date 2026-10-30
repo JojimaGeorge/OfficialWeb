@@ -38,6 +38,8 @@ need = ["bg.png"] + [t["file"] for t in S["bulbs"]["tiles"]]
 for t in S["toys"]:
     need += [x["file"] for x in (t.get("sprite"), t.get("shadow"), t.get("sprite_hang")) if x]
     need += [x["file"] for x in (t.get("sprite_tilt") or [])]
+    for g in (t.get("grips") or []):   # 案A：つまむ所ごとの吊った姿と途中のコマ（10/30 午後）
+        need += [g["hang"]["file"]] + [x["file"] for x in g.get("tilt", [])]
 missing = [n for n in need if not os.path.exists(os.path.join(src, n))]
 if missing:
     sys.exit("missing in the export: %s" % ", ".join(missing[:10]))
@@ -94,6 +96,13 @@ for t in S["toys"]:
         t.pop("sprite_tilt", None)
     if not t.get("footprint"):
         t.pop("footprint", None)
+    if t.get("grips"):
+        for g in t["grips"]:
+            g["hang"]["file"] = put(g["hang"]["file"], 92)
+            for st in g.get("tilt", []):
+                st["file"] = put(st["file"], 92)
+    else:
+        t.pop("grips", None)
 
 S.pop("claw_sprites", None)
 S["claw_sheets"] = OLD["claw_sheets"]
