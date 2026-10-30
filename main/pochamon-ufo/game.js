@@ -225,6 +225,11 @@ async function load() {
     byId[t.id] = toy;
     jobs.push(track(loadImage('assets/' + t.sprite.file)).then((im) => { toy.img = im; }));
     if (t.shadow) jobs.push(track(loadImage('assets/' + t.shadow.file)).then((im) => { toy.shImg = im; }));
+    if (t.sprite_hang) jobs.push(track(loadImage('assets/' + t.sprite_hang.file)).then((im) => { toy.imgHang = im; }));   // びろーんのぶら下がった姿
+    if (t.sprite_tilt) {   // 寝た姿とぶら下がった姿の間の6コマ（持ち上げた高さで順に切り替える）
+      toy.imgTilt = t.sprite_tilt.map(() => null);
+      t.sprite_tilt.forEach((st, k) => jobs.push(track(loadImage('assets/' + st.file)).then((im) => { toy.imgTilt[k] = im; })));
+    }
   }
   for (const id of scene.order) toys.push(byId[id]);   // 奥 → 手前
   // アームの絵：高さごとのコマ表（claw_sheets・2度きざみ）。無ければ古い1枚ずつの絵（claw_sprites）
@@ -699,7 +704,7 @@ function makeSlots() {
 function startGame() {
   game.tryIndex = 0; game.got = 0; game.slots = makeSlots(); game.outcome = null;
   for (const t of toys) {
-    t.state = 'rest'; t.dx = t.dy = t.dz = t.vz = 0; t.rot = t.hang = t.sag = 0; t.alpha = 1; t.shadowA = 1;
+    t.state = 'rest'; t.dx = t.dy = t.dz = t.vz = 0; t.rot = t.hang = t.sag = 0; t.alpha = 1; t.shadowA = 1; t.hangMix = 0;
     t.bounce = 0; t.bv = 0; t.target = null; t.reactors = null; t.reacted = false; t.landDz = 0; restPose(t);
   }
   resetClaw();
@@ -712,6 +717,24 @@ function decideOutcome(i) {
 }
 // 一番つかみやすい子：近くて、上に出ている子
 function pickToy(x, y) {
+  // びろーん（平たい子）がかぶさっている所に下りたら、爪はまずびろーんに当たる＝びろーんをつかむ。
+  // 前は下の子が選ばれることがあり、アームがびろーんを突き抜けて裏に1.2秒隠れた（10/30 朝の検品 26番 r1）。
+  // 中かどうかは床に落とした輪郭（footprint）で見る。外形の箱（84%）だと、20°ひねった26番は箱の端で本体から15cm外れた所まで
+  // 選ばれ、奥の角では逆に下の子が選ばれた（10/30 昼の検品 aimfar・aim14・aim23）。ふつうの子がびろーんより上にかぶっている所は除く
+  let flat = null, flatZ = -Infinity;
+  for (const t of toys) {
+    if ((t.state !== 'rest' && t.state !== 'settle') || !isFlat(t)) continue;
+    const b = t.data.bbox, cx = (b[0][0] + b[1][0]) / 2 + t.dx, cy = (b[0][1] + b[1][1]) / 2 + t.dy;
+    if (t.data.footprint ? !inFootprint(t, x, y, 0.015)
+        : (Math.abs(x - cx) > (b[1][0] - b[0][0]) * 0.42 || Math.abs(y - cy) > (b[1][1] - b[0][1]) * 0.42)) continue;
+    const k = clamp((y - t.dy - b[0][1]) / Math.max(0.01, b[1][1] - b[0][1]), 0, 1);
+    const zf = b[0][2] + k * (b[1][2] - b[0][2]) + t.dz;   // 奥ほど高く寝かせてある＝その奥行きでの高さ
+    const above = toys.some((o) => o !== t && !isFlat(o) && (o.state === 'rest' || o.state === 'settle') &&
+      (() => { const ob = o.data.bbox, ox = (ob[0][0] + ob[1][0]) / 2 + o.dx, oy = (ob[0][1] + ob[1][1]) / 2 + o.dy;
+        return Math.abs(x - ox) < (ob[1][0] - ob[0][0]) * 0.4 && Math.abs(y - oy) < (ob[1][1] - ob[0][1]) * 0.4 && ob[1][2] + o.dz > zf + 0.02; })());
+    if (!above && zf > flatZ) { flatZ = zf; flat = t; }
+  }
+  if (flat) return flat;
   let best = null, bestScore = Infinity;
   for (const t of toys) {
     if (t.state !== 'rest' && t.state !== 'settle') continue;
@@ -729,6 +752,15 @@ function pickToy(x, y) {
   }
   return best;
 }
+// (x, y) が子 t の床に落とした輪郭（凸多角形・反時計回り）を inset だけ内側へ縮めた中にあるか
+function inFootprint(t, x, y, inset) {
+  const fp = t.data.footprint, px = x - t.dx, py = y - t.dy;
+  for (let i = 0; i < fp.length; i++) {
+    const a = fp[i], b = fp[(i + 1) % fp.length], ex = b[0] - a[0], ey = b[1] - a[1];
+    if ((ex * (py - a[1]) - ey * (px - a[0])) / (Math.hypot(ex, ey) || 1) < inset) return false;   // 辺の左側までの距離
+  }
+  return true;
+}
 // びろーん o が、子 t のつかむ点の真上にかぶさっているか。外形の箱だけで見ると手前の子まで「乗られている」扱いになった（10/30 再検品）。
 // びろーんは後ろへ寝かせて（奥ほど高く）置いてあるので、箱の中でその奥行きの所の高さを直線で見積もって比べる
 function flatAbove(o, t) {
@@ -744,6 +776,14 @@ function boxOver(o, t) {
   return Math.abs(t.hold.x + t.dx - cx) < (b[1][0] - b[0][0]) * 0.4 && Math.abs(t.hold.y + t.dy - cy) < (b[1][1] - b[0][1]) * 0.4;
 }
 function restingToys() { return toys.filter((t) => t.state === 'rest' || t.state === 'settle' || t.state === 'falling'); }
+// 運んで離す所。ふつうは待機位置（park）。ぶら下がったびろーん（幅23cm）は、その幅が景品口の真ん中に来る所まで運ぶ
+// （park のままだと右端が仕切りから4.5〜7cmはみ出して、落ちる時に仕切りの線で縦に切れ、山の子の裏を通った・10/30 朝の検品 13〜15）
+function carryTarget(t) {
+  const sh = t && t.imgHang && t.data.sprite_hang;
+  if (!sh || !sh.x) return { x: park.x, y: park.y };
+  const ch = scene.machine.chute;
+  return { x: clamp((ch.x0 + ch.x1) / 2 - (sh.x[0] + sh.x[1]) / 2, bounds.x0, bounds.x1), y: park.y };
+}
 
 // ---------------- 山の反応（崩れ） ----------------
 // 持ち上げた子の上に乗っていた子は、乗っていた割合だけ穴へ沈んで傾く（連鎖もする）。落ちてきた子は沈んだ子の上に乗って少し傾く。
@@ -857,7 +897,7 @@ function setPhase(p) {
       claw.damp = CFG.dampHeld; game.liftStartL = claw.L; audio.whir(); break;
     case 'slipping': audio.slip(); faceUI.normal(true); break;   // 途中で落ちた→真顔に戻る
     case 'hold': audio.motorOff(); break;   // 上で一呼吸（ぶら下がった子が揺れて止まるのを見せる）
-    case 'carry': claw.damp = CFG.dampHeld; guide(''); break;
+    case 'carry': claw.damp = CFG.dampHeld; guide(''); game.carryTo = carryTarget(claw.held); break;
     case 'release': claw.armTarget = CFG.armOpen; break;
     case 'return': claw.armTarget = CFG.armClosed; claw.damp = CFG.dampFree; break;
     case 'between': showMsg((game.tryIndex + 1) + 'かいめ！', 'round', 900); game.lastInputAt = performance.now(); faceUI.normal(false); break;
@@ -936,12 +976,23 @@ function updateToys(dt) {
       t.attach = Math.min(1, (t.attach == null ? 1 : t.attach) + dt / 0.3);
       const k = t.attach * t.attach * (3 - 2 * t.attach);
       const sx = t.restDx || 0, sy = t.restDy || 0, sz = t.restDz || 0;   // 休んでいた位置（沈んでいた子はそこから）
-      t.dx = lerp(sx, claw.x - t.hold.x, k); t.dy = lerp(sy, claw.y - t.hold.y, k); t.dz = (claw.z + CFG.padDz) - t.hold.z - t.sag * 0.05;
+      // 爪先は円盤の中心から padDz 下＝ケーブルの向きに沿って振れる（前は円盤の真下に固定で、アームが揺れると爪先が子の面の上を滑った・10/30 朝の検品）
+      const tipX = claw.x - CFG.padDz * Math.sin(claw.thx), tipY = claw.y - CFG.padDz * Math.sin(claw.thy);
+      const tipZ = claw.z + CFG.padDz * Math.cos(claw.thx) * Math.cos(claw.thy);
+      t.dx = lerp(sx, tipX - t.hold.x, k); t.dy = lerp(sy, tipY - t.hold.y, k); t.dz = tipZ - t.hold.z - t.sag * 0.05;
       // ぶら下がった子の傾き（重心が爪の真下へ来る向き）。びろーんは平たく、つかむ点と重心の高さがほぼ同じ＝分母が小さくて 30° も出て筐体の外へはみ出した → 傾けない（10/30 検品）
       const hangTarget = isFlat(t) ? 0 : clamp(-Math.atan2(t.data.center[0] - t.hold.x, Math.max(0.03, t.hold.z - t.data.center[2])) * 0.8, -0.6, 0.6);
       t.hang = approach(t.hang, hangTarget, 1.5 * dt);
-      t.rot = lerp(t.restRot || 0, claw.thx + t.hang, k) + t.sag * Math.sin(game.phaseT * 28) * 0.25;
+      // 画面の回転は「正＝時計回り（下の端が左へ）」、振り子の thx は「正＝右へ振れる」＝向きが逆なので符号を返す。
+      // 前はそのまま足していて、運び始めにアームと子が進む向きへ傾き、吊った子の重心が爪の真下から横へ逃げた（10/30 朝の検品）
+      t.rot = lerp(t.restRot || 0, -(claw.thx + t.hang), k) + t.sag * Math.sin(game.phaseT * 28) * 0.25;
       t.shadowA = clamp(1 - (t.dz - sz) / 0.25, 0, 1);
+      // びろーん：持ち上げて4cmのあいだに、寝た絵からぶら下がった絵へ入れ替える。平たく柔らかい子は、つまんだ上の縁から縦に垂れる
+      // （前は寝た姿のまま板のように浮いていた・10/30 朝の検品）
+      if (t.imgHang) {   // 上げ始めほど早く起きる。高い所の子は上げきるまで15cmしか上がらない＝上がる高さの8割（8〜20cm）で縦になりきる
+        const range = clamp((CFG.raisedZ + CFG.padDz - t.hold.z - sz) * 0.8, 0.08, 0.20);
+        const u = clamp((t.dz - sz) / range, 0, 1); t.hangMix = 1 - (1 - u) * (1 - u);
+      }
       // 山から抜けたら、上に乗っていた子が穴へ沈む
       if (!t.reacted && t.dz - sz > 0.05) { t.reacted = true; pileReact(t, null, 0); }
     } else if (t.state === 'falling') {
@@ -951,6 +1002,8 @@ function updateToys(dt) {
       const k = clamp((t.dz - land) / Math.max(0.01, t.fallFrom - land), 0, 1);
       t.dx = lerp(t.restDx || 0, t.fallDx, k); t.dy = lerp(t.restDy || 0, t.fallDy, k); t.rot = lerp(t.landRot || 0, t.fallRot, k);
       t.shadowA = clamp(1 - (t.dz - land) / 0.25, 0, 1);
+      // 吊った姿のまま落ち、下の端が山に着くあたり（元の場所の12cm上）から後ろへ倒れて寝た姿に戻る（前は着く直前の2コマで一気に戻った）
+      if (t.imgHang) t.hangMix = clamp((t.dz - land) / 0.12, 0, 1);
       if (t.dz <= land) {
         t.dz = land;
         for (const a of (t.reactors || [])) nudgeToy(a, 0.25 * Math.min(1, -t.vz));   // 落ちてきた子に押される
@@ -968,6 +1021,7 @@ function updateToys(dt) {
       }
       if (u >= 1) { const tg = t.target; t.dx = tg.dx; t.dy = tg.dy; t.dz = tg.dz; t.rot = tg.rot; t.state = 'rest'; restPose(t); }
     } else if (t.state === 'chute') {
+      t.relT = (t.relT || 0) + dt;
       t.vz -= CFG.g * dt; t.dz += t.vz * dt;
       t.rot += t.rotV * dt; t.rotV *= 0.98;
       const z = t.hold.z + t.dz;
@@ -1010,10 +1064,13 @@ function update(dt) {
       break;
     }
     case 'descend': {
-      changeCable(CFG.descendSpeed * settings.speed * dt);
-      if (game.target) acc = moveTowards(dt, game.target.hold.x, game.target.hold.y, CFG.driftSpeed * settings.speed);
+      let aligned = true;
+      if (game.target) { acc = moveTowards(dt, game.target.hold.x, game.target.hold.y, CFG.driftSpeed * settings.speed); aligned = acc.arrived; }
       else acc = stepCarriage(dt, 0, 0, spd);
-      if (claw.z <= game.zTarget) { claw.L = claw.cableTop - game.zTarget; setPhase('grab'); }
+      // びろーんは寄せ切るまで 4cm 上で待ってから着地する（寄せ切る前に着くと、片方の爪が縁から外れて着き、閉じたまま縁を8cm横へ滑った・10/30 昼の検品 aimfar）
+      const zStop = game.zTarget + (game.target && isFlat(game.target) && !aligned ? 0.04 : 0);
+      if (claw.z > zStop) changeCable(Math.min(CFG.descendSpeed * settings.speed * dt, claw.z - zStop));
+      if (claw.z <= game.zTarget + 1e-4) { claw.L = claw.cableTop - game.zTarget; setPhase('grab'); }
       break;
     }
     case 'grab': {
@@ -1057,7 +1114,8 @@ function update(dt) {
       break;
     }
     case 'carry': {
-      const r = moveTowards(dt, park.x, park.y, CFG.carrySpeed * settings.speed);
+      const to = game.carryTo || park;
+      const r = moveTowards(dt, to.x, to.y, CFG.carrySpeed * settings.speed);
       acc = r; rumble = !r.arrived;
       if (!r.arrived) audio.motorOn(0.95); else audio.motorOff();
       const calm = Math.abs(claw.thx) < 0.05 && Math.abs(claw.wx) < 0.25;
@@ -1068,7 +1126,7 @@ function update(dt) {
       acc = stepCarriage(dt, 0, 0, spd);
       const t = claw.held;
       if (t && claw.arm <= -11) {
-        t.state = 'chute'; t.vz = 0; t.rotV = isFlat(t) ? 0 : (Math.random() - 0.5) * 2.5; t.splashed = false; t.fallAfter = null;   // 幅の広い子は回さず落とす
+        t.state = 'chute'; t.vz = 0; t.rotV = isFlat(t) ? 0 : (Math.random() - 0.5) * 2.5; t.splashed = false; t.fallAfter = null; t.relT = 0;   // 幅の広い子は回さず落とす
         claw.held = null; claw.wx += 0.5 * (Math.random() - 0.5);
         game.got++; updateHud(); showMsg('ゲット！！', 'win', 1400); audio.win(); faceUI.grin();
         game.flashUntil = performance.now() + 1500;   // 電球が全部、速く点滅
@@ -1122,8 +1180,33 @@ function insertionIndex(list, depth, box) {
 }
 function drawToyRest(t) {
   const r = t.data.sprite.rect;
-  if (t.state === 'falling' || t.state === 'settle' || t.dz !== 0 || t.rot !== 0 || t.dx !== 0 || t.dy !== 0 || t.bounce) { drawToyDynamic(t, false); return; }
+  if (t.state === 'falling' || t.state === 'settle' || t.dz !== 0 || t.rot !== 0 || t.dx !== 0 || t.dy !== 0 || t.bounce || t.hangMix) { drawToyDynamic(t, false); return; }
   ctx.drawImage(t.img, r[0], r[1]);
+}
+// びろーんの姿のコマ：寝た姿（f=0）→ 途中の傾き6枚 → ぶら下がった姿（f=1）。掴んだ上の縁が上がり、残りが山を引きずりながら
+// 20cm ほどかけて縦になる（2枚を2.5cmで入れ替えていた時は、二重写しのあと一気に縦になった・10/30 昼の検品）
+function lookFrames(t) {
+  if (t._frames) return t._frames;
+  const fr = [{ img: t.img, rect: t.data.sprite.rect, f: 0, below: t.below }];
+  (t.data.sprite_tilt || []).forEach((st, k) => fr.push({ img: t.imgTilt && t.imgTilt[k], rect: st.rect, f: st.f, below: st.below }));
+  fr.push({ img: t.imgHang, rect: t.data.sprite_hang.rect, f: 1, below: -t.data.sprite_hang.z[0] });
+  if (fr.every((x) => x.img)) t._frames = fr;
+  return fr;
+}
+// 今の姿の前後2コマと、その間のどこか（w）
+function lookPair(t, m) {
+  const fr = lookFrames(t);
+  let k = 0; while (k < fr.length - 2 && m > fr[k + 1].f) k++;
+  const a = fr[k], b = fr[k + 1];
+  return { a, b, w: clamp((m - a.f) / Math.max(1e-6, b.f - a.f), 0, 1) };
+}
+// 持った子・落ちる子：今の姿の大きさ・中心・つかむ点から下の端までの深さ（描く順番と景品口の窓の判定に使う）
+function toyLook(t) {
+  const m = t.imgHang ? (t.hangMix || 0) : 0, h = t.hold, c = t.data.center;
+  if (m <= 0) return { rect: t.data.sprite.rect, center: [c[0] + t.dx, c[1] + t.dy, c[2] + t.dz], below: t.below };
+  const { a, b, w } = lookPair(t, m);
+  return { rect: (w < 0.5 ? a : b).rect, below: lerp(a.below, b.below, w),
+           center: [lerp(c[0], h.x, m) + t.dx, lerp(c[1], h.y, m) + t.dy, lerp(c[2], h.z - 0.10, m) + t.dz] };
 }
 function drawToyDynamic(t, clipChute) {
   const h = t.hold, p0 = t.holdUV;
@@ -1136,9 +1219,13 @@ function drawToyDynamic(t, clipChute) {
     for (let i = 1; i < 4; i++) ctx.lineTo(chuteClip[i].u, chuteClip[i].v);
     ctx.closePath(); ctx.clip();
   }
-  ctx.globalAlpha = t.alpha;
   ctx.translate(p1.u, p1.v); ctx.rotate(t.rot); ctx.scale(s, s);
-  ctx.drawImage(t.img, t.data.sprite.rect[0] - p0.u, t.data.sprite.rect[1] - p0.v);
+  // びろーんの途中の姿も、つかむ点（hold）を中心に回して描いた絵なので、同じ点を基準に描く。
+  // 近い方の1コマだけを描くパラパラ漫画（隣のコマを薄く重ねると、目の位置が数px違うので顔が二重にぶれた・10/30 昼）
+  const m = t.imgHang ? (t.hangMix || 0) : 0;
+  const cur = m <= 0 ? { img: t.img, rect: t.data.sprite.rect } : (({ a, b, w }) => (w < 0.5 ? a : b))(lookPair(t, m));
+  ctx.globalAlpha = t.alpha;
+  ctx.drawImage(cur.img, cur.rect[0] - p0.u, cur.rect[1] - p0.v);
   ctx.restore();
 }
 function clawPick() {
@@ -1177,7 +1264,7 @@ function drawClaw(p) {
     const K = 1 / (sheet.scale || 1), s = fr.depth / p.d * K;   // コマ表は縮めて持っている（scale）ので描く時に戻す
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.translate(p.u, p.v); ctx.rotate(claw.thx); ctx.scale(s, s);
+    ctx.translate(p.u, p.v); ctx.rotate(-claw.thx); ctx.scale(s, s);   // thx＝右へ振れて正、画面の回転は時計回りが正＝逆向き（10/30 朝）
     ctx.drawImage(im, fr.x, fr.y, fr.w, fr.h, -fr.ax, -fr.ay, fr.w, fr.h);
     ctx.restore();
   }
@@ -1319,17 +1406,28 @@ function draw() {
   // UFO の層（ケーブル・UFO・持った子）をどの子の後に描くか：UFO の箱だけでなく、ぶら下がった子の範囲と奥行き（手前にある方）も見る
   let layerDepth = project(claw.x, claw.y, claw.z + CFG.padDz).d, layerBox = cb.box;
   if (claw.held) {
-    const t = claw.held, h = t.hold, p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz), s = t.holdUV.d / p1.d, r = t.data.sprite.rect;
+    const t = claw.held, h = t.hold, p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz), s = t.holdUV.d / p1.d, lk = toyLook(t), r = lk.rect;
     const x0 = p1.u - (t.holdUV.u - r[0]) * s, y0 = p1.v - (t.holdUV.v - r[1]) * s, w = r[2] * s, hh = r[3] * s, mg = Math.max(w, hh) * 0.15;
     layerBox = [Math.min(layerBox[0], x0 - mg), Math.min(layerBox[1], y0 - mg), Math.max(layerBox[2], x0 + w + mg), Math.max(layerBox[3], y0 + hh + mg)];
-    layerDepth = Math.min(layerDepth, project(t.data.center[0] + t.dx, t.data.center[1] + t.dy, t.data.center[2] + t.dz).d);
+    layerDepth = Math.min(layerDepth, project(lk.center[0], lk.center[1], lk.center[2]).d);
   }
   let iClaw = insertionIndex(rest, layerDepth, layerBox);
   // 下りて閉じる間は、狙った子より手前に描く（びろーんはつかむ点が奥の縁＝爪の奥行きが子の中心より奥と判定されて裏に隠れ、持ち上げで表へ飛んだ・10/30 検品）
   if (game.target && !claw.held && (game.phase === 'descend' || game.phase === 'grab')) {
     const ti = rest.indexOf(game.target);
-    if (ti >= 0) iClaw = Math.max(iClaw, ti + 1);
+    if (ti >= 0) { iClaw = Math.max(iClaw, ti + 1); game.liftAfter = ti > 0 ? rest[ti - 1] : null; }
   }
+  // 持ち上げてから運び終わるまでは、つかむ前にその子より奥にいた子の後ろへは戻さない
+  // （持ち上げた直後の4コマ、奥の19番がびろーんの左下の角の前に出た・10/30 朝の検品 25番 05b）
+  if (claw.held && claw.held === game.target && (game.phase === 'lift' || game.phase === 'hold' || game.phase === 'carry')) {
+    const la = game.liftAfter ? rest.indexOf(game.liftAfter) : -1;
+    if (la >= 0) iClaw = Math.max(iClaw, la + 1);
+  }
+  // 離して0.3秒は、持っていた時の層の位置を保つ。空になったアームの箱だけで決めると奥へ下がり（26番目→10番目）、
+  // 爪の奥に描く落ちる子まで山の子の裏へ入った（10/30 昼の撮り直し 26番 13）
+  if (claw.held) game.heldLayerAt = iClaw;
+  else if (game.heldLayerAt != null && toys.some((t) => t.state === 'chute' && (t.relT || 0) < 0.3)) iClaw = Math.max(iClaw, game.heldLayerAt);
+  else game.heldLayerAt = null;
   const top = pileTopUnder(claw.x, claw.y);
   const zs = top.z;
   const sp = project(claw.x, claw.y, zs);
@@ -1346,13 +1444,17 @@ function draw() {
   // 床より下に入ったら最後に描いて、景品口の窓で切り抜く（窓の辺は奥ほど寄る斜めの線なので、高い所で切ると幅の広い子が大きく欠ける）
   const fallAt = new Map();
   for (const t of toys) {
-    if (t.state !== 'chute' || t.hold.z + t.dz - t.below < 0.0) continue;
-    const c = t.data.center, h = t.hold, r = t.data.sprite.rect;
+    if (t.state !== 'chute') continue;
+    const lk = toyLook(t), c = lk.center, h = t.hold, r = lk.rect;
+    // 床より下に入ったら窓で切る。深さは今の姿で見る（寝た姿の厚みのままだと、吊ったびろーんのしっぽと下の縁が手前の白い台に3コマかぶった・10/30 昼）
+    if (t.hold.z + t.dz - lk.below < 0.0) continue;
     const p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz), s = t.holdUV.d / p1.d;
     const x0 = p1.u - (t.holdUV.u - r[0]) * s, y0 = p1.v - (t.holdUV.v - r[1]) * s;
     // 一度手前に出たら戻さない（仕切りにかぶさった子と前後が2〜3コマ入れ替わってちらついた・10/30 再検品）
-    const idx = insertionIndex(rest, project(c[0] + t.dx, c[1] + t.dy, c[2] + t.dz).d, [x0, y0, x0 + r[2] * s, y0 + r[3] * s]);
-    const k = Math.max(idx, t.fallAfter ? rest.indexOf(t.fallAfter) + 1 : 0);   // fallAfter＝前のコマで直前に描いた子
+    const idx = insertionIndex(rest, project(c[0], c[1], c[2]).d, [x0, y0, x0 + r[2] * s, y0 + r[3] * s]);
+    let k = Math.max(idx, t.fallAfter ? rest.indexOf(t.fallAfter) + 1 : 0);   // fallAfter＝前のコマで直前に描いた子
+    // 離して0.3秒は爪の奥（UFO の層の直前）に描く＝爪の下から抜け落ちる。前は離した瞬間に爪より手前へ飛んだ（10/30 朝の検品 12）
+    if ((t.relT || 0) < 0.3) k = iClaw;
     t.fallAfter = k > 0 ? rest[k - 1] : null;
     fallAt.set(t, k);
   }

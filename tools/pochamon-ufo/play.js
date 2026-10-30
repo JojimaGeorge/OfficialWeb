@@ -24,10 +24,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });
   const shot = async (name) => { await page.screenshot({ path: path.join(outDir, name + '.png') }); console.log('shot', name); };
   const state = () => page.evaluate(() => window.__ufo.state());
+  // p は段階の名前か、そのどれかでよい名前の配列
   const waitPhase = async (p, timeout = 30000) => {
+    const ps = Array.isArray(p) ? p : [p];
     const t0 = Date.now();
-    while (Date.now() - t0 < timeout) { const s = await state(); if (s.phase === p) return s; await sleep(40); }
-    throw new Error('timeout waiting for phase ' + p + ' (now ' + (await state()).phase + ')');
+    while (Date.now() - t0 < timeout) { const s = await state(); if (ps.includes(s.phase)) return s; await sleep(40); }
+    throw new Error('timeout waiting for phase ' + ps.join('|') + ' (now ' + (await state()).phase + ')');
   };
 
   await page.goto(url, { waitUntil: 'load' });
@@ -61,7 +63,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await waitPhase('grab');
     await sleep(350);
     await shot(`1${i}_grab`);
-    const s = await waitPhase('lift');
+    // 掴みそこねの回は持ち上げてすぐ滑り落ちることがあり、grab を撮っている0.6秒の間に lift が終わって取り逃した（10/30 昼）
+    const s = await waitPhase(['lift', 'slipping', 'hold']);
     await sleep(900);
     await shot(`1${i}_lift`);
     results.push({ try: i, outcome: s.outcome, held: s.held });

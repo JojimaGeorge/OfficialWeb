@@ -36,7 +36,8 @@ if not OLD.get("claw_sheets"):
 # 元の絵が全部そろっているか、消す前に確かめる（途中で欠けて止まると、古い scene.json が消えた絵を指したまま残る・10/30 検品）
 need = ["bg.png"] + [t["file"] for t in S["bulbs"]["tiles"]]
 for t in S["toys"]:
-    need += [x["file"] for x in (t.get("sprite"), t.get("shadow")) if x]
+    need += [x["file"] for x in (t.get("sprite"), t.get("shadow"), t.get("sprite_hang")) if x]
+    need += [x["file"] for x in (t.get("sprite_tilt") or [])]
 missing = [n for n in need if not os.path.exists(os.path.join(src, n))]
 if missing:
     sys.exit("missing in the export: %s" % ", ".join(missing[:10]))
@@ -81,6 +82,18 @@ for t in S["toys"]:
         t["sprite"]["file"] = put(t["sprite"]["file"], 92)
     if t.get("shadow"):
         t["shadow"]["file"] = put(t["shadow"]["file"], 80)
+    # びろーんのぶら下がった姿（ufo_export.py v4・10/30 朝）。無い子は項目ごと落とす（null を残すとゲームが assets/null を読みに行く）
+    if t.get("sprite_hang"):
+        t["sprite_hang"]["file"] = put(t["sprite_hang"]["file"], 92)
+    else:
+        t.pop("sprite_hang", None)
+    if t.get("sprite_tilt"):   # 寝た姿とぶら下がった姿の間の6コマ（10/30 昼）
+        for st in t["sprite_tilt"]:
+            st["file"] = put(st["file"], 92)
+    else:
+        t.pop("sprite_tilt", None)
+    if not t.get("footprint"):
+        t.pop("footprint", None)
 
 S.pop("claw_sprites", None)
 S["claw_sheets"] = OLD["claw_sheets"]
