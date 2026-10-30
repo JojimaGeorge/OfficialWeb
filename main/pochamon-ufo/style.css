@@ -123,9 +123,9 @@ body {
 @keyframes cardin { from { transform: scale(.8) translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
 .title-card img { display: block; margin: 0 auto; height: auto; pointer-events: none; -webkit-user-drag: none; }   /* 長押しは .title-sub（設定を開く）が受ける */
 .neon-line { height: 2px; margin: 1.1vh 0; border-radius: 2px; background: #8fdcff; box-shadow: 0 0 6px 1px #4fb8ff, 0 0 14px 2px rgba(79,184,255,.55); }
-.title-stars { width: auto; height: clamp(14px, 2.6vh, 26px) !important; }
-.title-sub { margin-top: .8vh; line-height: 0; }
-.title-sub img { width: auto; height: clamp(22px, 4.4vh, 44px) !important; }
+/* 「ぽちゃもん」＝公式のロゴをピンクに塗り替えた絵（2026-10-30 本人「ロゴを使って・同じピンクで・ひらがなより大きめに」。上の ★ POCHAMON ★ の列は外した） */
+.title-sub { margin-top: .4vh; line-height: 0; }
+.title-sub img { width: auto; height: clamp(44px, 8vh, 80px) !important; }
 /* 字の幅は筐体の 8 割まで（札は筐体の 94% に収まる・4:3 の 1024×768 でも1行） */
 .title-main { margin-top: .2vh; line-height: 0; }
 .title-main img { width: min(calc(var(--machine-width) * 0.8), 680px); }

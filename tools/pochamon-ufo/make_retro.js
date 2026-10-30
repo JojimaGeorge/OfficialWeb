@@ -5,8 +5,7 @@
 // 出力（main/pochamon-ufo/assets/）：
 //   retro_sign.webp   上の梁の前面に貼る看板（絵の px そのまま 1800×250）
 //   title_logo.webp   タイトルの「UFOキャッチャー」（二重線のネオン）
-//   title_stars.webp  タイトルの「★★★★★ POCHAMON ★★★★★」
-//   title_sub.webp    タイトルの「ぽちゃもん」
+//   title_sub.webp    タイトルの「ぽちゃもん」＝公式のロゴ（pochamon/assets/img/logo.svg）をピンクに塗り替えたもの
 const path = require('path');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
@@ -16,7 +15,9 @@ const FONTS = { oshigo: U + 'oshigo.otf', bahn: 'C:/Windows/Fonts/bahnschrift.tt
 const OUT = path.join(__dirname, '..', '..', 'main', 'pochamon-ufo', 'assets');
 const TMP = path.join(__dirname, 'shots', 'retro_bake');
 fs.mkdirSync(TMP, { recursive: true });
-const SIGN = { w: 1800, h: 250 };   // 梁の前面（背景の絵の y=0〜約248）。下の銀のレールは隠さない
+const SIGN = { w: 1800, h: 250 };
+// ぽちゃもんのロゴ（公式サイトと同じ 1色の SVG）。タイトルではピンクに塗り替えて、ひらがなの代わりに置く（2026-10-30 本人「ぽちゃもんはロゴを使って・同じピンクで・ひらがなより大きめに」）
+const LOGO_SVG = fs.readFileSync(path.join(__dirname, '..', '..', 'pochamon', 'assets', 'img', 'logo.svg'), 'utf8');   // 梁の前面（背景の絵の y=0〜約248）。下の銀のレールは隠さない
 
 // ページの中で使う部品（字の大きさを測ってから SVG を組む）
 const PAGE_LIB = () => {
@@ -57,6 +58,16 @@ const PAGE_LIB = () => {
     }
     return { html: `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;overflow:visible">${body}</svg>`, w, h };
   };
+  // ロゴ（1色の SVG）を色 fill に塗り替え、タイトルの「ぽちゃもん」と同じほのかなピンクの光をまとわせる。h＝ロゴの高さ（px）・まわりに光のぶん 12% の余白
+  window.mkLogoSvg = (src, h, fill) => {
+    const vb = src.match(/viewBox="([^"]+)"/)[1].split(/\s+/).map(Number);
+    const inner = src.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '').replace(/<style>[\s\S]*?<\/style>/, '').replace(/class="cls-1"/g, '');
+    const k = h / vb[3], m = h * 0.12, w = vb[2] * k;
+    const id = 'lg' + (uid++);
+    return { html: `<svg width="${w + 2 * m}" height="${h + 2 * m}" viewBox="0 0 ${w + 2 * m} ${h + 2 * m}" style="display:block;overflow:visible">
+      <defs><filter id="${id}" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur stdDeviation="${h * 0.045}" result="b"/><feFlood flood-color="#ff5fae" flood-opacity=".75"/><feComposite in2="b" operator="in" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+      <g filter="url(#${id})"><g transform="translate(${m - vb[0] * k} ${m - vb[1] * k}) scale(${k})" fill="${fill}">${inner}</g></g></svg>`, w: w + 2 * m, h: h + 2 * m };
+  };
   // ★★★★ POCHAMON ★★★★ の列（glow＝青く光らせる）
   window.mkStarRow = (n, r, color, size, glow) => {
     const tb = measure('POCHAMON', 'Bahn', size, 700), gap = r * 0.9, sw = n * (2 * r + gap), m = glow ? r * 0.8 : 0;
@@ -90,6 +101,7 @@ const PAGE_LIB = () => {
     #sign .pin i { display: block; height: 6px; margin-bottom: 6px; }
   </style></head><body><div id="sign" class="box"></div><div id="t" class="box"></div></body></html>`);
   await page.evaluate(PAGE_LIB);
+  await page.evaluate((svg) => { window.__logoSvg = svg; }, LOGO_SVG);
   await page.evaluate(() => Promise.all([document.fonts.load('40px Oshigo'), document.fonts.load('700 20px Bahn')]));
   const ok = await page.evaluate(() => document.fonts.check('40px Oshigo') && document.fonts.check('700 20px Bahn'));
   if (!ok) throw new Error('書体が読めていない');
@@ -113,8 +125,7 @@ const PAGE_LIB = () => {
   // 2) タイトルの字（札に出す大きさの約2倍で描く）
   const parts = {
     title_logo: () => mkLogo('UFOキャッチャー', 'Oshigo', 150, 'neon'),
-    title_stars: () => mkStarRow(5, 22, '#7fd2ff', 50, true),
-    title_sub: () => mkLogo('ぽちゃもん', 'Oshigo', 84, 'glow', 26),
+    title_sub: () => mkLogoSvg(window.__logoSvg, 200, '#ff9fcd'),
   };
   for (const [name, fn] of Object.entries(parts)) {
     await page.evaluate((src) => { const r = (0, eval)('(' + src + ')')(); document.getElementById('t').innerHTML = r.html; }, fn.toString());
