@@ -772,7 +772,9 @@ function flatLanding(x, y) {
     const G = t.data.grips, e = flatEdgeAt(t, x, y), tl = G[3];
     let grip = -1, z;
     // 尻尾の先（4つ目のつまむ所・10/31 本人「尻尾からも掴めるようにしたい」）から4.5cm以内なら尻尾をつまんで逆さに吊る
-    if (tl && Math.hypot(x - (tl.grab[0] + t.dx), y - (tl.grab[1] + t.dy)) <= CFG.tailReach) {
+    // ただし真下にふつうの子のてっぺんが尻尾より高く出ていたら、爪は先にその子に当たる＝尻尾はつままない
+    // （9番のてっぺんを狙うと隣の25番の尻尾を吊った・10/31 検品）
+    if (tl && Math.hypot(x - (tl.grab[0] + t.dx), y - (tl.grab[1] + t.dy)) <= CFG.tailReach && normalTop(x, y).z <= tl.z + t.dz + 0.01) {
       grip = 3; z = tl.z + t.dz;
     } else if (e.dist <= 0.06) {
       grip = [1 / 6, 0.5, 5 / 6].reduce((bi, sk, k, arr) => (Math.abs(e.s - sk) < Math.abs(e.s - arr[bi]) ? k : bi), 0);
@@ -850,6 +852,10 @@ function surfaceUnder(x, y) {
     for (let i = 0, z0 = t.data.zbottom + t.dz, zt = zs; i <= 8; i++) { const zi = zt - (zt - z0) * i / 8, p = project(px, py, zi); if (toyCovers(t, p.u, p.v)) { zs = zi; break; } }
     return { z: zs, on: t, px, py };
   }
+  return Object.assign(normalTop(x, y), { px: x, py: y });
+}
+// (x, y) の真下で一番高い、ふつうの子（びろーん以外）の表面か床：z と、その子 on
+function normalTop(x, y) {
   let z = floorZAt(y), on = null;
   for (const t of toys) {
     if ((t.state !== 'rest' && t.state !== 'settle') || isFlat(t)) continue;
@@ -868,7 +874,7 @@ function surfaceUnder(x, y) {
     if (hit == null) continue;
     z = hit; on = t;
   }
-  return { z, on, px: x, py: y };
+  return { z, on };
 }
 // びろーん t の床に落とした輪郭（凸）の内側へ inset だけ入った所で、(x, y) に一番近い点（輪郭の外から寄せる時に使う）
 function nearestInside(t, x, y, inset) {
@@ -1016,7 +1022,9 @@ function setPhase(p) {
       // 景品口の上では何もつかめないので、山のはしまで自動で寄せる
       const ch = scene.machine.chute;
       let tx = clamp(claw.cx, bounds.x0, bounds.x1), ty = clamp(claw.cy, bounds.y0, bounds.y1);
-      if (tx < ch.x1 + 0.07 && ty < ch.y1 + 0.06) tx = ch.x1 + 0.07;
+      // ただし、びろーんの縁や尻尾のつまめる所の真上なら寄せない（25番の尻尾は景品口ぎわ。狙いの輪は尻尾に出るのに、寄せて真ん中で空振りした・10/31 検品）
+      const flS = flatLanding(tx, ty);
+      if (tx < ch.x1 + 0.07 && ty < ch.y1 + 0.06 && !(flS && flS.grip >= 0)) tx = ch.x1 + 0.07;
       game.settleTarget = { x: tx, y: ty };
       break;
     }
@@ -1057,6 +1065,9 @@ function setPhase(p) {
       }
       game.outcome = decideOutcome(game.tryIndex);
       game.slipAt = CFG.slipMin + Math.random() * (CFG.slipMax - CFG.slipMin);
+      // 尻尾でつまんだ外れの回は、持ち上げ始めてすぐ抜ける（細い尻尾は抜けやすい）。高く上げてから落とすと、逆さに吊った半回転を
+      // 空中で巻き戻して縦の板が出た（10/31 検品）。重ねて入れ替える・着いた瞬間に替える、はどちらも幽霊や跳びが出たので不採用
+      if (game.target && game.target.grip === 3) game.slipAt = 0.06 + Math.random() * 0.06;
       break;
     case 'lift':
       if (game.target) { game.target.state = 'held'; game.target.attach = 0; claw.held = game.target; faceUI.grin(); }   // つかめた→右下の子がニヤッ
