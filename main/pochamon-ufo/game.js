@@ -37,7 +37,7 @@ const CFG = {
   raisedZ: 0.63,        // 上げ切った時の円盤の高さ（ケーブル 10cm ぶん垂れる＝揺れが見える）
   padDz: -0.14,         // 円盤の中心から爪先（当たる所）までの高さ
   holdDzToy: 0.05,      // ぬいぐるみの一番上から、つかむ点までの深さ（×scale）
-  armOpen: -18, armHold: 0, armHoldBig: -7, armClosed: 16, armRate: 95, armHoldFlat: 10,   // armHoldFlat＝びろーん（薄い）をつまむ時   // 度・度/秒
+  armOpen: -18, armHold: 0, armHoldBig: -7, armClosed: 16, armRate: 95, armHoldFlat: 10, tailReach: 0.045,   // armHoldFlat＝びろーん（薄い）をつまむ時   // 度・度/秒
   dampFree: 0.9, dampHeld: 1.3, dampGround: 9,
   g: 9.81,
   slipMin: 0.30, slipMax: 0.72,   // 運枠で外す時、持ち上げのどの辺で落とすか
@@ -769,9 +769,12 @@ function flatLanding(x, y) {
   for (const t of toys) {
     if ((t.state !== 'rest' && t.state !== 'settle') || !isFlat(t) || !t.data.footprint || !t.data.grips) continue;
     if (!inFootprint(t, x, y, -0.03)) continue;
-    const G = t.data.grips, e = flatEdgeAt(t, x, y);
+    const G = t.data.grips, e = flatEdgeAt(t, x, y), tl = G[3];
     let grip = -1, z;
-    if (e.dist <= 0.06) {
+    // 尻尾の先（4つ目のつまむ所・10/31 本人「尻尾からも掴めるようにしたい」）から4.5cm以内なら尻尾をつまんで逆さに吊る
+    if (tl && Math.hypot(x - (tl.grab[0] + t.dx), y - (tl.grab[1] + t.dy)) <= CFG.tailReach) {
+      grip = 3; z = tl.z + t.dz;
+    } else if (e.dist <= 0.06) {
       grip = [1 / 6, 0.5, 5 / 6].reduce((bi, sk, k, arr) => (Math.abs(e.s - sk) < Math.abs(e.s - arr[bi]) ? k : bi), 0);
       z = G[grip].z + t.dz;
     } else z = e.zSurf + t.dz;
@@ -782,7 +785,7 @@ function flatLanding(x, y) {
 // びろーん t の上の縁から見た (x, y)：s＝縁に沿った割合（0〜1）・dist＝縁からの距離（m）・
 // zSurf＝その所の面の高さ（縁から離れるほど下の端へ下がる面で見積もる・dz 抜き）。つかむ判定（flatLanding）と狙いの目印で同じ見積もりを使う
 function flatEdgeAt(t, x, y) {
-  const G = t.data.grips, a = G[0].grab, b = G[G.length - 1].grab;
+  const G = t.data.grips, a = G[0].grab, b = G[2].grab;   // 左右の端のつまむ所（G[3] は尻尾）
   // 上の縁＝左右のつまむ所を結んだ線を、幅の端まで（両側へ1/4ずつ）伸ばしたもの
   const ax = a[0] + (a[0] - b[0]) / 4 + t.dx, ay = a[1] + (a[1] - b[1]) / 4 + t.dy;
   const ex = (b[0] - a[0]) * 1.5, ey = (b[1] - a[1]) * 1.5, L2 = ex * ex + ey * ey || 1;
@@ -842,7 +845,7 @@ function surfaceUnder(x, y) {
     const t = fl.toy;
     let px = x, py = y;
     if (!inFootprint(t, x, y, 0.008)) { const q = nearestInside(t, x, y, 0.008); px = q.x; py = q.y; }
-    let zs = flatEdgeAt(t, px, py).zSurf + t.dz;
+    let zs = fl.grip === 3 ? fl.z : flatEdgeAt(t, px, py).zSurf + t.dz;   // 尻尾の上では尻尾の高さ
     // 面の見積もりが絵の外に写る時は、絵の中に写る高さまで下げる（ふつうの子と同じ確かめ方）
     for (let i = 0, z0 = t.data.zbottom + t.dz, zt = zs; i <= 8; i++) { const zi = zt - (zt - z0) * i / 8, p = project(px, py, zi); if (toyCovers(t, p.u, p.v)) { zs = zi; break; } }
     return { z: zs, on: t, px, py };
