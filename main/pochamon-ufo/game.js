@@ -108,6 +108,13 @@ function project(x, y, z) {
 }
 // 長さ（m）を、その奥行きでの画面の px（画像の px）に
 const lenPx = (len, d) => len * UNIT * CAM.fx / d;
+// (x, y, z) を通る縦の線が画面で傾く量（下へ 1px 行くと横へ何 px か）。カメラは見下ろしなので、縦の線は真ん中（x=0）から離れるほど
+// 下で真ん中へ寄る（景品口の上で 12°）。アームの絵は真ん中（claw_ref_xy＝0,0）で描いた＝傾き 0 のまま平行移動していたので、
+// 遠近どおりに置いた持った子とアームの爪先が横へずれた（景品口の上で 2.8cm・11/1 本人「掴んだ時の左右の位置で、ちゃんと掴んでないように見える」）
+function leanAt(x, y, z) {
+  const a = project(x, y, z), b = project(x, y, z - 0.10);
+  return (b.u - a.u) / ((b.v - a.v) || 1);
+}
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 // ---------------- 音（WebAudio で合成・ファイル無し） ----------------
@@ -830,7 +837,8 @@ function toyCovers(t, u, v) {
   let lx = u, ly = v;
   if (t.dx || t.dy || t.dz || t.rot || t.bounce) {
     const h = t.hold, p0 = t.holdUV, p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz + (t.bounce || 0)), s = p0.d / p1.d;
-    const du = u - p1.u, dv = v - p1.v, c = Math.cos(-t.rot), sn = Math.sin(-t.rot);
+    const dl = leanAt(h.x + t.dx, h.y + t.dy, h.z + t.dz) - leanAt(h.x, h.y, h.z);   // 描く時の斜めのずらし（drawToyDynamic）を戻す
+    const du = u - p1.u - dl * (v - p1.v), dv = v - p1.v, c = Math.cos(-t.rot), sn = Math.sin(-t.rot);
     lx = (du * c - dv * sn) / s + p0.u; ly = (du * sn + dv * c) / s + p0.v;
   }
   const x = Math.round(lx - r[0]), y = Math.round(ly - r[1]);
@@ -1410,7 +1418,11 @@ function drawToyDynamic(t, clipChute) {
     for (let i = 1; i < 4; i++) ctx.lineTo(chuteClip[i].u, chuteClip[i].v);
     ctx.closePath(); ctx.clip();
   }
-  ctx.translate(p1.u, p1.v); ctx.rotate(t.rot); ctx.scale(s, s);
+  ctx.translate(p1.u, p1.v);
+  // 絵は休んでいた所の遠近で描いてある。運ばれた所の縦の線の傾きとの差だけ斜めにずらす（アームと同じ。景品口の上で、吊った子の下の端が 2.8cm 真ん中寄りになる）
+  const dl = leanAt(h.x + t.dx, h.y + t.dy, h.z + t.dz) - leanAt(h.x, h.y, h.z);
+  if (Math.abs(dl) > 1e-4) ctx.transform(1, 0, dl, 1, 0, 0);
+  ctx.rotate(t.rot); ctx.scale(s, s);
   // びろーんの途中の姿も、つかむ点（hold）を中心に回して描いた絵なので、同じ点を基準に描く。
   // 近い方の1コマだけを描くパラパラ漫画（隣のコマを薄く重ねると、目の位置が数px違うので顔が二重にぶれた・10/30 昼）
   const m = hasHang(t) ? (t.hangMix || 0) : 0;
@@ -1446,6 +1458,7 @@ function clawBox() {
 }
 function drawClaw(p) {
   const picks = clawPick();
+  const lean = leanAt(claw.x, claw.y, claw.z);   // 絵は x=0 で描いた（傾き 0）＝今いる所の縦の線の傾きだけ斜めにずらす（横の線は水平のまま）
   let acc = 0;
   for (const [sheet, fr, w] of picks) {
     const im = fr.img || sheet.img;
@@ -1455,7 +1468,8 @@ function drawClaw(p) {
     const K = 1 / (sheet.scale || 1), s = fr.depth / p.d * K;   // コマ表は縮めて持っている（scale）ので描く時に戻す
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.translate(p.u, p.v); ctx.rotate(-claw.thx); ctx.scale(s, s);   // thx＝右へ振れて正、画面の回転は時計回りが正＝逆向き（10/30 朝）
+    ctx.translate(p.u, p.v); ctx.transform(1, 0, lean, 1, 0, 0);
+    ctx.rotate(-claw.thx); ctx.scale(s, s);   // thx＝右へ振れて正、画面の回転は時計回りが正＝逆向き（10/30 朝）
     ctx.drawImage(im, fr.x, fr.y, fr.w, fr.h, -fr.ax, -fr.ay, fr.w, fr.h);
     ctx.restore();
   }
@@ -1701,12 +1715,16 @@ function draw() {
     // 床より下に入ったら窓で切る。深さは今の姿で見る（寝た姿の厚みのままだと、吊ったびろーんのしっぽと下の縁が手前の白い台に3コマかぶった・10/30 昼）
     if (t.hold.z + t.dz - lk.below < 0.0) continue;
     const p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz), s = t.holdUV.d / p1.d;
-    const x0 = p1.u - (t.holdUV.u - r[0]) * s, y0 = p1.v - (t.holdUV.v - r[1]) * s;
+    const x0 = p1.u - (t.holdUV.u - r[0]) * s, y0 = p1.v - (t.holdUV.v - r[1]) * s, y1 = y0 + r[3] * s;
+    // 箱は描く時と同じく、縦の線の傾きの差で斜めにずらした分も入れる（drawToyDynamic）
+    const dl = leanAt(h.x + t.dx, h.y + t.dy, h.z + t.dz) - leanAt(h.x, h.y, h.z), sa = dl * (y0 - p1.v), sb = dl * (y1 - p1.v);
     // 一度手前に出たら戻さない（仕切りにかぶさった子と前後が2〜3コマ入れ替わってちらついた・10/30 再検品）
-    const idx = insertionIndex(rest, project(c[0], c[1], c[2]).d, [x0, y0, x0 + r[2] * s, y0 + r[3] * s]);
+    const idx = insertionIndex(rest, project(c[0], c[1], c[2]).d, [x0 + Math.min(sa, sb), y0, x0 + r[2] * s + Math.max(sa, sb), y1]);
     let k = Math.max(idx, t.fallAfter ? rest.indexOf(t.fallAfter) + 1 : 0);   // fallAfter＝前のコマで直前に描いた子
-    // 離して0.3秒は爪の奥（UFO の層の直前）に描く＝爪の下から抜け落ちる。前は離した瞬間に爪より手前へ飛んだ（10/30 朝の検品 12）
-    if ((t.relT || 0) < 0.3) k = iClaw;
+    // 離して0.3秒は爪の奥（UFO の層の直前）に描く＝爪の下から抜け落ちる。前は離した瞬間に爪より手前へ飛んだ（10/30 朝の検品 12）。
+    // ただし落ちる子が奥の子にかぶる所まで来たら、UFO の層ごとその子の後ろ（手前）へ下げる。爪の層だけ持っていた時のままにすると、
+    // 斜めにずらした足もとが奥の15番の裏に入った（11/1 検品・1番を落とした時の4割）
+    if ((t.relT || 0) < 0.3) { iClaw = Math.max(iClaw, k); k = iClaw; }
     t.fallAfter = k > 0 ? rest[k - 1] : null;
     fallAt.set(t, k);
   }
