@@ -65,6 +65,9 @@ const CFG = {
   prizeAt: 0.72,        // 転がりのどの辺でステッカーの絵柄を出すか（0〜1）
   prizeSec: 1.7,        // ステッカーの絵柄を出している時間
   morph: qs.get('morph') !== '0',   // びろーんの持ち上げのコマの間を埋める（morphOf）。比べる時は URL に ?morph=0
+  // コマの間を埋める時、板の表の面（顔）にどれだけ合わせるか（0〜1）。既定は 0＝合わせない：合わせると顔は跳ねなくなるが、今度は輪郭とつまんだ点が
+  // 同じだけ跳ね、切り替わりで変わる画素は 1.3〜1.7 倍に増えた（11/6 に 4 つのつまみ方で実測）。厚みのある物を1枚の絵の変形で埋める限界。比べる時は ?mface=1
+  morphFace: qs.get('mface') != null ? parseFloat(qs.get('mface')) : 0,
 };
 
 // ---------------- DOM ----------------
@@ -1069,8 +1072,14 @@ function startOut(t) {
   const pxm = lenPx(1, d0);   // その子の絵の 1m あたりの px
   // 見た目の半径（m）：絵の縁の余白を除いた大きさ。平たいびろーんは寝た絵の縦の半分
   const R = (flat ? r[3] * 0.42 : Math.min(r[2], r[3]) * 0.46) / pxm;
+  // 止まった時のまんなかの高さ：絵の下の端（縁の余白を除く）が、絵の下端のすぐ上に写る高さ。
+  // 前は「受け皿の高さ＋半径」で置いていて、35°の見下ろしでは高さの分が画面で 0.82 倍しか上がらず、1180×820 で下の 2 割が切れた
+  // （顔が絵の下側にある子は後ろ姿だけになった・11/5 検品）
+  const pad = (0.08 * Math.max(r[2], r[3]) + 6) / 1.16, hb = r[3] / 2 - pad, H = scene.image.height;
+  let lo = -0.6, hi = 0.3;
+  for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2, q = project(outGeo.xc + 0.1, outGeo.yF, mid); if (q.v + hb * d0 / q.d > H - 8) lo = mid; else hi = mid; }
   t.state = 'out'; t.alpha = 1; t.shadowA = 0;
-  t.out = { T: 0, d0, R, flat, vis: false, x: 0, y: 0, z: 0, k: 0, rot: 0, sx: 1, sy: 1, stage: 0, leaveT: 0, rot0: 0 };
+  t.out = { T: 0, d0, R, zRest: hi, flat, vis: false, x: 0, y: 0, z: 0, k: 0, rot: 0, sx: 1, sy: 1, stage: 0, leaveT: 0, rot0: 0 };
 }
 function stepOut(t, dt) {
   const o = t.out, g = outGeo, D = g.door;
@@ -1082,7 +1091,7 @@ function stepOut(t, dt) {
   if (tau < 0) { o.vis = false; return; }
   if (o.stage === 1) { o.stage = 2; audio.pop(); }
   o.vis = true;
-  const zRest = g.zFloor + o.R, x1 = g.xc + 0.02;
+  const zRest = o.zRest, x1 = g.xc + 0.02;
   const tRoll = tau - CFG.outPop;
   if (tRoll < 0) {
     // ぽんと出る：扉のまんなかから手前の受け皿へ。小さい姿から、行き過ぎて戻る大きさで（扉は 6cm しかないので、漫画の「ぽん」で通す）
@@ -1123,7 +1132,8 @@ function stepOut(t, dt) {
     const tl = o.T - o.leaveT;
     o.x = o.x0 + 0.10 * tl; o.z = zRest + 1.15 * tl - 0.5 * CFG.g * tl * tl; o.rot = o.rot0 + (o.flat ? 0.6 : 3.2) * tl; o.sx = o.sy = 1;
     const p = project(o.x, o.y, o.z), bottom = (view.ch - view.oy) / view.k;   // 画面の下端（絵の px）
-    if (tl > 0.2 && p.v - lenPx(o.R * 1.6, p.d) > bottom) { t.state = 'gone'; t.alpha = 0; t.out = null; }
+    // 縦に細い画面では、落ちる子は真下の消失点へ寄るだけで画面の下端を越えない＝時間でも打ち切る（次の回へ進めなくなった・11/5 検品）
+    if ((tl > 0.2 && p.v - lenPx(o.R * 1.6, p.d) > bottom) || tl > 1.5) { t.state = 'gone'; t.alpha = 0; t.out = null; }
   }
 }
 function drawToyOut(t) {
@@ -1555,7 +1565,15 @@ function morphOf(a, b, w, cur) {
   const m21 = (r[1] * c[1][1] - u[1] * c[0][1]) / det, m22 = (u[1] * c[0][0] - r[1] * c[1][0]) / det;
   const dm = m11 * m22 - m12 * m21;
   if (!(dm > 0.5 && dm < 2) || Math.max(Math.abs(m11), Math.abs(m12), Math.abs(m21), Math.abs(m22)) > 1.8) return null;   // 大きく歪む時は埋めない
-  return [m11, m21, m12, m22];   // ctx.transform(a, b, c, d, 0, 0) の並び
+  // 顔は板の表の面にある（つまんだ点＝板の真ん中の面から、厚みの半分だけ手前）。真ん中の面だけで運ぶと、板が傾く分だけ顔が置いていかれて、
+  // コマの切り替わりで目が数 px 跳ねた（11/5 検品）。ax の3本目＝つまんだ点の真上の表の面が画面のどこへ写るか。その点が前後のコマの間へ
+  // まっすぐ動くように、絵ごとずらす（CFG.morphFace＝どれだけ表の面に合わせるか。1＝顔が跳ねない・0＝輪郭の真ん中が跳ねない）
+  let e = 0, f = 0;
+  if (a.ax[2] && b.ax[2] && c[2] && CFG.morphFace) {
+    const nx = lerp(a.ax[2][0], b.ax[2][0], w), ny = lerp(a.ax[2][1], b.ax[2][1], w);
+    e = CFG.morphFace * (nx - (m11 * c[2][0] + m12 * c[2][1])); f = CFG.morphFace * (ny - (m21 * c[2][0] + m22 * c[2][1]));
+  }
+  return [m11, m21, m12, m22, e, f];   // ctx.transform(a, b, c, d, e, f) の並び
 }
 // 持った子・落ちる子：今の姿の大きさ・中心・つかむ点から下の端までの深さ（描く順番と景品口の窓の判定に使う）
 function toyLook(t) {
@@ -1589,7 +1607,7 @@ function drawToyDynamic(t, clipChute) {
     const { a, b, w } = lookPair(t, m);
     cur = w < 0.5 ? a : b;
     const M = CFG.morph ? morphOf(a, b, w, cur) : null;   // コマの間を埋める（つかむ点が中心）
-    if (M) ctx.transform(M[0], M[1], M[2], M[3], 0, 0);
+    if (M) ctx.transform(M[0], M[1], M[2], M[3], M[4], M[5]);
   }
   ctx.globalAlpha = t.alpha;
   ctx.drawImage(cur.img, cur.rect[0] - p0.u, cur.rect[1] - p0.v);
