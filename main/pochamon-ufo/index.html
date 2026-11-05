@@ -15,7 +15,7 @@
   </script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=20">
+  <link rel="stylesheet" href="style.css?v=22">
   <title>ぽちゃもん UFOキャッチャー</title>
 </head>
 <body class="phase-loading">
@@ -65,6 +65,16 @@
       </div>
     </div>
 
+    <!-- ゲットした時：もらえるステッカーの絵柄（2026-11-05 本人「落としたときも、このステッカーをゲットみたいな絵柄を表示」）。
+         絵柄は1ゲームの中でかぶらないようにランダムに決め、結果の画面にも同じ絵柄を並べる -->
+    <div id="prize" aria-hidden="true">
+      <div class="prize-stage">
+        <div class="prize-burst"></div>
+        <div class="prize-pic"><img id="prizeImg" alt=""></div>
+      </div>
+      <div class="prize-label">この ステッカーを ゲット！</div>
+    </div>
+
     <!-- 読み込み / 回転 -->
     <div id="loading" class="screen show"><div class="card small-card">よみこみちゅう…<br><span id="loadProg"></span></div></div>
     <div id="rotate" class="screen"><div class="card small-card">iPadを よこむきに してね</div></div>
@@ -100,6 +110,6 @@
     <div id="coin" class="hidden" aria-label="ぽちゃもんコイン"><div id="coinImg"></div></div>
   </div>
 
-  <script src="game.js?v=21"></script>
+  <script src="game.js?v=22"></script>
 </body>
 </html>

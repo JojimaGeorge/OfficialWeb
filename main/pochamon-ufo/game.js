@@ -57,6 +57,14 @@ const CFG = {
   // （操作盤のふちの「星のはしご」は、ポーチの柱を真似たが何も囲まない帯になった＝本人「外しちゃっていい」で外した）
   deco: qs.get('deco') !== '0',
   decoPinV: 1776,       // ガラスの下の前板の上端（背景の絵の px・絵の明るさで実測）。赤と青のラインはここから下へ
+  // 取り出し口から出てくる（2026-11-05 本人「落としたぬいぐるみが下の取り出し口からゴロゴロって滑って出てくるように」）。秒とメートル
+  outWait: 0.32,        // 穴に消えてから取り出し口に顔を出すまで（中を落ちてくる間）
+  outPop: 0.26,         // 取り出し口からぽんと出てくる時間（小さい→元の大きさ）
+  outRoll: 1.0,         // 転がって止まるまで
+  outDist: 0.20,        // 転がる距離（右へ）
+  prizeAt: 0.72,        // 転がりのどの辺でステッカーの絵柄を出すか（0〜1）
+  prizeSec: 1.7,        // ステッカーの絵柄を出している時間
+  morph: qs.get('morph') !== '0',   // びろーんの持ち上げのコマの間を埋める（morphOf）。比べる時は URL に ?morph=0
 };
 
 // ---------------- DOM ----------------
@@ -68,12 +76,15 @@ const ui = {
   msg: $('msg'), guide: $('guide'), btnX: $('btnX'), btnY: $('btnY'),
   title: $('title'), result: $('result'), loading: $('loading'), loadProg: $('loadProg'), admin: $('admin'),
   resultNum: $('resultNum'), resultStickers: $('resultStickers'), resultBtn: $('resultBtn'), muteBtn: $('muteBtn'),
+  prize: $('prize'), prizeImg: $('prizeImg'),
 };
 
 // ---------------- 状態 ----------------
 let scene = null;          // scene.json
 let CAM = null, MC = null, UNIT = 1;
-const img = { bg: null };
+const img = { bg: null, stickers: {} };
+// 景品のステッカー（メタリック6種＝むいてほいゲームと同じ景品。1 おにぎり・2 ねむり・3 びろーん・4 みかん・5 レモン・6 腹減り）
+const STICKER_IDS = [1, 2, 3, 4, 5, 6];
 const toys = [];           // 実行時のぬいぐるみ
 let clawSheets = [];       // アームのコマ表：{ img, z, frames: [{ angle, x, y, w, h, ax, ay, depth }] }（高さの昇順）
 let clawHeights = [];
@@ -84,13 +95,14 @@ const view = { dpr: 1, cw: 0, ch: 0, k: 1, ox: 0, oy: 0 };
 const input = { x: false, y: false, pressedX: false, pressedY: false, xId: null, yId: null };
 const claw = { cx: 0, cy: 0, vx: 0, vy: 0, L: 0.07, thx: 0, thy: 0, wx: 0, wy: 0, x: 0, y: 0, z: 0,
                arm: 16, armTarget: 16, held: null, damp: 0.9, cableTop: 0.73 };
-const game = { phase: 'loading', phaseT: 0, tryIndex: 0, got: 0, slots: [], outcome: null, target: null,
+const game = { phase: 'loading', phaseT: 0, tryIndex: 0, got: 0, stickers: [], slots: [], outcome: null, target: null,
                zTarget: 0, slipAt: 0, settleTarget: null, liftStartL: 0, timeScale: 1, lastInputAt: 0 };
 let park = { x: 0, y: 0 };
 const pointer = { a: 0 };  // 狙いの目印の濃さ（0〜1・操作中だけ 1 へ）
 let bounds = null;
 let chuteClip = null;      // 画面上の多角形（景品口の「窓」）
 let cabOpen = null;        // 画面上の多角形（筐体の前の開口部＝左右の柱の内側）
+let outGeo = null;         // 取り出し口：扉の位置と、その前で転がる所（load で決める）
 const isFlat = (t) => t.data.kind === 'biroon';   // びろーん（平たく幅の広い子）
 const hasHang = (t) => !!(t.imgHang || t.imgGrip);   // 持ち上げるとぶら下がった姿に切り替わる子
 
@@ -213,6 +225,11 @@ const audio = (() => {
     creditBeep: () => { tone(1568, 0.08, 'square', 0.10); tone(2093, 0.14, 'square', 0.10, null, 0.09); },
     coinReturn: () => { noise(0.10, 0.35, 1200, 0.9); tone(240, 0.10, 'triangle', 0.22, 150); tone(3600, 0.12, 'sine', 0.05, 2800, 0.06); },
     click: () => { noise(0.025, 0.2, 2600, 1.6); tone(760, 0.04, 'square', 0.05); },
+    // 取り出し口：中を落ちてくるゴトゴト → ぽんと出る → 転がるコロコロ → ステッカーの絵柄が出るキラッ
+    rumble: () => { [0, 0.09, 0.17].forEach((w, i) => noise(0.07, 0.28 - i * 0.05, 240 + i * 60, 0.8, w)); },
+    pop: () => { tone(300, 0.16, 'sine', 0.3, 760); noise(0.05, 0.2, 1400, 1.0); },
+    roll: () => { [0, 0.16, 0.30].forEach((w, i) => { noise(0.06, 0.22 - i * 0.06, 320, 0.7, w); tone(120, 0.07, 'sine', 0.16 - i * 0.04, 80, w); }); },
+    prize: () => { [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, 0.16, 'triangle', 0.14, null, i * 0.06)); tone(3136, 0.5, 'sine', 0.07, null, 0.26); },
   };
 })();
 
@@ -237,7 +254,7 @@ async function load() {
   if (CFG.deco) jobs.push(track(loadImage('assets/retro_sign.webp')).then((im) => { img.sign = im; }));   // 上の梁の看板（tools/pochamon-ufo/make_retro.js で焼いた絵）
   // 結果画面のステッカーの絵は最初に読んで手元に持つ。結果画面で読みに行くと、遊んで数分たった後の読み込みが落ちて「?」になることがあった
   // （10/30 本番の WebKit で通した時・HTTP2 の通信層のエラー。会場の不安定な回線でもご褒美の絵が欠けないように）
-  jobs.push(track(loadImage('assets/pochamon_idle.png')).then((im) => { img.sticker = im; }));
+  for (const id of STICKER_IDS) jobs.push(track(loadImage('assets/sticker_0' + id + '.webp')).then((im) => { img.stickers[id] = im; }));
   const byId = {};
   for (const t of scene.toys) {
     const hold = { x: t.grab[0], y: t.grab[1], z: t.ztop - CFG.holdDzToy * t.scale };
@@ -325,6 +342,7 @@ async function load() {
   cab.railTopV = project(0, m.rails.y_front, m.rails.z + m.rails.radius).v;
   cab.railBotV = project(0, m.rails.y_front, m.rails.z - m.rails.radius).v;
   cab.floorV = project(0, m.front - 0.03, -0.08).v;
+  buildOutGeo();
   buildSupports();
 }
 
@@ -731,11 +749,12 @@ function makeSlots() {
   return shuffle(s);
 }
 function startGame() {
-  game.tryIndex = 0; game.got = 0; game.slots = makeSlots(); game.outcome = null;
+  game.tryIndex = 0; game.got = 0; game.stickers = []; game.slots = makeSlots(); game.outcome = null;
+  hidePrize(true);
   for (const t of toys) {
     t.state = 'rest'; t.dx = t.dy = t.dz = t.vz = 0; t.rot = t.hang = t.sag = 0; t.alpha = 1; t.shadowA = 1; t.hangMix = 0;
     if (t.hold0) { t.hold = t.hold0; t.holdUV = t.holdUV0; t.below = t.below0; t.armHold = t.armHold0; t.grip = -1; t._frames = null; }
-    t.bounce = 0; t.bv = 0; t.target = null; t.reactors = null; t.reacted = false; t.landDz = 0; restPose(t);
+    t.bounce = 0; t.bv = 0; t.target = null; t.reactors = null; t.reacted = false; t.landDz = 0; t.out = null; t.prize = null; restPose(t);
   }
   resetClaw();
   updateHud();
@@ -1005,6 +1024,119 @@ function pressAround(x, y, r, impulse) {
   }
 }
 
+// ---------------- ステッカーの絵柄 ----------------
+// 1ゲームの中でかぶらない絵柄をランダムに1つ（むいてほいゲームと同じ「かぶりなし」。3回までなので6種で足りる）
+function pickSticker() {
+  const left = STICKER_IDS.filter((id) => !game.stickers.includes(id));
+  const pool = left.length ? left : STICKER_IDS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+// 最初に読んで手元に持っている絵を写す（遊んで数分たった後の読み込みは落ちることがある・10/30）
+function stickerEl(id) {
+  const src = img.stickers[id];
+  return src ? src.cloneNode() : Object.assign(document.createElement('img'), { src: 'assets/sticker_0' + id + '.webp' });
+}
+function showPrize(id) {
+  const src = img.stickers[id];
+  ui.prizeImg.src = src ? src.src : 'assets/sticker_0' + id + '.webp';
+  clearTimeout(hidePrize._t);
+  ui.prize.className = ''; void ui.prize.offsetWidth; ui.prize.className = 'show';
+  audio.prize();
+}
+function hidePrize(now) {
+  clearTimeout(hidePrize._t);
+  if (now || !ui.prize.classList.contains('show')) { ui.prize.className = ''; return; }
+  ui.prize.className = 'hide';
+  hidePrize._t = setTimeout(() => { ui.prize.className = ''; }, 300);
+}
+
+// ---------------- 取り出し口から出てくる ----------------
+// 穴に落ちた子は、筐体の左下の取り出し口（Blender の Prize door）からぽんと出て、扉の前を右へ転がって止まる。
+// 止まる頃にステッカーの絵柄を出し、絵柄が消えたら子はぴょんと跳ねて画面の下へ去る（次の回の案内と重ならないように残さない）。
+// 絵は山にいた時の1枚（Blender で描いた絵）を、扉の前の奥行きで大きさを合わせて回す
+function buildOutGeo() {
+  const m = scene.machine, H = scene.image.height;
+  // ufo_export.py の Prize door：x -0.43〜-0.22・前面 y = front - 0.054・z -0.185〜-0.125
+  const door = { x0: -0.43, x1: -0.22, y: m.front - 0.054, z0: -0.185, z1: -0.125 };
+  const xc = (door.x0 + door.x1) / 2, yF = door.y - 0.07;   // 転がる所＝扉の 7cm 手前
+  // 受け皿の高さ：そこに置いた物の底が、絵の下端のすぐ上に写る高さ（絵の下端より下は見えない）
+  let lo = -0.6, hi = 0;
+  for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (project(xc, yF, mid).v > H - 10) lo = mid; else hi = mid; }
+  outGeo = { door, xc, yF, zFloor: hi };
+}
+function startOut(t) {
+  const r = t.data.sprite.rect, c = t.data.center, d0 = project(c[0], c[1], c[2]).d, flat = isFlat(t);
+  const pxm = lenPx(1, d0);   // その子の絵の 1m あたりの px
+  // 見た目の半径（m）：絵の縁の余白を除いた大きさ。平たいびろーんは寝た絵の縦の半分
+  const R = (flat ? r[3] * 0.42 : Math.min(r[2], r[3]) * 0.46) / pxm;
+  t.state = 'out'; t.alpha = 1; t.shadowA = 0;
+  t.out = { T: 0, d0, R, flat, vis: false, x: 0, y: 0, z: 0, k: 0, rot: 0, sx: 1, sy: 1, stage: 0, leaveT: 0, rot0: 0 };
+}
+function stepOut(t, dt) {
+  const o = t.out, g = outGeo, D = g.door;
+  // 途中でタイトルへ戻された時（スタッフの中断・放置）は、そこで片づける（タイトルの上に絵柄が出ないように）
+  if (game.phase === 'title' || game.phase === 'result' || game.phase === 'loading') { t.state = 'gone'; t.alpha = 0; t.out = null; return; }
+  o.T += dt;
+  const tau = o.T - CFG.outWait;
+  if (o.stage === 0) { o.stage = 1; audio.rumble(); }   // 中を落ちてくる音
+  if (tau < 0) { o.vis = false; return; }
+  if (o.stage === 1) { o.stage = 2; audio.pop(); }
+  o.vis = true;
+  const zRest = g.zFloor + o.R, x1 = g.xc + 0.02;
+  const tRoll = tau - CFG.outPop;
+  if (tRoll < 0) {
+    // ぽんと出る：扉のまんなかから手前の受け皿へ。小さい姿から、行き過ぎて戻る大きさで（扉は 6cm しかないので、漫画の「ぽん」で通す）
+    const u = tau / CFG.outPop, e = 1 - Math.pow(1 - u, 2);
+    const back = 1 + 2.2 * Math.pow(u - 1, 3) + 1.2 * Math.pow(u - 1, 2);   // ease-out-back
+    o.k = lerp(0.26, 1, back);
+    o.x = lerp(g.xc, x1, e); o.y = lerp(D.y, g.yF, e);
+    o.z = lerp((D.z0 + D.z1) / 2, zRest, e) + 0.05 * Math.sin(Math.PI * u);
+    o.rot = 0; o.sx = 1 - 0.10 * Math.sin(Math.PI * u); o.sy = 1 + 0.10 * Math.sin(Math.PI * u);   // 縦に伸びて飛び出す
+    return;
+  }
+  if (o.stage === 2) { o.stage = 3; audio.roll(); }
+  const u = Math.min(1, tRoll / CFG.outRoll), e = 1 - Math.pow(1 - u, 3);
+  const after = Math.max(0, tRoll - CFG.outRoll);
+  const wob = Math.sin(after * 11) * Math.exp(-after * 4.5);   // 止まった後のゆらゆら
+  if (o.stage < 5) {
+    o.k = 1; o.y = g.yF;
+    if (o.flat) {
+      // びろーんは平たい＝転がらず、すべって出て左右に揺れて止まる
+      o.x = x1 + CFG.outDist * 0.6 * e;
+      o.rot = 0.16 * Math.sin(u * Math.PI * 3) * (1 - u) + 0.05 * wob;
+      o.z = zRest + 0.02 * Math.abs(Math.sin(u * Math.PI * 2)) * (1 - u);
+      o.sx = o.sy = 1;
+    } else {
+      // ゴロゴロ：右へ転がりながら1回転して元の向きで止まる。はじめの2回だけ小さく弾む
+      o.x = x1 + CFG.outDist * e;
+      o.rot = Math.PI * 2 * e + 0.10 * wob;
+      const hopS = Math.abs(Math.sin(u * Math.PI * 2.5));
+      o.z = zRest + 0.045 * hopS * Math.pow(1 - u, 2);
+      const sq = 0.07 * Math.pow(1 - u, 2) * (1 - hopS);   // 着いた時だけ少しつぶれる
+      o.sx = 1 + sq; o.sy = 1 - sq;
+    }
+  }
+  if (o.stage === 3 && u >= CFG.prizeAt) { o.stage = 4; o.showT = o.T; if (t.prize) showPrize(t.prize); }
+  if (o.stage === 4 && o.T - o.showT >= CFG.prizeSec) { o.stage = 5; o.leaveT = o.T; o.x0 = o.x; o.rot0 = o.rot; hidePrize(false); audio.tap(); }
+  if (o.stage === 5) {
+    // 絵柄が消えたら、ぴょんと跳ねて画面の下へ去る
+    const tl = o.T - o.leaveT;
+    o.x = o.x0 + 0.10 * tl; o.z = zRest + 1.15 * tl - 0.5 * CFG.g * tl * tl; o.rot = o.rot0 + (o.flat ? 0.6 : 3.2) * tl; o.sx = o.sy = 1;
+    const p = project(o.x, o.y, o.z), bottom = (view.ch - view.oy) / view.k;   // 画面の下端（絵の px）
+    if (tl > 0.2 && p.v - lenPx(o.R * 1.6, p.d) > bottom) { t.state = 'gone'; t.alpha = 0; t.out = null; }
+  }
+}
+function drawToyOut(t) {
+  const o = t.out;
+  if (!o || !o.vis || !t.img) return;
+  const p = project(o.x, o.y, o.z), s = o.d0 / p.d * o.k, r = t.data.sprite.rect;
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.translate(p.u, p.v); ctx.rotate(o.rot); ctx.scale(s * o.sx, s * o.sy);
+  ctx.drawImage(t.img, -r[2] / 2, -r[3] / 2);
+  ctx.restore();
+}
+
 function setPhase(p) {
   const prev = game.phase;
   game.phase = p; game.phaseT = 0;
@@ -1012,7 +1144,7 @@ function setPhase(p) {
   switch (p) {
     case 'title':
       ui.title.classList.add('show'); ui.result.classList.remove('show'); setButtons(false, false); guide('');
-      resetClaw(); audio.motorOff(); audio.bgmStop();
+      resetClaw(); audio.motorOff(); audio.bgmStop(); hidePrize(true);
       coinUI.toHome(prev !== 'loading');   // 遊び終わり（や中断）ならコインが札の下に落ちて戻ってくる
       faceUI.normal(false);
       break;
@@ -1091,11 +1223,12 @@ function setPhase(p) {
       if (game.got > 0) faceUI.grin(); else faceUI.normal(false);
       ui.resultNum.textContent = game.got;
       ui.resultStickers.innerHTML = '';
-      for (let i = 0; i < game.got; i++) {
+      hidePrize(true);
+      // ゲットした時に見せた絵柄を、取れた順に並べる（スタッフはこの絵柄を渡す）
+      game.stickers.forEach((id, i) => {
         const d = document.createElement('div'); d.className = 'sticker'; d.style.animationDelay = (0.15 + i * 0.18) + 's';
-        const im = img.sticker ? img.sticker.cloneNode() : Object.assign(document.createElement('img'), { src: 'assets/pochamon_idle.png' });   // 読み込み済みの絵を写す
-        im.alt = ''; d.appendChild(im); ui.resultStickers.appendChild(d);
-      }
+        const im = stickerEl(id); im.alt = ''; d.appendChild(im); ui.resultStickers.appendChild(d);
+      });
       ui.result.classList.add('show'); game.resultShownAt = performance.now();
       audio.fanfare();
       const k = todayKey(); const c = settings.counters[k] || { games: 0, stickers: 0 };
@@ -1214,9 +1347,9 @@ function updateToys(dt) {
       t.rot += t.rotV * dt; t.rotV *= 0.98;
       const z = t.hold.z + t.dz;
       t.alpha = clamp(1 + (z + 0.04) / 0.14, 0, 1);
-      if (z < -0.24) { t.state = 'gone'; t.alpha = 0; }
       if (!t.splashed && z < -0.02) { t.splashed = true; audio.drop(); }
-    }
+      if (z < -0.24) startOut(t);   // 穴に消えた → 取り出し口から出てくる
+    } else if (t.state === 'out') stepOut(t, dt);
   }
 }
 
@@ -1313,7 +1446,8 @@ function update(dt) {
       if (t && claw.arm <= -11) {
         t.state = 'chute'; t.vz = 0; t.rotV = isFlat(t) ? 0 : (Math.random() - 0.5) * 2.5; t.splashed = false; t.fallAfter = null; t.relT = 0;   // 幅の広い子は回さず落とす
         claw.held = null; claw.wx += 0.5 * (Math.random() - 0.5);
-        game.got++; updateHud(); showMsg('ゲット！！', 'win', 1400); audio.win(); faceUI.grin();
+        game.got++; t.prize = pickSticker(); game.stickers.push(t.prize);
+        updateHud(); showMsg('ゲット！！', 'win', 1400); audio.win(); faceUI.grin();
         game.flashUntil = performance.now() + 1500;   // 電球が全部、速く点滅
       }
       if (!claw.held && game.phaseT > 1.0) setPhase('return');
@@ -1325,7 +1459,7 @@ function update(dt) {
       const r = moveTowards(dt, park.x, park.y, CFG.carrySpeed * settings.speed);
       acc = r; rumble = !r.arrived;
       if (!r.arrived) audio.motorOn(0.95); else audio.motorOff();
-      const settled = !toys.some((t) => t.state === 'falling' || t.state === 'chute' || (t.state === 'settle' && game.phaseT < 3));
+      const settled = !toys.some((t) => t.state === 'falling' || t.state === 'chute' || t.state === 'out' || (t.state === 'settle' && game.phaseT < 3));
       if (r.arrived && claw.L <= claw.cableTop - CFG.raisedZ + 1e-6 && settled && game.phaseT > 0.8) {
         game.tryIndex++; updateHud();
         setPhase(game.tryIndex < CFG.tries ? 'between' : 'result');
@@ -1382,8 +1516,9 @@ function lookFrames(t) {
   const fr = [{ img: t.img, rect: t.data.sprite.rect, f: 0, below: t.below }];
   if (t.imgGrip && t.grip >= 0) {   // 案A：つまんだ所ごとのコマ（つかむ点も setGrip でその所に替えてある）
     const g = t.data.grips[t.grip], im = t.imgGrip[t.grip];
-    g.tilt.forEach((st, k) => fr.push({ img: im.tilt[k], rect: st.rect, f: st.f, below: st.below }));
-    fr.push({ img: im.hang, rect: g.hang.rect, f: 1, below: g.hang.below });
+    fr[0].ax = g.ax0;   // ax＝そのコマで、板の面の右と上が画面のどっちを向くか（コマの間を埋めるのに使う・morphOf）
+    g.tilt.forEach((st, k) => fr.push({ img: im.tilt[k], rect: st.rect, f: st.f, below: st.below, ax: st.ax }));
+    fr.push({ img: im.hang, rect: g.hang.rect, f: 1, below: g.hang.below, ax: g.hang.ax });
   } else if (t.data.sprite_hang) {
     (t.data.sprite_tilt || []).forEach((st, k) => fr.push({ img: t.imgTilt && t.imgTilt[k], rect: st.rect, f: st.f, below: st.below }));
     fr.push({ img: t.imgHang, rect: t.data.sprite_hang.rect, f: 1, below: -t.data.sprite_hang.z[0] });
@@ -1398,6 +1533,29 @@ function lookPair(t, m) {
   let k = 0; while (k < fr.length - 2 && m > fr[k + 1].f) k++;
   const a = fr[k], b = fr[k + 1];
   return { a, b, w: clamp((m - a.f) / Math.max(1e-6, b.f - a.f), 0, 1) };
+}
+// コマの間を埋める（2026-11-05 本人「持ち上げたときの絵の枚数が少ない気がする。もうちょっと滑らかに」）。
+// びろーんの寝た姿→吊った姿は Blender の絵 8 枚のパラパラ漫画で、1枚ごとに 8〜25° 進む＝持ち上げの 0.3〜0.8 秒に 7 回しか絵が変わらなかった。
+// 枚数を増やすと iPad のメモリを食う（1枚で約 1MB・今 56 枚）。代わりに、近い方の1枚を「前後のコマの間の向き」へ斜めにずらして描く：
+// 板は平たいので、つまんだ点を中心にした回り方は、絵の上ではほぼ「斜めにずらす＋伸び縮み」（2×2 の行列）で表せる。
+// 各コマの ax＝板の面の右と上（5cm 先）が画面のどこへ写るか（ufo_export.py v8）。前後のコマの ax を向きと長さで混ぜた所へ、今のコマの ax を写す行列を返す。
+// 2枚を重ねないので二重写しにならない（10/30 の「隣のコマを薄く重ねると顔が二重」は起きない）。切り替わる所（w=0.5）では前後どちらの絵も同じ向きに写る
+function morphOf(a, b, w, cur) {
+  if (!a.ax || !b.ax || !cur.ax) return null;
+  const mix = (p, q) => {
+    const ap = Math.atan2(p[1], p[0]);
+    let da = Math.atan2(q[1], q[0]) - ap; da = Math.atan2(Math.sin(da), Math.cos(da));   // 近い方へ回る
+    const ang = ap + da * w, len = lerp(Math.hypot(p[0], p[1]), Math.hypot(q[0], q[1]), w);
+    return [len * Math.cos(ang), len * Math.sin(ang)];
+  };
+  const r = mix(a.ax[0], b.ax[0]), u = mix(a.ax[1], b.ax[1]), c = cur.ax;
+  const det = c[0][0] * c[1][1] - c[0][1] * c[1][0];
+  if (Math.abs(det) < 200) return null;   // 板を真横から見るコマ（面がつぶれている）は埋めない
+  const m11 = (r[0] * c[1][1] - u[0] * c[0][1]) / det, m12 = (u[0] * c[0][0] - r[0] * c[1][0]) / det;
+  const m21 = (r[1] * c[1][1] - u[1] * c[0][1]) / det, m22 = (u[1] * c[0][0] - r[1] * c[1][0]) / det;
+  const dm = m11 * m22 - m12 * m21;
+  if (!(dm > 0.5 && dm < 2) || Math.max(Math.abs(m11), Math.abs(m12), Math.abs(m21), Math.abs(m22)) > 1.8) return null;   // 大きく歪む時は埋めない
+  return [m11, m21, m12, m22];   // ctx.transform(a, b, c, d, 0, 0) の並び
 }
 // 持った子・落ちる子：今の姿の大きさ・中心・つかむ点から下の端までの深さ（描く順番と景品口の窓の判定に使う）
 function toyLook(t) {
@@ -1426,7 +1584,13 @@ function drawToyDynamic(t, clipChute) {
   // びろーんの途中の姿も、つかむ点（hold）を中心に回して描いた絵なので、同じ点を基準に描く。
   // 近い方の1コマだけを描くパラパラ漫画（隣のコマを薄く重ねると、目の位置が数px違うので顔が二重にぶれた・10/30 昼）
   const m = hasHang(t) ? (t.hangMix || 0) : 0;
-  const cur = m <= 0 ? { img: t.img, rect: t.data.sprite.rect } : (({ a, b, w }) => (w < 0.5 ? a : b))(lookPair(t, m));
+  let cur = { img: t.img, rect: t.data.sprite.rect };
+  if (m > 0) {
+    const { a, b, w } = lookPair(t, m);
+    cur = w < 0.5 ? a : b;
+    const M = CFG.morph ? morphOf(a, b, w, cur) : null;   // コマの間を埋める（つかむ点が中心）
+    if (M) ctx.transform(M[0], M[1], M[2], M[3], 0, 0);
+  }
   ctx.globalAlpha = t.alpha;
   ctx.drawImage(cur.img, cur.rect[0] - p0.u, cur.rect[1] - p0.v);
   ctx.restore();
@@ -1662,7 +1826,7 @@ function draw() {
   }
   // 影
   for (const t of toys) {
-    if (t.state === 'gone' || t.state === 'chute' || !t.shImg) continue;
+    if (t.state === 'gone' || t.state === 'chute' || t.state === 'out' || !t.shImg) continue;
     const r = t.data.shadow.rect;
     ctx.globalAlpha = t.shadowA; ctx.drawImage(t.shImg, r[0], r[1]);
   }
@@ -1757,6 +1921,7 @@ function draw() {
   for (const t of toys) if (t.state === 'chute' && !fallAt.has(t)) drawFalling(t, true);
   if (ptr) { if (ghostLine) drawPointerLine(ptr, true); if (ghostRing) drawPointerRing(ptr, true); }
   drawGantry();
+  for (const t of toys) if (t.state === 'out') drawToyOut(t);   // 取り出し口から出てきた子＝筐体の手前
   drawConsoles();
   faceUI.draw();
 }
@@ -1929,7 +2094,7 @@ window.__ufo = {
   unlockAudio: () => { audio.unlock(); audio.tap(); },
   setLastInput: (v) => { game.lastInputAt = v; },
   state: () => ({ phase: game.phase, phaseT: game.phaseT, lastInputAt: game.lastInputAt, now: performance.now(),
-                  tryIndex: game.tryIndex, got: game.got, slots: game.slots.slice(), outcome: game.outcome,
+                  tryIndex: game.tryIndex, got: game.got, stickers: game.stickers.slice(), slots: game.slots.slice(), outcome: game.outcome,
                   claw: { x: claw.x, y: claw.y, z: claw.z, cx: claw.cx, cy: claw.cy, arm: claw.arm, thx: claw.thx, L: claw.L },
                   held: claw.held ? claw.held.id : null, toys: toys.map((t) => ({ id: t.id, state: t.state })) }),
   press: (key, on) => { input[key] = !!on; if (on) input['pressed' + key.toUpperCase()] = true; ui['btn' + key.toUpperCase()].classList.toggle('pressed', !!on); },
@@ -1944,6 +2109,9 @@ window.__ufo = {
   setLuck: (p) => { settings.luckP = p; },
   setSlot: (s) => { settings.luckSlot = s; },
   timeScale: (k) => { game.timeScale = k; },
+  out: () => toys.filter((t) => t.state === 'out').map((t) => Object.assign({ id: t.id, prize: t.prize }, t.out)),   // 取り出し口から出てくる子（確かめ用）
+  outGeo: () => outGeo, pickSticker,
+  hangMix: (m) => { if (claw.held) claw.held.hangMix = m; return claw.held ? claw.held.hangMix : null; },   // 持った子の姿を決め打ち（時間を止めて、コマの切り替わりを見る用）
   aimAt: (x, y) => { claw.cx = x; claw.cy = y; claw.vx = claw.vy = 0; },   // 台車をその場所へ（目印の確かめ用）
   // その場所の真下の表面と、丸屋根の見積もりに入った子（目印の確かめ用）
   surfaceAt: (x, y) => { const r = surfaceUnder(x, y); return { z: r.z, on: r.on ? r.on.id : null, px: r.px, py: r.py, cands: toys.filter((t) => !isFlat(t) && (t.state === 'rest' || t.state === 'settle')).map((t) => ({ id: t.id, dome: domeZ(t, x, y), zb: t.data.zbottom, zt: t.data.ztop })).filter((c) => c.dome != null) }; },
