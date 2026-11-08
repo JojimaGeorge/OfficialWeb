@@ -795,11 +795,23 @@ function resetPile() {
     t.bounce = 0; t.bv = 0; t.target = null; t.reactors = null; t.reacted = false; t.landDz = 0; t.out = null; t.prize = null; restPose(t);
   }
 }
+// タイトルに戻した時の片づけ：山を元の並びに・アームは一番上の左寄り（正面の絵と同じ）・パネルは説明へ
+function titleReset() {
+  game.titleReset = false;
+  resetClaw(); resetPile();   // 正面の1枚絵（全部そろった並び）と合わせる
+  claw.L = claw.cableTop - CFG.titleClawZ;   // アームは一番上（正面の絵と同じ高さ）
+  if (scene.monitor) { claw.cx = CFG.titleClawX; claw.cy = park.y; }   // 正面の絵と同じ所（パネルにかからない左寄り）
+  if (window.PochaLED) window.PochaLED.title(performance.now());   // モニターは遊び方の説明を流す
+}
 function startGame() {
   game.tryIndex = 0; game.got = 0; game.stickers = []; game.slots = makeSlots(); game.outcome = null;
   hidePrize(true);
   resetPile();
+  // アームの台車の場所と高さはそのまま（タイトルの左寄り・一番上から、intro で定位置へ動きながら下りる）。
+  // 前は resetClaw がここで定位置へ戻していて、intro の「動きながら下りる」が一度も走らなかった（11/9 検品）
+  const keep = { cx: claw.cx, cy: claw.cy, L: claw.L };
   resetClaw();
+  Object.assign(claw, keep);
   updateHud();
 }
 function decideOutcome(i) {
@@ -1196,18 +1208,20 @@ function setPhase(p) {
   game.phase = p; game.phaseT = 0;
   document.body.className = document.body.className.replace(/\bphase-\S+/g, '').trim() + ' phase-' + p;
   switch (p) {
-    case 'title':
+    case 'title': {
       ui.title.classList.add('show'); ui.result.classList.remove('show'); setButtons(false, false); guide('');
-      resetClaw(); audio.motorOff(); audio.bgmStop(); hidePrize(true);
-      resetPile();   // 正面の1枚絵（全部そろった並び）と合わせる
-      claw.L = claw.cableTop - CFG.titleClawZ;   // アームは一番上（正面の絵と同じ高さ）
-      if (scene.monitor) { claw.cx = CFG.titleClawX; claw.cy = park.y; }   // 正面の絵と同じ所（パネルにかからない左寄り）
-      camTo(true, prev === 'loading' ? 0 : (CFG.camCut === 'flash' ? CFG.camFlashSec : CFG.camBackSec));   // 正面のカメラへ（最初は切り替えなし）
-      if (window.PochaLED) window.PochaLED.title(performance.now());   // モニターは遊び方の説明を流す
+      audio.motorOff(); audio.bgmStop(); hidePrize(true);
+      const sec = prev === 'loading' ? 0 : (CFG.camCut === 'flash' ? CFG.camFlashSec : CFG.camBackSec);
+      camTo(true, sec);   // 正面のカメラへ（最初は切り替えなし）
+      // 山・アーム・パネルを正面の絵に合わせて戻すのは、白く光る切り替えで真っ白になった瞬間（update の title）。
+      // 前は入った瞬間に戻していて、白くなりきる前の 0.12 秒に「取った子が山に戻る・アームが飛ぶ・パネルが切り替わる」のが見えた（11/9 検品）
+      if (sec > 0 && CFG.camCut === 'flash' && camFrontAlpha() < 0.5) game.titleReset = true; else titleReset();
       coinUI.toHome(prev !== 'loading');   // 遊び終わり（や中断）ならコインが定位置に落ちて戻ってくる
       faceUI.normal(false);
       break;
+    }
     case 'intro':
+      game.titleReset = false;   // 真っ白になる前にコインが入った時（タイトルへ戻す途中の片づけは startGame がする）
       ui.title.classList.remove('show'); coinUI.hide(); startGame(); setButtons(false, false);
       const camSec = CFG.camCut === 'flash' ? CFG.camFlashSec : CFG.camMoveSec;
       game.introCamT = camFrontAlpha() > 0.001 ? camSec : 0;   // 正面から始めた時だけカメラの切り替えを待つ
@@ -1423,6 +1437,7 @@ function update(dt) {
   let acc = { ax: 0, ay: 0 }, rumble = false;
   switch (game.phase) {
     case 'title': {
+      if (game.titleReset && camFrontAlpha() >= 0.5) titleReset();   // 白く光る切り替えの真っ白の瞬間に片づける
       // 待機中：たまに小さく揺れる
       if (Math.random() < dt * 0.25) { claw.wx += (Math.random() - 0.5) * 0.8; claw.wy += (Math.random() - 0.5) * 0.5; }
       acc = stepCarriage(dt, 0, 0, spd); break;
@@ -1586,9 +1601,13 @@ function drawMonitor(proj) {
   const cv = L.draw(frameNow); if (!cv) return;
   const s = mon.screen, W = cv.width, H = cv.height, N = 22;
   ctx.imageSmoothingEnabled = true;
+  // 正面のカメラ（まっすぐ前を向く）では画面は長方形のまま＝1 枚で貼る（11/9 検品：帯 22 本で 1 コマ 14〜16ms・PC の headless）
+  const T0 = proj(s.x0, s.y, s.z1), T1 = proj(s.x1, s.y, s.z1), B0 = proj(s.x0, s.y, s.z0);
+  if (Math.abs(T0.v - T1.v) < 0.5 && Math.abs(T0.u - B0.u) < 0.5) { ctx.drawImage(cv, T0.u, T0.v, T1.u - T0.u, B0.v - T0.v); return; }
   for (let k = 0; k < N; k++) {
     const v0 = H * k / N, v1 = H * (k + 1) / N, z0 = s.z1 - (s.z1 - s.z0) * k / N, z1 = s.z1 - (s.z1 - s.z0) * (k + 1) / N;
     const TL = proj(s.x0, s.y, z0), TR = proj(s.x1, s.y, z0), BL = proj(s.x0, s.y, z1);
+    if (proj === project && BL.v < (cab.beamV || 0) - 2) continue;   // 手前の梁の裏に丸ごと隠れる帯は貼らない
     const a = (TR.u - TL.u) / W, b = (TR.v - TL.v) / W, c = (BL.u - TL.u) / (v1 - v0), d = (BL.v - TL.v) / (v1 - v0);
     const pad = k < N - 1 ? 1 : 0;   // 帯の継ぎ目に線が出ないように下へ1px重ねる
     ctx.save();
@@ -1936,9 +1955,9 @@ function draw() {
   }
   if (fa < 0.999) drawScene();
   if (fa > 0.001) drawFront(fa);
-  if (flash > 0) {
+  if (flash > 0) {   // 4:3 で下に伸ばした所まで白く（前は絵の高さまでで、下の帯だけ暗く残った・11/9 検品）
     ctx.save(); ctx.globalAlpha = Math.min(1, flash * 1.15); ctx.fillStyle = '#fff8fc';
-    ctx.fillRect(0, 0, scene.image.width, scene.image.height); ctx.restore();
+    ctx.fillRect(0, 0, scene.image.width, Math.max(scene.image.height, (view.ch - view.oy) / view.k + 1)); ctx.restore();
   }
   if (CFG.deco && img.sign) ctx.drawImage(img.sign, 0, 0);   // 上の梁の白い看板（どちらの絵でも筐体の上に同じ所）
   drawConsoles();

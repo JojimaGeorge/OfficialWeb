@@ -67,7 +67,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await sleep(350);
     await shot(`1${i}_grab`);
     // 掴みそこねの回は持ち上げてすぐ滑り落ちることがあり、grab を撮っている0.6秒の間に lift が終わって取り逃した（10/30 昼）
-    const s = await waitPhase(['lift', 'slipping', 'hold']);
+    // びろーんの尻尾をつまんだ外れの回は、持ち上げ始めてすぐ抜けて 0.6 秒ほどで戻り始める＝撮っている間に lift も slipping も終わることがある（11/9）
+    const s = await waitPhase(['lift', 'slipping', 'hold', 'return', 'between', 'result']);
     await sleep(900);
     await shot(`1${i}_lift`);
     results.push({ try: i, outcome: s.outcome, held: s.held });

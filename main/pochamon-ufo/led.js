@@ -285,7 +285,8 @@ function drawTitle(t) {
       if (seedArr[k] <= u) continue;   // もう次の場面になった粒
       const q = k * 4; buf[q] = a[q]; buf[q + 1] = a[q + 1]; buf[q + 2] = a[q + 2]; buf[q + 3] = a[q + 3];
     }
-    return () => { if (sc.overlay) sc.overlay(tt, 1 - u, y0); if (next.overlay) next.overlay(0, u, y0); };
+    // 普通の画像（ステッカー）は粒より早く消して、次の場面の字に重ねない（11/9 検品：6種→あそびかたで白い丸が字に重なった）
+    return () => { if (sc.overlay) sc.overlay(tt, Math.max(0, 1 - u * 2.2), y0); if (next.overlay) next.overlay(0, Math.max(0, (u - 0.55) / 0.45), y0); };
   }
   frame(sc, tt);
   return sc.overlay ? () => sc.overlay(tt, 1, y0) : null;
@@ -336,7 +337,7 @@ function drawGame(t) {
 }
 
 // ---------------- 外から使う ----------------
-let lastDraw = -1;
+let lastDraw = -1, lastRender = -1e9;
 window.PochaLED = {
   DOT, get COLS() { return COLS; }, get ROWS() { return ROWS; }, get canvas() { return out; },
   ready: () => !!(font && art && out),
@@ -359,8 +360,9 @@ window.PochaLED = {
   draw(now) {
     if (!font || !art || !out) return null;
     const t = now / 1000 - state.t0;
-    if (t === lastDraw) return out;
-    lastDraw = t;
+    // 秒 30 回に間引く（粒の絵は細かい動きが要らない・11/9 検品：144×103 粒の描き直しで 1 コマ 5〜6ms・PC の headless）
+    if (t === lastDraw || (now - lastRender < 1000 / 30 - 2 && now >= lastRender)) return out;
+    lastDraw = t; lastRender = now;
     clear();
     const overlay = state.mode === 'title' ? drawTitle(t) : drawGame(t);
     render();
