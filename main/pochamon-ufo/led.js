@@ -146,20 +146,18 @@ function render() {
   octx.globalCompositeOperation = 'source-over';
 }
 
-// 普通の画像（ステッカー）：白い丸の上に。u は出てくる途中（0〜1・大きさの弾み）、a は濃さ（場面の切り替わりで薄れる）
-function stickerDisc(id, cx, cy, r, u, a) {
-  const im = stickerImgs[id]; if (!im) return;
+// ステッカー（11/9 本人「丸い円の部分がドットに合ってない。白い背景もドットに合わせて、絵柄だけ。そのまま画像で表示する方がいいかも」）：
+// 白い丸は粒で描く（場面の切り替わりでは、ほかの粒と一緒にパラパラ入れ替わる）。絵柄（普通の画像）は粒の絵に描き込まず、置く所（粒の座標）と
+// 大きさ・濃さだけ stk に覚えて、ゲーム（game.js の drawLedStickers）がカメラの投影どおりに1枚の画像で貼る（斜め上から帯で貼るとギザギザになった）。
+// u は出てくる途中（0〜1・大きさの弾み）、a は絵柄の濃さ。stkA＝場面の切り替わりで絵柄を薄れさせる掛け算
+let stk = [], stkA = 1;
+const DISC = [246, 244, 250];
+function sticker(id, cx, cy, r, u, a) {
   const e = u >= 1 ? 1 : (u <= 0 ? 0 : 1 + 0.18 * Math.sin(u * Math.PI) * (1 - u) - Math.pow(1 - u, 3));
-  if (e <= 0.01 || a === 0) return;
-  const R = r * DOT * e, X = cx * DOT, Y = cy * DOT;
-  octx.save();
-  octx.globalAlpha = a == null ? 1 : a;
-  octx.shadowColor = 'rgba(255,255,255,0.55)'; octx.shadowBlur = DOT * 1.6;
-  octx.fillStyle = '#ffffff'; octx.beginPath(); octx.arc(X, Y, R, 0, Math.PI * 2); octx.fill();
-  octx.shadowBlur = 0;
-  const k = Math.min((R * 1.62) / im.width, (R * 1.62) / im.height);
-  octx.drawImage(im, X - im.width * k / 2, Y - im.height * k / 2, im.width * k, im.height * k);
-  octx.restore();
+  if (e <= 0.01) return;
+  disc(cx, cy, r * e, DISC, 1);
+  const A = (a == null ? 1 : a) * stkA;
+  if (A > 0.01 && stickerImgs[id]) stk.push({ id, cx, cy, r: r * e, a: A });
 }
 
 // ---------------- 背景の柄（薄く流れる・ひとつずつパラパラ入れ替わる） ----------------
@@ -184,7 +182,7 @@ function wallpaper(t, a) {
 // ---------------- 正面（タイトル）の段 ----------------
 const PINK = [255, 92, 170], WHITE = [255, 255, 255], YELLOW = [255, 222, 40], CYAN = [80, 220, 255], ORANGE = [255, 150, 30], DIM = [110, 100, 140];
 // 上の段：右から左へ流れ続ける文（電光掲示板）
-const TICKER = '★ ぽちゃもん UFOキャッチャー ★ 3かい チャレンジ！ とれた かずだけ ステッカーが もらえるよ ★ ボタンで ねらって ぬいぐるみを おとしてね ★ コインを いれて スタート！　';
+const TICKER = '★ ぽちゃもん UFOキャッチャー ★ ２００円で ３かい チャレンジ！ とれた かずだけ ステッカーが もらえるよ ★ ボタンで ねらって ぬいぐるみを おとしてね ★ コインを いれて スタート！　';   // 数字は全角（11/9 本人）
 function ticker(t) {
   erase(0, 0, COLS, 17);
   const w = measure(TICKER), speed = 26, x0 = COLS - ((t * speed) % (w + COLS));
@@ -216,7 +214,7 @@ const MAIN_H = 50;
 const titleScenes = [
   { name: 'challenge', len: 4.6, draw(t, y0) {
     const shine = (X) => { const s = ((t * 70) % 260) - 50; return Math.abs(X - s) < 6 ? WHITE : PINK; };
-    textC('3かい', y0 + 1, shine, { scale: 2 });
+    textC('３かい', y0 + 1, shine, { scale: 2 });
     textC('チャレンジ！', y0 + 27, (X) => shine(X + 30));
     // まわりで 2 ひきのぽちゃもんが跳ねる
     for (let i = 0; i < 2; i++) {
@@ -233,10 +231,11 @@ const titleScenes = [
   } },
   // 6 種は字の下の段（正面からは左上に待機中のアームの爪がかかる＝絵は爪より下へ）
   { name: 'lineup', len: 4.8, draw(t, y0) {
-    textC('ぜんぶで 6しゅるい！', y0 + 1, CYAN);
-    for (let i = 0; i < 6; i++) ring(12 + i * 24, y0 + 32, 11.6, [90, 84, 110], 1);
-  }, overlay(t, a, y0) {
-    for (let i = 0; i < 6; i++) stickerDisc(i + 1, 12 + i * 24, y0 + 32, 10.8, Math.min(1, (t - 0.15 - i * 0.16) / 0.35), a);
+    textC('ぜんぶで ６しゅるい！', y0 + 1, CYAN);
+    for (let i = 0; i < 6; i++) {
+      ring(12 + i * 24, y0 + 32, 11.6, [90, 84, 110], 1);
+      sticker(i + 1, 12 + i * 24, y0 + 32, 10.6, Math.min(1, (t - 0.15 - i * 0.16) / 0.35));
+    }
   } },
   { name: 'howto', len: 5.4, draw(t, y0) {
     textC('あそびかた', y0 + 1, CYAN);
@@ -253,6 +252,16 @@ const titleScenes = [
     for (let j = y0 + 15; j < uy; j++) px(ux, j, [150, 150, 170], hot3 ? 1 : 0.4);
     sprite(hot3 ? 'ufo_lit' : 'ufo', ux - 10, uy, { a: hot3 ? 1 : 0.55 });
     textC('はなすと おりるよ！', y0 + 39, hot3 ? YELLOW : [200, 190, 220]);   // 「はなすと アームが おりるよ」は 156 粒で横幅（144）からはみ出た
+  } },
+  // 値段（11/9 本人「現実のお金で 200 円もらって 3 回遊べる。テレビの説明文に入れる」）：コインを入れてね の前に
+  { name: 'price', len: 3.8, draw(t, y0) {
+    const shine = (X) => { const s = ((t * 80) % 240) - 40; return Math.abs(X - s) < 7 ? WHITE : YELLOW; };
+    textC('２００円で', y0 + 1, shine, { scale: 2 });
+    textC('３かい あそべる！', y0 + 28, WHITE);
+    for (let i = 0; i < 2; i++) {   // 両脇でコインが跳ねる
+      const hop = Math.max(0, Math.sin((t * 2.4 - i * 0.45) * Math.PI));
+      sprite('coin', i ? COLS - 20 : 9, y0 + 29 - Math.round(hop * 4));
+    }
   } },
   { name: 'coin', len: 5.0, draw(t, y0) {
     if ((t % 0.9) < 0.68) { textC('コインを', y0 + 1, WHITE, { scale: 2 }); textC('いれてね', y0 + 26, WHITE, { scale: 2 }); }
@@ -274,50 +283,56 @@ function drawTitle(t) {
   let tt = t % TITLE_LEN, i = 0;
   while (tt >= titleScenes[i].len) { tt -= titleScenes[i].len; i++; }
   const sc = titleScenes[i], next = titleScenes[(i + 1) % titleScenes.length];
-  const rem = sc.len - tt;
+  const rem = sc.len - tt, outer = stkA;
   const frame = (scene, st) => { wallpaper(t, 0.12); ticker(t); erase(0, y0, COLS, y0 + MAIN_H); scene.draw(st, y0); parade(t, yP); };
   if (rem < MIX) {   // 終わり際：真ん中の段だけ、次の場面の粒がばらばらの時刻で入れ替わる（パラパラ）
     const u = 1 - rem / MIX;
-    frame(sc, tt); const a = buf.slice();
-    clear(); frame(next, 0);
+    // 普通の画像（ステッカーの絵柄）は粒より早く消して、次の場面の字に重ねない（11/9 検品：6種→あそびかたで白い丸が字に重なった）
+    stkA = outer * Math.max(0, 1 - u * 2.2); frame(sc, tt); const a = buf.slice();
+    clear(); stkA = outer * Math.max(0, (u - 0.55) / 0.45); frame(next, 0);
+    stkA = outer;
     for (let y = y0; y < Math.min(ROWS, y0 + MAIN_H); y++) for (let x = 0; x < COLS; x++) {
       const k = y * COLS + x;
       if (seedArr[k] <= u) continue;   // もう次の場面になった粒
       const q = k * 4; buf[q] = a[q]; buf[q + 1] = a[q + 1]; buf[q + 2] = a[q + 2]; buf[q + 3] = a[q + 3];
     }
-    // 普通の画像（ステッカー）は粒より早く消して、次の場面の字に重ねない（11/9 検品：6種→あそびかたで白い丸が字に重なった）
-    return () => { if (sc.overlay) sc.overlay(tt, Math.max(0, 1 - u * 2.2), y0); if (next.overlay) next.overlay(0, Math.max(0, (u - 0.55) / 0.45), y0); };
+    return;
   }
   frame(sc, tt);
-  return sc.overlay ? () => sc.overlay(tt, 1, y0) : null;
 }
 
 // ---------------- ゲーム中（いつもの斜め上から見える所＝gameTop〜gameBottom） ----------------
-const state = { mode: 'title', t0: 0, got: [], pops: [], startAt: -1, flashAt: -1 };
+// state.prev＝表示が切り替わる直前の形（11/9：タイトル⇄ゲームの切り替えも、粒がパラパラ入れ替わる）
+const state = { mode: 'title', t0: 0, got: [], pops: [], startAt: -1, flashAt: -1, prev: null, modeAt: -1 };
+// 枠の位置（11/9 本人「文字とかの絵柄が上に行き過ぎてツメツメ。ゲットしたステッカーとステッカーの部分を、下に若干下げてほしい」）：
+// 字は梁の下の縁から GAME_PAD 行あけ、枠はその下から gameLow（奥の山に隠れ始める行）まで。前は字が梁のすぐ下・枠が字のすぐ下に詰まっていた
+const GAME_PAD = 5;
 function slotGeo() {
-  const top = Z.gameTop + 15, bottom = Z.gameBottom, r = Math.max(8, Math.min(17, (bottom - top) / 2 - 0.5)), cy = top + (bottom - top) / 2;
+  const top = Z.gameTop + GAME_PAD + 17, bottom = Z.gameLow != null ? Z.gameLow : Z.gameBottom;
+  const r = Math.max(8, Math.min(16, (bottom - top) / 2 - 0.5)), cy = top + (bottom - top) / 2;
   return { xs: [COLS / 2 - 46, COLS / 2, COLS / 2 + 46], cy, r };
 }
-function drawGame(t) {
+function drawGame(t, st) {
   wallpaper(t, 0.2);
-  const sinceStart = t - state.startAt;
-  if (state.startAt >= 0 && sinceStart < 1.6) {   // コインを入れた直後：「スタート！」（正面からも斜め上からも見える高さ）
+  const sinceStart = t - st.startAt;
+  if (st.startAt >= 0 && sinceStart < 1.6) {   // コインを入れた直後：「スタート！」（正面からも斜め上からも見える高さ）
     const y = Math.max(Z.gameTop + 3, Math.min(Z.frontClear - 30, 42));
     erase(2, y - 3, COLS - 2, y + 28);   // 文字の後ろは暗く抜く（柄が透けて読みにくくならない）
     textC('スタート！', y, (X) => hsv(((X / COLS) + sinceStart * 0.8) % 1, 0.55, 1), { scale: 2 });
     if (Math.floor(sinceStart * 8) % 2) for (let k = 0; k < 14; k++) px(Math.floor(seedArr[k * 31] * COLS), Math.floor(seedArr[k * 17] * ROWS), WHITE, 1);
-    return null;
+    return;
   }
-  const g = slotGeo(), flash = state.flashAt >= 0 && t - state.flashAt < 0.9;
-  erase(0, Z.gameTop, COLS, Z.gameTop + 14);
-  textC('ゲットした ステッカー', Z.gameTop + 1, [255, 200, 230]);
+  const g = slotGeo(), flash = st.flashAt >= 0 && t - st.flashAt < 0.9, ty = Z.gameTop + GAME_PAD;
+  erase(0, ty - 2, COLS, ty + 14);
+  textC('ゲットした ステッカー', ty + 1, [255, 200, 230]);
   for (let i = 0; i < g.xs.length; i++) {
     eraseDisc(g.xs[i], g.cy, g.r + 1.2);   // 枠の中は暗く（柄を消す）、縁は明るい輪
-    const has = i < state.got.length, hot = flash && i === state.got.length - 1;
+    const has = i < st.got.length, hot = flash && i === st.got.length - 1;
     ring(g.xs[i], g.cy, g.r + 0.6, has ? (hot ? hsv((t * 2) % 1, 0.5, 1) : YELLOW) : DIM, 1, 1.5);
     if (!has) text('？', Math.round(g.xs[i] - 6), Math.round(g.cy - 6), [130, 120, 160], { a: 0.8 + 0.2 * Math.sin(t * 3 + i) });
+    else { const pop = st.pops[i]; sticker(st.got[i], g.xs[i], g.cy, g.r - 0.9, pop == null ? 1 : Math.min(1, (t - pop) / 0.45)); }
     // はまった瞬間：枠のまわりに光の粒
-    const pop = state.pops[i];
+    const pop = st.pops[i];
     if (pop != null && t - pop < 1.1) {
       const u = (t - pop) / 1.1;
       for (let k = 0; k < 16; k++) {
@@ -328,12 +343,15 @@ function drawGame(t) {
       }
     }
   }
-  return () => {
-    for (let i = 0; i < state.got.length; i++) {
-      const pop = state.pops[i];
-      stickerDisc(state.got[i], g.xs[i], g.cy, g.r - 1.2, pop == null ? 1 : Math.min(1, (t - pop) / 0.45));
-    }
-  };
+}
+function drawMode(st, T) { if (st.mode === 'title') drawTitle(T - st.t0); else drawGame(T - st.t0, st); }
+// 表示を切り替える：直前の形を覚えておき、MIX 秒かけて粒ごとにばらばらの時刻で入れ替える（場面の切り替わりと同じパラパラ）
+function switchMode(mode, now) {
+  if (state.mode !== mode) {
+    state.prev = { mode: state.mode, t0: state.t0, got: state.got.slice(), pops: state.pops.slice(), startAt: state.startAt, flashAt: state.flashAt };
+    state.modeAt = now / 1000;
+  }
+  state.mode = mode;
 }
 
 // ---------------- 外から使う ----------------
@@ -346,27 +364,41 @@ window.PochaLED = {
     font = f; art = a; pal = a.palette;
     alloc((size && size.cols) || 128, (size && size.rows) || 43);
   },
-  // 見える所（行の番号）：frontClear＝正面で手前の山に隠れない一番下の行／gameTop・gameBottom＝斜め上から見える範囲
+  // 見える所（行の番号）：frontClear＝正面で手前の山に隠れない一番下の行／gameTop・gameBottom＝斜め上から見える範囲／gameLow＝枠を下げてよい行
   setZones(z) { Object.assign(Z, z); },
   setStickers(map) { for (const k in map) stickerImgs[k] = map[k]; },
   // タイトル（説明を流す）／ゲーム中（取れたステッカーの枠）
-  title(now) { state.mode = 'title'; state.t0 = now / 1000; state.got = []; state.pops = []; state.startAt = -1; },
-  start(now) { state.mode = 'game'; state.t0 = state.t0 || now / 1000; state.got = []; state.pops = []; state.startAt = now / 1000 - state.t0; },
+  title(now) { switchMode('title', now); state.t0 = now / 1000; state.got = []; state.pops = []; state.startAt = -1; state.flashAt = -1; },
+  start(now) { switchMode('game', now); state.t0 = state.t0 || now / 1000; state.got = []; state.pops = []; state.startAt = now / 1000 - state.t0; state.flashAt = -1; },
   // 取れたステッカーを枠に入れる（取り出し口のポップアップが消えた時に呼ぶ）
   reveal(id, now) { if (state.got.length >= 3) return; state.got.push(id); const t = now / 1000 - state.t0; state.pops[state.got.length - 1] = t; state.flashAt = t; },
   setGot(ids) { state.got = ids.slice(0, 3); state.pops = state.got.map(() => null); },
-  state: () => ({ mode: state.mode, got: state.got.slice(), t: (performance.now() / 1000 - state.t0), cols: COLS, rows: ROWS, zones: Object.assign({}, Z) }),
+  state: () => ({ mode: state.mode, got: state.got.slice(), t: (performance.now() / 1000 - state.t0), cols: COLS, rows: ROWS, zones: Object.assign({}, Z), slots: slotGeo(), mixing: !!state.prev }),
+  // いま描いた絵の中のステッカーの絵柄（粒の座標・半径・濃さ）。ゲームがパネルの投影どおりに1枚の画像で貼る
+  stickers: () => stk,
   // 1 コマ描く（同じ時刻なら描き直さない）。戻り値＝out
   draw(now) {
     if (!font || !art || !out) return null;
-    const t = now / 1000 - state.t0;
+    const T = now / 1000, t = T - state.t0;
     // 秒 30 回に間引く（粒の絵は細かい動きが要らない・11/9 検品：144×103 粒の描き直しで 1 コマ 5〜6ms・PC の headless）
     if (t === lastDraw || (now - lastRender < 1000 / 30 - 2 && now >= lastRender)) return out;
     lastDraw = t; lastRender = now;
-    clear();
-    const overlay = state.mode === 'title' ? drawTitle(t) : drawGame(t);
+    clear(); stk = []; stkA = 1;
+    const u = state.prev ? (T - state.modeAt) / MIX : 1;
+    if (state.prev && u >= 0 && u < 1) {
+      // 切り替わりの途中：前の形と今の形を、粒ごとにばらばらの時刻で入れ替える。絵柄（普通の画像）は粒より早く消して、新しい形の字に重ねない
+      stkA = Math.max(0, 1 - u * 2.2); drawMode(state.prev, T); const a = buf.slice();
+      clear(); stkA = Math.max(0, (u - 0.55) / 0.45); drawMode(state, T);
+      stkA = 1;
+      for (let k = 0, n = COLS * ROWS; k < n; k++) {
+        if (seedArr[k] <= u) continue;
+        const q = k * 4; buf[q] = a[q]; buf[q + 1] = a[q + 1]; buf[q + 2] = a[q + 2]; buf[q + 3] = a[q + 3];
+      }
+    } else {
+      if (state.prev && u >= 1) state.prev = null;
+      drawMode(state, T);
+    }
     render();
-    if (overlay) overlay();
     return out;
   },
 };

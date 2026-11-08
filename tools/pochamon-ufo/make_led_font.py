@@ -18,6 +18,8 @@ chars |= {chr(c) for c in range(0x3041, 0x3097)}     # ひらがな
 chars |= {chr(c) for c in range(0x30A1, 0x30FB)}     # カタカナ
 chars |= set("ー〜・、。「」『』！？：（）＋－×÷＝％＆＃＊＠☆★♪♥♡○●◎◇◆□■△▲▽▼→←↑↓…")
 chars |= {chr(c) for c in range(0x21, 0x7F)}         # 半角の英数字と記号
+chars |= {chr(c) for c in range(0xFF10, 0xFF1A)}     # 全角の数字（11/9 本人「半角の数字だと違和感があるから全角で」）
+chars |= set("円￥")                                  # 11/9 「200円で 3かい あそべるよ」
 chars.add(" ")
 chars.add("　")
 
@@ -43,7 +45,7 @@ for ch in sorted(chars):
         rows.append(bits)
     glyphs[ch] = {"w": w, "r": "".join("%03x" % b for b in rows)}
 
-missing = [c for c in "3かいチャレンジ！コインをいれてねステッカーもらえるゲット" if c not in glyphs]
+missing = [c for c in "３かいチャレンジ！コインをいれてねステッカーもらえるゲット２００円６しゅるい" if c not in glyphs]
 assert not missing, missing
 with open(OUT, "w", encoding="utf-8") as fh:
     json.dump({"h": H, "rows": asc + desc, "font": "PixelMplus12 Bold (M+ FONT LICENSE)", "glyphs": glyphs}, fh, ensure_ascii=False, separators=(",", ":"))
