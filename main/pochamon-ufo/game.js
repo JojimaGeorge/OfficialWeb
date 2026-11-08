@@ -382,6 +382,8 @@ async function load() {
     document.fonts.addEventListener('loadingdone', () => layoutConsoles());   // 保険：遅れて届いたら置き直す
   }
   await Promise.all(jobs);
+  // 途中のコマが1枚でも読めなかった時は、白く光る切り替えに戻す（重ねて入れ替える形＝二重写しにも、山がその場で戻る形にもしない・11/9 検品）
+  if (CFG.camCut === 'move' && !useMove()) { CFG.camCut = 'flash'; console.warn('camera move frames missing → flash'); }
   if (window.PochaLED) window.PochaLED.setStickers(img.stickers);   // 取れたステッカーをモニターに出す時の絵（普通の画像のまま）
   // 景品口の「窓」：手前のふちから上に開いた四角（床より下に落ちた分を隠す）
   const ch = scene.machine.chute;
@@ -821,7 +823,7 @@ function showMsg(text, cls, ms = 1100) {
 function guide(text) { ui.guide.innerHTML = text ? '<span>' + text + '</span>' : ''; }
 function setButtons(x, y) {
   ui.btnX.classList.toggle('active', x); ui.btnY.classList.toggle('active', y);
-  const ready = game.phase !== 'title' && game.phase !== 'result' && game.phase !== 'loading';
+  const ready = game.phase !== 'title' && game.phase !== 'result' && game.phase !== 'loading' && game.phase !== 'outro';
   ui.btnX.classList.toggle('ready', ready); ui.btnY.classList.toggle('ready', ready);
 }
 function updateHud() {
@@ -854,8 +856,12 @@ function resetPile() { for (const t of toys) resetToy(t); }
 function titleReset() {
   game.titleReset = false;
   resetClaw(); resetPile();   // 正面の1枚絵（全部そろった並び）と合わせる
-  claw.L = claw.cableTop - CFG.titleClawZ;   // アームは一番上（正面の絵と同じ高さ）
-  if (scene.monitor) { claw.cx = CFG.titleClawX; claw.cy = park.y; }   // 正面の絵と同じ所（パネルにかからない左寄り）
+  // 途中のコマで動く時（11/9〜）は、ゲームのアームはずっと定位置：正面と途中のコマは Blender の絵のアームを見せる。正面へ動き出す最初の
+  // 0.1 秒はゲームの絵を下に敷くので、ここで待機位置へ動かすとアームが2本に見えた（11/9 検品）。白く光る切り替えの時だけ、正面の絵と同じ所へ
+  if (!useMove()) {
+    claw.L = claw.cableTop - CFG.titleClawZ;   // アームは一番上（正面の絵と同じ高さ）
+    if (scene.monitor) { claw.cx = CFG.titleClawX; claw.cy = park.y; }   // 正面の絵と同じ所（パネルにかからない左寄り）
+  }
   if (window.PochaLED) window.PochaLED.title(performance.now());   // モニターは遊び方の説明を流す
 }
 function startGame() {
@@ -882,14 +888,12 @@ function startGame() {
 function startRefill() {
   game.refillT = 0; game.refillRelaxed = false;
   let k = 0;
-  if (claw.held) {   // 中断で持ったまま来た時：その場で離して元の場所へ落とす
-    const t = claw.held; claw.held = null;
-    t.state = 'falling'; t.vz = 0; t.fallFrom = Math.max(0.01, t.dz); t.fallDx = t.dx; t.fallDy = t.dy; t.fallRot = t.rot; t.sag = 0; t.landedMsg = true;
-    t.landDz = 0; t.landRot = 0; t.restDx = t.restDy = t.restDz = t.restRot = 0;
-  }
+  // 中断で持ったまま来た時：その子も上から入れ直す（その場で離すと、景品口の上から元の場所まで空中を戻って見えた・11/9 検品）
+  if (claw.held) { claw.held.state = 'gone'; claw.held = null; }
   for (const t of toys) {
     t.refillAt = null;
-    if (t.state === 'gone' || t.state === 'chute' || t.state === 'out') {
+    if (t.state === 'falling') t.landedMsg = true;   // 滑り落ちている途中で中断：着いても「おしい…！」を出さない
+    if (t.state === 'gone' || t.state === 'chute' || t.state === 'out' || t.state === 'held') {
       resetToy(t); t.state = 'gone'; t.alpha = 0; t.shadowA = 0;
       t.refillAt = 0.1 + 0.16 * k++;   // 1体ずつ少しずらして
     }
@@ -1599,8 +1603,8 @@ function update(dt) {
   switch (game.phase) {
     case 'title': {
       if (game.titleReset && camFrontAlpha() >= 0.5) titleReset();   // 白く光る切り替えの真っ白の瞬間に片づける
-      // 待機中：たまに小さく揺れる
-      if (Math.random() < dt * 0.25) { claw.wx += (Math.random() - 0.5) * 0.8; claw.wy += (Math.random() - 0.5) * 0.5; }
+      // 待機中：たまに小さく揺れる（途中のコマで動く時は、ゲームのアームは見えない＝揺らさない。動き出しの絵と合わせる）
+      if (!useMove() && Math.random() < dt * 0.25) { claw.wx += (Math.random() - 0.5) * 0.8; claw.wy += (Math.random() - 0.5) * 0.5; }
       acc = stepCarriage(dt, 0, 0, spd); break;
     }
     case 'intro': {
