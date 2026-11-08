@@ -1,6 +1,10 @@
 """Blender の書き出し v3（ufo_export.py の claws=0：背景・電球・ぬいぐるみ・影）をゲームの assets/ に取り込む。
 
-  py -I tools/pochamon-ufo/sync_pile.py <export_dir>
+  py -I tools/pochamon-ufo/sync_pile.py <export_dir> [<前の書き出しの bg.png>]
+
+v9（2026-11-08・背面のモニター）：書き出しに monitor があれば、bg.png はモニターの画面が穴（透明）の絵。穴はそのまま残し（ゲームは
+穴の下に電光パネルを描く）、穴の外で透明になった所（筐体の胴の外の下の角＝前は Blender の空の色）は、前の書き出しの bg.png で埋めて
+今までと同じ見た目に保つ。正面の絵 front.png・札の切り出し fg_chute.png も WebP にする（どちらも透明つき）。
 
 アームの絵（コマ表 claw_z*.webp）と UFO の影（clawsh_*.webp）は前の取り込みのまま残す（筐体の壁や山を変えてもアームの見た目は変わらない）。
 やること
@@ -35,6 +39,10 @@ if not OLD.get("claw_sheets"):
 
 # 元の絵が全部そろっているか、消す前に確かめる（途中で欠けて止まると、古い scene.json が消えた絵を指したまま残る・10/30 検品）
 need = ["bg.png"] + [t["file"] for t in S["bulbs"]["tiles"]]
+if S.get("front_camera") and S["front_camera"].get("file"):
+    need.append(S["front_camera"]["file"])
+if S.get("fg_chute"):
+    need.append(S["fg_chute"]["file"])
 for t in S["toys"]:
     need += [x["file"] for x in (t.get("sprite"), t.get("shadow"), t.get("sprite_hang")) if x]
     need += [x["file"] for x in (t.get("sprite_tilt") or [])]
@@ -63,11 +71,38 @@ def put(name, quality, im=None, out_name=None):
 for f in os.listdir(DEST):
     if f.split(".")[-1] not in ("png", "webp"):
         continue
-    if f.startswith(("bg.", "pocha_", "shadow_")) or (f.startswith("bulb_") and not f.startswith(("bulb_L", "bulb_R"))):
+    if f.startswith(("bg.", "pocha_", "shadow_", "front.", "fg_chute.")) or (f.startswith("bulb_") and not f.startswith(("bulb_L", "bulb_R"))):
         os.remove(os.path.join(DEST, f))
 
-bg_im = Image.open(os.path.join(src, "bg.png")).convert("RGB")
-S["files"] = {"bg": put("bg.png", 90, bg_im)}
+bg_src = Image.open(os.path.join(src, "bg.png"))
+bg_im = bg_src.convert("RGB")
+if S.get("monitor") and bg_src.mode == "RGBA":
+    # 画面の穴（カメラで投影した四角を 4px 広げた中）だけ透明を残す。外の透明は前の bg.png で埋める
+    from PIL import ImageDraw
+    cam_ = S["camera"]; M_ = [x for r in cam_["m_cam"] for x in r]
+
+    def P_(x, y, z):
+        cx = M_[0] * x + M_[1] * y + M_[2] * z + M_[3]; cy = M_[4] * x + M_[5] * y + M_[6] * z + M_[7]; cz = M_[8] * x + M_[9] * y + M_[10] * z + M_[11]
+        return (cam_["cx"] + cam_["fx"] * cx / -cz, cam_["cy"] - cam_["fy"] * cy / -cz)
+    sc_ = S["monitor"]["screen"]
+    quad_ = [P_(sc_["x0"], sc_["y"], sc_["z1"]), P_(sc_["x1"], sc_["y"], sc_["z1"]), P_(sc_["x1"], sc_["y"], sc_["z0"]), P_(sc_["x0"], sc_["y"], sc_["z0"])]
+    hole_ = Image.new("L", bg_src.size, 0)
+    ImageDraw.Draw(hole_).polygon(quad_, fill=255)
+    hole_ = hole_.filter(__import__("PIL.ImageFilter", fromlist=["MaxFilter"]).MaxFilter(9))
+    under_ = Image.open(sys.argv[2]).convert("RGBA") if len(sys.argv) > 2 else Image.new("RGBA", bg_src.size, (50, 44, 66, 255))
+    if under_.size != bg_src.size:
+        sys.exit("the old bg.png has another size")
+    filled_ = under_.copy(); filled_.alpha_composite(bg_src.convert("RGBA"))
+    bg_rgba = Image.composite(bg_src.convert("RGBA"), filled_, hole_)
+    a_ = np.array(bg_rgba)[:, :, 3]
+    print("bg: transparent px %d (inside the screen hole), outside the hole filled from %s" % (int((a_ < 250).sum()), sys.argv[2] if len(sys.argv) > 2 else "a flat colour"))
+    S["files"] = {"bg": put("bg.png", 90, bg_rgba)}
+else:
+    S["files"] = {"bg": put("bg.png", 90, bg_im)}
+if S.get("front_camera") and S["front_camera"].get("file"):
+    S["front_camera"]["file"] = put(S["front_camera"]["file"], 90, Image.open(os.path.join(src, S["front_camera"]["file"])).convert("RGBA"))
+if S.get("fg_chute"):
+    S["fg_chute"]["file"] = put(S["fg_chute"]["file"], 92, Image.open(os.path.join(src, S["fg_chute"]["file"])).convert("RGBA"))
 
 bg_arr = np.array(bg_im).astype(np.int16)
 tiles = []

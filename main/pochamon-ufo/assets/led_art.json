@@ -1,0 +1,374 @@
+{
+ "note": "背面モニター（電光パネル）のドット絵。1 文字＝1 粒。. は消えた粒、ほかは palette の色。2026-11-08 本人「ぽちゃもんの装飾とか、果物とか食べ物とかを電光パネル風にパラパラ」",
+ "palette": {
+  "K": [
+   150,
+   146,
+   162
+  ],
+  "k": [
+   92,
+   88,
+   106
+  ],
+  "c": [
+   255,
+   222,
+   205
+  ],
+  "W": [
+   255,
+   255,
+   255
+  ],
+  "P": [
+   255,
+   92,
+   170
+  ],
+  "p": [
+   255,
+   160,
+   205
+  ],
+  "R": [
+   255,
+   45,
+   55
+  ],
+  "O": [
+   255,
+   135,
+   0
+  ],
+  "o": [
+   255,
+   196,
+   110
+  ],
+  "Y": [
+   255,
+   222,
+   40
+  ],
+  "y": [
+   255,
+   246,
+   170
+  ],
+  "G": [
+   50,
+   220,
+   70
+  ],
+  "g": [
+   24,
+   140,
+   48
+  ],
+  "B": [
+   50,
+   120,
+   255
+  ],
+  "C": [
+   80,
+   220,
+   255
+  ],
+  "V": [
+   175,
+   95,
+   255
+  ],
+  "N": [
+   196,
+   116,
+   46
+  ],
+  "n": [
+   120,
+   62,
+   22
+  ],
+  "w": [
+   200,
+   200,
+   214
+  ]
+ },
+ "sprites": {
+  "pocha": [
+   "..KK............KK..",
+   ".KKKK..........KKKK.",
+   ".KKKKKKKKKKKKKKKKKK.",
+   "KKKKKKKKKKKKKKKKKKKK",
+   "KKKKKKKKKKKKKKKKKKKK",
+   "KKKcccccKKKKcccccKKK",
+   "KKccW..ccccccW..ccKK",
+   "KKcc...cccccc...ccKK",
+   "KKcc...cccccc...ccKK",
+   "KKccc.cccccccc.cccKK",
+   "KKcpccccccccccccpcKK",
+   "KKccccccckkcccccccKK",
+   "KKccccccccccccccccKK",
+   ".KKccccccccccccccKK.",
+   ".KKKccccccccccccKKK.",
+   "..KKKKKKKKKKKKKKKK..",
+   "...KKK........KKK..."
+  ],
+  "pocha_blink": [
+   "..KK............KK..",
+   ".KKKK..........KKKK.",
+   ".KKKKKKKKKKKKKKKKKK.",
+   "KKKKKKKKKKKKKKKKKKKK",
+   "KKKKKKKKKKKKKKKKKKKK",
+   "KKKcccccKKKKcccccKKK",
+   "KKccccccccccccccccKK",
+   "KKccccccccccccccccKK",
+   "KKcckkkcccccckkkccKK",
+   "KKccccccccccccccccKK",
+   "KKcpccccccccccccpcKK",
+   "KKccccccckkcccccccKK",
+   "KKccccccccccccccccKK",
+   ".KKccccccccccccccKK.",
+   ".KKKccccccccccccKKK.",
+   "..KKKKKKKKKKKKKKKK..",
+   "...KKK........KKK..."
+  ],
+  "biroon": [
+   ".........KKKK.........",
+   "........KKKKKK........",
+   ".KK....KKKKKKKK....KK.",
+   ".KKKKKKKKKKKKKKKKKKKK.",
+   ".Kccccc..cccc..cccccK.",
+   ".Kccccc..cccc..cccccK.",
+   ".KcccpccccccccccpcccK.",
+   ".KccccccccccccccccccK.",
+   ".KccccccccccccccccccK.",
+   ".KccccccccccccccccccK.",
+   ".KKKKKKKKKKKKKKKKKKKK.",
+   ".KK......KKKK......KK.",
+   ".........KKKK.........",
+   "..........KK.........."
+  ],
+  "mikan": [
+   ".....g......",
+   "....gGG.....",
+   "...OOgOOO...",
+   "..OOOOOOOO..",
+   ".OoOOOOOOOO.",
+   ".OoOOOOOOOO.",
+   "OOOOOOOOOOOO",
+   "OOOOOOOOOOOO",
+   ".OOOOOOOOOO.",
+   ".OOOOOOOOOO.",
+   "..OOOOOOOO..",
+   "....OOOO...."
+  ],
+  "lemon": [
+   "...........g..",
+   "......YYYYgG..",
+   "....YYYYYYYY..",
+   "..YyYYYYYYYYY.",
+   ".YYyYYYYYYYYYY",
+   "YYYYYYYYYYYYY.",
+   ".YYYYYYYYYYYY.",
+   "..YYYYYYYYYY..",
+   "...YYYYYYYY...",
+   ".....YYYY....."
+  ],
+  "onigiri": [
+   "......WW......",
+   ".....WWWW.....",
+   "....WWWWWW....",
+   "...WWWWWWWW...",
+   "...WWWWWWWW...",
+   "..WWWWWWWWWW..",
+   "..WWWWWWWWWW..",
+   ".WWWWWWWWWWWW.",
+   ".WWWggggggWWW.",
+   "WWWWggggggWWWW",
+   "WWWWggggggWWWW",
+   "WWWWggggggWWWW",
+   ".WWWggggggWWW."
+  ],
+  "ichigo": [
+   "....gGGg....",
+   "...gGGGGg...",
+   "..RRRgGRRR..",
+   ".RRyRRRRyRR.",
+   ".RRRRRyRRRR.",
+   "RRyRRRRRRyRR",
+   "RRRRRyRRRRRR",
+   ".RRyRRRRyRR.",
+   ".RRRRRRRRRR.",
+   "..RRRyRRRR..",
+   "...RRRRRR...",
+   "....RRRR....",
+   ".....RR....."
+  ],
+  "softcream": [
+   "......p.....",
+   ".....ppp....",
+   "....WWWWW...",
+   "...ppppppp..",
+   "..WWWWWWWWW.",
+   ".ppppppppppp",
+   "..ooooooooo.",
+   "..oNoNoNoNo.",
+   "...oNoNoNo..",
+   "...NoNoNoN..",
+   "....oNoNo...",
+   "....NoNoN...",
+   ".....oNo....",
+   ".....NoN....",
+   "......o....."
+  ],
+  "donut": [
+   "...pppppp...",
+   ".pppYpppCpp.",
+   "ppCppppppYpp",
+   "pppp....pppp",
+   "ppYp....pCpp",
+   "oooo....oooo",
+   "oooooooooooo",
+   ".oooooooooo.",
+   "...oooooo..."
+  ],
+  "heart": [
+   ".PP...PP.",
+   "PpPP.PPPP",
+   "PPPPPPPPP",
+   "PPPPPPPPP",
+   ".PPPPPPP.",
+   "..PPPPP..",
+   "...PPP...",
+   "....P...."
+  ],
+  "star": [
+   ".....Y.....",
+   ".....Y.....",
+   "....YYY....",
+   "YYYYYYYYYYY",
+   ".YYYYYYYYY.",
+   "..YYYYYYY..",
+   "...YYYYY...",
+   "..YYYYYYY..",
+   "..YYY.YYY..",
+   ".YY.....YY.",
+   ".Y.......Y."
+  ],
+  "ufo": [
+   "........CCCC........",
+   ".......CWCCCC.......",
+   "......CCCCCCCC......",
+   "...PPPPPPPPPPPPPP...",
+   ".PPPPPPPPPPPPPPPPPP.",
+   "PPYPPPPYPPPPYPPPPYPP",
+   ".PPPPPPPPPPPPPPPPPP.",
+   "...pppppppppppppp..."
+  ],
+  "ufo_lit": [
+   "........CCCC........",
+   ".......CWCCCC.......",
+   "......CCCCCCCC......",
+   "...PPPPPPPPPPPPPP...",
+   ".PPPPPPPPPPPPPPPPPP.",
+   "PPCPPPPWPPPPCPPPPWPP",
+   ".PPPPPPPPPPPPPPPPPP.",
+   "...pppppppppppppp..."
+  ],
+  "coin": [
+   "...KKKKK...",
+   ".KKWWWWWKK.",
+   ".KWWWWWWwK.",
+   "KWWWWYWWWwK",
+   "KWWWYYYWWwK",
+   "KWWYYYYYWwK",
+   "KWWWYYYWWwK",
+   "KWWYWWWYWwK",
+   ".KwWWWWWwK.",
+   ".KKwwwwwKK.",
+   "...KKKKK..."
+  ],
+  "sparkle": [
+   "..W..",
+   "..W..",
+   "WWYWW",
+   "..W..",
+   "..W.."
+  ],
+  "moon": [
+   "...YYY...",
+   ".YYY.....",
+   "YYY......",
+   "YY.......",
+   "YY.......",
+   "YY.......",
+   "YYY......",
+   ".YYYY...Y",
+   "...YYYYY."
+  ],
+  "mini_mikan": [
+   "...g...",
+   "..OOO..",
+   ".OOOOO.",
+   "OOOOOOO",
+   "OOOOOOO",
+   ".OOOOO.",
+   "..OOO.."
+  ],
+  "mini_heart": [
+   ".PP.PP.",
+   "PPPPPPP",
+   "PPPPPPP",
+   ".PPPPP.",
+   "..PPP..",
+   "...P..."
+  ],
+  "mini_onigiri": [
+   "...W...",
+   "..WWW..",
+   ".WWWWW.",
+   ".WWWWW.",
+   "WWgggWW",
+   "WWgggWW"
+  ],
+  "mini_star": [
+   "...Y...",
+   "..YYY..",
+   "YYYYYYY",
+   ".YYYYY.",
+   "..YYY..",
+   ".YY.YY.",
+   ".Y...Y."
+  ],
+  "mini_pocha": [
+   ".K.....K.",
+   "KKKKKKKKK",
+   "KKcccccKK",
+   "Kc.ccc.cK",
+   "Kc.ccc.cK",
+   ".KcccccK.",
+   "..KKKKK.."
+  ],
+  "mini_lemon": [
+   ".....g.",
+   "..YYYY.",
+   ".YYYYYY",
+   "YYYYYYY",
+   ".YYYYY.",
+   "..YYY.."
+  ],
+  "mini_ichigo": [
+   "..gGg..",
+   ".RRgRR.",
+   "RRyRRyR",
+   "RRRRRRR",
+   ".RyRRR.",
+   "..RRR..",
+   "...R..."
+  ]
+ }
+}

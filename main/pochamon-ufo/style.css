@@ -138,6 +138,11 @@ body {
 }
 .title-arrow { display: inline-block; color: #8fdcff; animation: arrowD 1s ease-in-out infinite; }
 @keyframes arrowD { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(.3em); } }
+/* タイトル（11/8）：筐体の上は暗くしない（正面の絵とモニターの説明をそのまま見せる）。札は無い */
+#title { background: transparent; }
+#title.show { animation: none; }
+/* 上の看板の所＝2 秒の長押しで設定（見えない当たり判定。筐体の絵の上から 250/2000） */
+.title-hot { position: absolute; left: 0; right: 0; top: var(--machine-top, 0px); height: calc(var(--machine-height, 100vh) * 0.125); }
 .mini {
   position: absolute; right: 2vw; bottom: max(14px, env(safe-area-inset-bottom)); width: 52px; height: 52px; border-radius: 50%;
   border: 3px solid #fff; background: var(--lav-deep); color: #fff; font-size: 22px; font-weight: 900; cursor: pointer;

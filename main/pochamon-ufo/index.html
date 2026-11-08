@@ -15,7 +15,7 @@
   </script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=23">
+  <link rel="stylesheet" href="style.css?v=24">
   <title>ぽちゃもん UFOキャッチャー</title>
 </head>
 <body class="phase-loading">
@@ -36,21 +36,11 @@
       <span class="ctl-arrow"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 38 H50 V17 L89 50 L50 83 V62 H12 Z" transform="rotate(-90 50 50)"/></svg></span><span class="ctl-label">たて</span>
     </button>
 
-    <!-- タイトル：筐体の上だけを覆う（左右の操作盤はそのまま触れる＝コインを入れて始める）。
-         札は表紙風（2026-10-30 本人が T1 を選択）：紺の地に二重線のネオン文字・青い星の列・青いネオンの線。
-         字は推しゴを絵に焼いたもの（tools/pochamon-ufo/make_retro.js）。width/height は絵の寸法＝読み込む前から札の高さが決まる（コインの定位置がずれない） -->
+    <!-- タイトル：筐体の上は覆わない（2026-11-08 本人「タイトルの札でUFOキャッチャーの絵が見えず、通りかかった人にどんなゲームか分からない」）。
+         説明は背面の壁のモニターに流し（led.js）、カメラは正面（assets/front.webp）。コインを入れるといつもの斜め上に戻る。
+         ここは押した所でコインを揺らす・上の看板の所を 2 秒押しつづけると設定（前は札の「ぽちゃもん」）・音のボタンだけ -->
     <div id="title" class="screen cab">
-      <div class="card title-card">
-        <div class="neon-line"></div>
-        <div class="title-sub"><img src="assets/title_sub.webp" alt="ぽちゃもん" width="793" height="248"></div>
-        <div class="title-main"><img src="assets/title_logo.webp" alt="UFOキャッチャー" width="1327" height="242"></div>
-        <div class="neon-line"></div>
-        <div class="title-rule">
-          <span>3かい チャレンジ！</span>
-          <span>とれた かずだけ ステッカーが もらえるよ</span>
-        </div>
-        <div class="title-tap">コインを いれて スタート<span class="title-arrow">↓</span></div>
-      </div>
+      <div class="title-hot" aria-hidden="true"></div>
       <button id="muteBtn" class="mini" type="button" aria-label="おと">♪</button>
     </div>
 
@@ -102,7 +92,7 @@
           <button id="adminClose" class="mini-text" type="button">保存せずとじる</button>
           <button id="adminToTitle" class="mini-text" type="button">ゲームを中断してタイトルへ</button>
         </div>
-        <div class="admin-hint">ひらきかた：タイトル画面の「ぽちゃもん」を 2秒 おしつづける ／ URLに #admin</div>
+        <div class="admin-hint">ひらきかた：タイトル画面の上の看板を 2秒 おしつづける ／ URLに #admin</div>
       </div>
     </div>
 
@@ -110,6 +100,7 @@
     <div id="coin" class="hidden" aria-label="ぽちゃもんコイン"><div id="coinImg"></div></div>
   </div>
 
-  <script src="game.js?v=23"></script>
+  <script src="led.js?v=24"></script>
+  <script src="game.js?v=24"></script>
 </body>
 </html>

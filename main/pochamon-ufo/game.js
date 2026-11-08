@@ -68,6 +68,17 @@ const CFG = {
   // コマの間を埋める時、板の表の面（顔）にどれだけ合わせるか（0〜1）。既定は 0＝合わせない：合わせると顔は跳ねなくなるが、今度は輪郭とつまんだ点が
   // 同じだけ跳ね、切り替わりで変わる画素は 1.3〜1.7 倍に増えた（11/6 に 4 つのつまみ方で実測）。厚みのある物を1枚の絵の変形で埋める限界。比べる時は ?mface=1
   morphFace: qs.get('mface') != null ? parseFloat(qs.get('mface')) : 0,
+  // 背面のモニター（2026-11-08 本人「背面の壁にデカめのモニター」「タイトルは正面から・コインを入れたらいつもの斜め上に戻る」）：
+  // タイトル中は正面のカメラの絵（assets/front.webp）、ゲーム中はいつもの絵。切り替えは camMoveSec 秒（今は重ねて入れ替える。
+  // Blender でカメラが動く途中のコマを描くのは、正面の構図が決まってから）。比べる時は URL に ?front=0（タイトルも斜め上のまま）
+  camMoveSec: 1.1,      // コインを入れてから、いつもの斜め上になるまで
+  camBackSec: 0.9,      // 遊び終わって正面に戻るまで
+  frontTitle: qs.get('front') !== '0',
+  // 切り替えのつなぎ：flash＝白く光って切り替わる（テレビのカメラの切り替え風）／fade＝重ねて入れ替える（途中で絵が二重に見えた＝既定にしない）
+  camCut: qs.get('cut') === 'fade' ? 'fade' : 'flash',
+  // タイトル中のアームは一番上まで上げておく（正面から見ると 0.63 では爪がモニターの1行目の頭「3かい」にかぶった）。コインで 0.63 へ下りる
+  titleClawZ: 0.70,
+  camFlashSec: 0.55,    // 白く光って切り替わる時間（camCut＝flash の時。重ねる時は camMoveSec / camBackSec）
 };
 
 // ---------------- DOM ----------------
@@ -75,7 +86,7 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('scene');
 const ctx = canvas.getContext('2d', { alpha: true });
 const ui = {
-  coin: $('coin'), coinImg: $('coinImg'), titleCard: document.querySelector('.title-card'),
+  coin: $('coin'), coinImg: $('coinImg'),
   msg: $('msg'), guide: $('guide'), btnX: $('btnX'), btnY: $('btnY'),
   title: $('title'), result: $('result'), loading: $('loading'), loadProg: $('loadProg'), admin: $('admin'),
   resultNum: $('resultNum'), resultStickers: $('resultStickers'), resultBtn: $('resultBtn'), muteBtn: $('muteBtn'),
@@ -85,7 +96,8 @@ const ui = {
 // ---------------- 状態 ----------------
 let scene = null;          // scene.json
 let CAM = null, MC = null, UNIT = 1;
-const img = { bg: null, stickers: {} };
+let FCAM = null, FMC = null;   // 正面のカメラ（タイトル）：scene.json の front_camera
+const img = { bg: null, stickers: {}, front: null, fg: null };
 // 景品のステッカー（メタリック6種＝むいてほいゲームと同じ景品。1 おにぎり・2 ねむり・3 びろーん・4 みかん・5 レモン・6 腹減り）
 const STICKER_IDS = [1, 2, 3, 4, 5, 6];
 const toys = [];           // 実行時のぬいぐるみ
@@ -113,14 +125,15 @@ const hasHang = (t) => !!(t.imgHang || t.imgGrip);   // 持ち上げるとぶら
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const approach = (v, target, step) => v < target ? Math.min(target, v + step) : Math.max(target, v - step);
 const lerp = (a, b, t) => a + (b - a) * t;
-function project(x, y, z) {
-  const m = MC;
+function projectWith(m, K, x, y, z) {
   const cx = m[0] * x + m[1] * y + m[2] * z + m[3];
   const cy = m[4] * x + m[5] * y + m[6] * z + m[7];
   const cz = m[8] * x + m[9] * y + m[10] * z + m[11];
   const d = -cz;
-  return { u: CAM.cx + CAM.fx * cx / d, v: CAM.cy - CAM.fy * cy / d, d };
+  return { u: K.cx + K.fx * cx / d, v: K.cy - K.fy * cy / d, d };
 }
+function project(x, y, z) { return projectWith(MC, CAM, x, y, z); }
+function projectFront(x, y, z) { return projectWith(FMC, FCAM, x, y, z); }   // 正面のカメラ（front.webp の絵の px）
 // 長さ（m）を、その奥行きでの画面の px（画像の px）に
 const lenPx = (len, d) => len * UNIT * CAM.fx / d;
 // (x, y, z) を通る縦の線が画面で傾く量（下へ 1px 行くと横へ何 px か）。カメラは見下ろしなので、縦の線は真ん中（x=0）から離れるほど
@@ -255,6 +268,13 @@ async function load() {
   const track = (p) => { total++; return p.then((v) => { done++; ui.loadProg.textContent = done + ' / ' + total; return v; }); };
   jobs.push(track(loadImage('assets/' + (scene.files && scene.files.bg || 'bg.png'))).then((im) => { img.bg = im; }));
   if (CFG.deco) jobs.push(track(loadImage('assets/retro_sign.webp')).then((im) => { img.sign = im; }));   // 上の梁の看板（tools/pochamon-ufo/make_retro.js で焼いた絵）
+  // 背面のモニター（11/8）：正面のカメラの絵（タイトル）・景品口の札だけの絵（山の子の手前に描く）・電光パネルの文字と絵
+  if (scene.front_camera && scene.front_camera.file) {
+    FCAM = scene.front_camera; FMC = FCAM.m_cam.flat();
+    jobs.push(track(loadImage('assets/' + FCAM.file)).then((im) => { img.front = im; }));
+  }
+  if (scene.fg_chute) jobs.push(track(loadImage('assets/' + scene.fg_chute.file)).then((im) => { img.fg = im; }));
+  if (scene.monitor && window.PochaLED) jobs.push(track(window.PochaLED.load((u) => fetch(u).then((r) => r.json()))));
   // 結果画面のステッカーの絵は最初に読んで手元に持つ。結果画面で読みに行くと、遊んで数分たった後の読み込みが落ちて「?」になることがあった
   // （10/30 本番の WebKit で通した時・HTTP2 の通信層のエラー。会場の不安定な回線でもご褒美の絵が欠けないように）
   for (const id of STICKER_IDS) jobs.push(track(loadImage('assets/sticker_0' + id + '.webp')).then((im) => { img.stickers[id] = im; }));
@@ -332,6 +352,7 @@ async function load() {
     document.fonts.addEventListener('loadingdone', () => layoutConsoles());   // 保険：遅れて届いたら置き直す
   }
   await Promise.all(jobs);
+  if (window.PochaLED) window.PochaLED.setStickers(img.stickers);   // 取れたステッカーをモニターに出す時の絵（普通の画像のまま）
   // 景品口の「窓」：手前のふちから上に開いた四角（床より下に落ちた分を隠す）
   const ch = scene.machine.chute;
   // 手前の辺＝手前の台の上端の奥の角（y=front+0.007・z=0.02）。穴の縁の z=0 で作っていた時は絵の縁より約50px下で、落ちる子が白い縁にかぶった（10/30 検品・絵の明るさで実測）
@@ -366,6 +387,8 @@ function resize() {
   view.oy = (ch - imgH) / 2;   // 上下の真ん中。4:3 で出る下の空きは draw() が胴体の端の1行を伸ばして埋める（上は部屋の色のまま）
   document.documentElement.style.setProperty('--machine-left', view.ox + 'px');
   document.documentElement.style.setProperty('--machine-width', imgW + 'px');
+  document.documentElement.style.setProperty('--machine-top', view.oy + 'px');
+  document.documentElement.style.setProperty('--machine-height', imgH + 'px');
   layoutConsoles();
 }
 window.addEventListener('resize', resize, { passive: true });
@@ -545,10 +568,11 @@ const coinUI = {
     // 定位置にある（戻る途中も）コインは新しい置き場へ。投入中は毎フレーム投入口を読み直すのでここでは触らない
     if (this.state === 'home' || this.state === 'returning') { const h = this.home(); this.place(h.x, h.y, 0, 1); ui.coin.classList.remove('hidden'); if (this.state === 'home') ui.coin.classList.add('bob'); }
   },
-  home() {   // 定位置＝タイトルの札の真下・筐体のまんなか（札は flex でまんなか寄せなので、下端＝(画面の高さ＋札の高さ)/2）
-    const mW = scene ? scene.image.width * view.k : view.cw;
-    const cardH = ui.titleCard.offsetHeight || view.ch * 0.45;
-    const y = (view.ch + cardH) / 2 + view.ch * 0.03 + this.frames[0].h / 2;
+  home() {
+    // 定位置＝筐体のまんなかの下（正面の絵の、ガラスの下の前板の上）。11/8 タイトルの札をやめて説明を背面のモニターへ移したので、
+    // 札の下ではなく筐体の絵の高さで決める（前は札の真下＝筐体の高さの 8 割ほど）
+    const mW = scene ? scene.image.width * view.k : view.cw, mH = scene ? scene.image.height * view.k : view.ch;
+    const y = view.oy + mH * 0.885;
     return { x: view.ox + mW / 2, y: Math.min(y, view.ch - this.frames[0].h * 0.6 - 6) };
   },
   frameFor(deg) {   // 向き（度）に一番近い絵
@@ -751,14 +775,19 @@ function makeSlots() {
   if (settings.luckSlot === 'last') return s;
   return shuffle(s);
 }
-function startGame() {
-  game.tryIndex = 0; game.got = 0; game.stickers = []; game.slots = makeSlots(); game.outcome = null;
-  hidePrize(true);
+// ぬいぐるみの並びを最初の形へ（取った子も戻る）。11/8 からはタイトルに戻った時にも戻す：タイトルは正面の1枚絵（全部そろった並び）で、
+// そこから斜め上へ切り替わる間に、取った子が欠けた並びが透けて見えないように
+function resetPile() {
   for (const t of toys) {
     t.state = 'rest'; t.dx = t.dy = t.dz = t.vz = 0; t.rot = t.hang = t.sag = 0; t.alpha = 1; t.shadowA = 1; t.hangMix = 0;
     if (t.hold0) { t.hold = t.hold0; t.holdUV = t.holdUV0; t.below = t.below0; t.armHold = t.armHold0; t.grip = -1; t._frames = null; }
     t.bounce = 0; t.bv = 0; t.target = null; t.reactors = null; t.reacted = false; t.landDz = 0; t.out = null; t.prize = null; restPose(t);
   }
+}
+function startGame() {
+  game.tryIndex = 0; game.got = 0; game.stickers = []; game.slots = makeSlots(); game.outcome = null;
+  hidePrize(true);
+  resetPile();
   resetClaw();
   updateHud();
 }
@@ -1126,7 +1155,11 @@ function stepOut(t, dt) {
     }
   }
   if (o.stage === 3 && u >= CFG.prizeAt) { o.stage = 4; o.showT = o.T; if (t.prize) showPrize(t.prize); }
-  if (o.stage === 4 && o.T - o.showT >= CFG.prizeSec) { o.stage = 5; o.leaveT = o.T; o.x0 = o.x; o.rot0 = o.rot; hidePrize(false); audio.tap(); }
+  if (o.stage === 4 && o.T - o.showT >= CFG.prizeSec) {
+    o.stage = 5; o.leaveT = o.T; o.x0 = o.x; o.rot0 = o.rot; hidePrize(false); audio.tap();
+    // 背面のモニターの枠に、いま見せた絵柄をはめる（11/8 本人「ゲットしたステッカーを背面のパネルに表示しておいたら、何をゲットしたのか分かる」）
+    if (t.prize && window.PochaLED) window.PochaLED.reveal(t.prize, performance.now());
+  }
   if (o.stage === 5) {
     // 絵柄が消えたら、ぴょんと跳ねて画面の下へ去る
     const tl = o.T - o.leaveT;
@@ -1155,11 +1188,20 @@ function setPhase(p) {
     case 'title':
       ui.title.classList.add('show'); ui.result.classList.remove('show'); setButtons(false, false); guide('');
       resetClaw(); audio.motorOff(); audio.bgmStop(); hidePrize(true);
-      coinUI.toHome(prev !== 'loading');   // 遊び終わり（や中断）ならコインが札の下に落ちて戻ってくる
+      resetPile();   // 正面の1枚絵（全部そろった並び）と合わせる
+      claw.L = claw.cableTop - CFG.titleClawZ;   // アームは一番上（正面の絵と同じ高さ）
+      camTo(true, prev === 'loading' ? 0 : (CFG.camCut === 'flash' ? CFG.camFlashSec : CFG.camBackSec));   // 正面のカメラへ（最初は切り替えなし）
+      if (window.PochaLED) window.PochaLED.title(performance.now());   // モニターは遊び方の説明を流す
+      coinUI.toHome(prev !== 'loading');   // 遊び終わり（や中断）ならコインが定位置に落ちて戻ってくる
       faceUI.normal(false);
       break;
     case 'intro':
-      ui.title.classList.remove('show'); coinUI.hide(); startGame(); showMsg('1かいめ！', 'round', 900); setButtons(false, false);
+      ui.title.classList.remove('show'); coinUI.hide(); startGame(); setButtons(false, false);
+      const camSec = CFG.camCut === 'flash' ? CFG.camFlashSec : CFG.camMoveSec;
+      game.introCamT = camFrontAlpha() > 0.001 ? camSec : 0;   // 正面から始めた時だけカメラの切り替えを待つ
+      camTo(false, camSec);   // いつもの斜め上へ（「1かいめ！」は着いてから出す）
+      if (window.PochaLED) window.PochaLED.start(performance.now());
+      game.introMsg = false;
       game.lastInputAt = performance.now(); break;
     case 'moveX':
       input.pressedX = false; input.x = false; setButtons(true, false);
@@ -1373,7 +1415,15 @@ function update(dt) {
       if (Math.random() < dt * 0.25) { claw.wx += (Math.random() - 0.5) * 0.8; claw.wy += (Math.random() - 0.5) * 0.5; }
       acc = stepCarriage(dt, 0, 0, spd); break;
     }
-    case 'intro': if (game.phaseT > 1.0) setPhase('moveX'); break;
+    case 'intro': {
+      // タイトルで一番上まで上げていたアームを、いつもの高さ（CFG.raisedZ）まで下ろす（ガクンと下りて少し揺れる）
+      if (claw.L < claw.cableTop - CFG.raisedZ) changeCable(Math.min(CFG.descendSpeed * 0.5 * dt, claw.cableTop - CFG.raisedZ - claw.L));
+      // カメラが斜め上に着く少し前に「1かいめ！」、着いてから 0.9 秒で操作へ（前は 1.0 秒で操作へ）
+      const camT = game.introCamT || 0;
+      if (!game.introMsg && game.phaseT > camT * 0.8) { game.introMsg = true; showMsg('1かいめ！', 'round', 900); }
+      if (game.phaseT > Math.max(1.0, camT + 0.9)) setPhase('moveX');
+      break;
+    }
     case 'moveX': {
       const tx = input.x ? 1 : 0;
       acc = stepCarriage(dt, tx, 0, spd); rumble = input.x;
@@ -1499,6 +1549,49 @@ function update(dt) {
     game.idleT = (input.x || input.y) ? 0 : (game.idleT || 0) + dt;
     if (game.idleT > CFG.idleBackSec) setPhase('title');
   } else game.idleT = 0;
+}
+
+// ---------------- カメラ（正面 ↔ いつもの斜め上） ----------------
+// 正面の絵（タイトル）を、いつもの絵の上にどれだけ重ねるか（1＝正面だけ・0＝いつもの絵だけ）。切り替えはなめらかに重ねて入れ替える
+const camState = { from: 1, to: 1, t0: 0, dur: 0 };
+function camFrontAlpha(now) {
+  if (!CFG.frontTitle || !img.front || !FCAM) return 0;
+  const u = camState.dur > 0 ? clamp(((now || performance.now()) - camState.t0) / (camState.dur * 1000), 0, 1) : 1;
+  return lerp(camState.from, camState.to, u * u * (3 - 2 * u));
+}
+function camTo(front, sec) {
+  camState.from = camFrontAlpha(); camState.to = front ? 1 : 0; camState.t0 = performance.now(); camState.dur = sec || 0;
+}
+
+// ---------------- 背面のモニター ----------------
+// 電光パネル（led.js が描いた絵）を、モニターの画面の四隅をカメラで投影した所へ貼る（操作盤の7セグの drawLed とは別）。いつものカメラは見下ろし＝画面は上が広い台形なので、
+// 横に細い帯に分けて1本ずつ斜めに貼る（帯の上の辺は投影どおり。22 本で帯の下の辺のずれは 1px 未満）。正面のカメラでは長方形1枚
+function drawMonitor(proj) {
+  const L = window.PochaLED, mon = scene.monitor;
+  if (!L || !mon || !L.ready()) return;
+  const cv = L.draw(frameNow); if (!cv) return;
+  const s = mon.screen, W = cv.width, H = cv.height, N = 22;
+  ctx.imageSmoothingEnabled = true;
+  for (let k = 0; k < N; k++) {
+    const v0 = H * k / N, v1 = H * (k + 1) / N, z0 = s.z1 - (s.z1 - s.z0) * k / N, z1 = s.z1 - (s.z1 - s.z0) * (k + 1) / N;
+    const TL = proj(s.x0, s.y, z0), TR = proj(s.x1, s.y, z0), BL = proj(s.x0, s.y, z1);
+    const a = (TR.u - TL.u) / W, b = (TR.v - TL.v) / W, c = (BL.u - TL.u) / (v1 - v0), d = (BL.v - TL.v) / (v1 - v0);
+    const pad = k < N - 1 ? 1 : 0;   // 帯の継ぎ目に線が出ないように下へ1px重ねる
+    ctx.save();
+    ctx.transform(a, b, c, d, TL.u - c * v0, TL.v - d * v0);
+    ctx.drawImage(cv, 0, v0, W, v1 - v0 + pad, 0, v0, W, v1 - v0 + pad);
+    ctx.restore();
+  }
+}
+// 景品口の札（＋仕切りのふた）：山の子より手前に描く（前は背景の一部で、奥の子がかぶさって字が読めなかった・11/8 本人）
+function fgChuteBox() {
+  const f = scene.fg_chute, r = f.rect;
+  return [r[0], r[1], r[0] + r[2], r[1] + r[3]];
+}
+function drawFgChute() {
+  if (!img.fg) return;
+  const r = scene.fg_chute.rect;
+  ctx.drawImage(img.fg, r[0], r[1]);
 }
 
 // ---------------- 描画 ----------------
@@ -1819,18 +1912,54 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!img.bg) return;
   ctx.setTransform(view.k * view.dpr, 0, 0, view.k * view.dpr, view.ox * view.dpr, view.oy * view.dpr);
+  frameNow = performance.now();
+  // タイトルは正面のカメラの絵、ゲーム中はいつもの斜め上の絵。切り替えの間は、いつもの絵の上に正面の絵を薄れさせて重ねる（11/8）
+  let fa = camFrontAlpha(frameNow), flash = 0;
+  if (CFG.camCut === 'flash' && fa > 0.001 && fa < 0.999) {
+    // 白く光って切り替わる：半分までは今の絵が白くなり、真っ白の瞬間に絵が入れ替わって、次の絵が白から戻る（二重写しにしない）
+    flash = 1 - Math.abs(fa - 0.5) * 2;
+    fa = fa >= 0.5 ? 1 : 0;
+  }
+  if (fa < 0.999) drawScene();
+  if (fa > 0.001) drawFront(fa);
+  if (flash > 0) {
+    ctx.save(); ctx.globalAlpha = Math.min(1, flash * 1.15); ctx.fillStyle = '#fff8fc';
+    ctx.fillRect(0, 0, scene.image.width, scene.image.height); ctx.restore();
+  }
+  if (CFG.deco && img.sign) ctx.drawImage(img.sign, 0, 0);   // 上の梁の白い看板（どちらの絵でも筐体の上に同じ所）
+  drawConsoles();
+  faceUI.draw();
+}
+// 正面のカメラの絵（タイトル）：モニターの穴の下に電光パネル → 正面の絵 → ガラスの下の前板に赤と青のライン
+function drawFront(a) {
+  const W = scene.image.width, H = scene.image.height;
+  ctx.save();
+  ctx.globalAlpha = a;
+  drawMonitor(projectFront);
+  ctx.drawImage(img.front, 0, 0);
+  const bottom = (view.ch - view.oy) / view.k;
+  if (bottom > H + 0.5) ctx.drawImage(img.front, 0, H - 1, W, 1, 0, H - 0.5, W, bottom - H + 1);   // 4:3 の下の空き（いつもの絵と同じ）
+  if (CFG.deco) {   // いつもの絵の decoPinV と同じ線（前板の前の面の上の縁＝奥行き -0.40m・高さ 0.008m から下へ 5.2mm と、9.6mm 下から 5.2mm）
+    for (const [z0, col] of [[0.008, '#e2333f'], [-0.0016, '#2b4fb5']]) {
+      const v0 = projectFront(0, -0.40, z0).v, v1 = projectFront(0, -0.40, z0 - 0.0052).v;
+      ctx.fillStyle = col; ctx.fillRect(0, v0, W, v1 - v0);
+    }
+  }
+  ctx.restore();
+}
+// いつもの斜め上の絵（ゲーム中）：モニター → 背景 → 影 → 山とアーム → 台車 → 取り出し口から出た子
+function drawScene() {
+  drawMonitor(project);   // 背景の絵のモニターの画面は穴＝その下に電光パネル
   ctx.drawImage(img.bg, 0, 0);
   {   // 4:3 で出る下の空き：胴体の端の1行を画面の下端まで伸ばす（筐体が床まで続いて見える）
     const W = scene.image.width, H = scene.image.height, bottom = (view.ch - view.oy) / view.k;
     if (bottom > H + 0.5) ctx.drawImage(img.bg, 0, H - 1, W, 1, 0, H - 0.5, W, bottom - H + 1);
   }
-  frameNow = performance.now();
   if (CFG.deco && img.sign) {
-    // 80〜90年代の飾り：ガラスの下の前板に赤と青のライン、上の梁の前面に白い看板（梁の電球は看板の裏になるので描かない。操作盤の上の電球は残る）
+    // 80〜90年代の飾り：ガラスの下の前板に赤と青のライン（上の梁の白い看板は draw() が最後に重ねる。梁の電球は看板の裏になるので描かない。操作盤の上の電球は残る）
     const W = scene.image.width, y = CFG.decoPinV;
     ctx.fillStyle = '#e2333f'; ctx.fillRect(0, y, W, 6);
     ctx.fillStyle = '#2b4fb5'; ctx.fillRect(0, y + 11, W, 6);
-    ctx.drawImage(img.sign, 0, 0);
   } else {
     // 梁の電球：点いているものだけ「点灯−消灯」の差分を足し算で貼る（消えた絵は背景に描いてある）
     const bstep = Math.floor(frameNow / 1000 / CFG.bulbStep);
@@ -1910,6 +2039,20 @@ function draw() {
     t.fallAfter = k > 0 ? rest[k - 1] : null;
     fallAt.set(t, k);
   }
+  // 景品口の札（11/8）：奥にいる山の子より手前・景品口の上の物（アームと持った子・落ちる子）より奥に描く
+  let iFg = -1, fgAfterClaw = false;
+  if (img.fg && scene.fg_chute) {
+    const fgD = scene.fg_chute.depth, fb = fgChuteBox();
+    iFg = insertionIndex(rest, fgD, fb);
+    const lb = layerBox, over = !(lb[2] < fb[0] || lb[0] > fb[2] || lb[3] < fb[1] || lb[1] > fb[3]);
+    if (over && layerDepth < fgD) iClaw = Math.max(iClaw, iFg);   // アームが札より手前：札の後に描く
+    else if (over) { iFg = Math.max(iFg, iClaw); fgAfterClaw = true; }   // アームが札より奥：アームの後に札
+    else fgAfterClaw = iClaw === iFg && layerDepth > fgD;
+    for (const [t, k] of fallAt) {   // 札より手前を落ちる子は札の後に
+      const c = toyLook(t).center;
+      if (k < iFg && project(c[0], c[1], c[2]).d < fgD) fallAt.set(t, iFg);
+    }
+  }
   const drawFalling = (t, clip) => { ctx.save(); clipCabOpen(); drawToyDynamic(t, clip); ctx.restore(); };
   const ptr = pointer.a > 0.01 ? surfaceUnder(claw.cx, claw.cy) : null;
   let iPtr = -1, iLine = -1, ghostRing = false, ghostLine = false;
@@ -1932,16 +2075,16 @@ function draw() {
     if (i === iSh) drawClawShadow(sp, zs);
     if (i === iPtr) drawPointerRing(ptr, false);
     if (i === iLine) drawPointerLine(ptr, false);
+    if (i === iFg && !fgAfterClaw) drawFgChute();
     for (const [t, k] of fallAt) if (k === i) drawFalling(t, false);
     if (i === iClaw) drawClawLayer();
+    if (i === iFg && fgAfterClaw) drawFgChute();
     if (i < rest.length) drawToyRest(rest[i]);
   }
   for (const t of toys) if (t.state === 'chute' && !fallAt.has(t)) drawFalling(t, true);
   if (ptr) { if (ghostLine) drawPointerLine(ptr, true); if (ghostRing) drawPointerRing(ptr, true); }
   drawGantry();
   for (const t of toys) if (t.state === 'out') drawToyOut(t);   // 取り出し口から出てきた子＝筐体の手前
-  drawConsoles();
-  faceUI.draw();
 }
 
 // ---------------- メインループ ----------------
@@ -2031,14 +2174,15 @@ document.addEventListener('dblclick', (e) => e.preventDefault());
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('touchmove', (e) => { if (!e.target.closest('.admin-card')) e.preventDefault(); }, { passive: false });
 
-// タイトル：始めるのはコインの投入。タップはコインの場所を教えるだけ（「ぽちゃもん」の文字だけ、2秒の長押しで設定）
+// タイトル：始めるのはコインの投入。タップはコインの場所を教えるだけ（上の看板の所だけ、2秒の長押しで設定）
+// （11/8 タイトルの札をやめて説明を背面のモニターへ移した。長押しの場所は札の「ぽちゃもん」から、同じ文字のある上の看板へ）
 let pressTimer = null, longPressed = false;
-const titleSub = document.querySelector('.title-sub');
+const titleSub = document.querySelector('.title-hot');
 ui.title.addEventListener('pointerdown', (e) => {
   audio.unlock(); longPressed = false;
   if (e.target.closest('#muteBtn')) return;
   clearTimeout(pressTimer);
-  if (e.target.closest('.title-sub')) pressTimer = setTimeout(() => { longPressed = true; openAdmin(); }, 2000);
+  if (e.target.closest('.title-hot')) pressTimer = setTimeout(() => { longPressed = true; openAdmin(); }, 2000);
 });
 const titleUp = (e) => {
   clearTimeout(pressTimer); audio.unlock();
@@ -2123,6 +2267,9 @@ window.__ufo = {
   bgm: () => audio.bgmState(),
   pile: () => toys.map((t) => ({ id: t.id, state: t.state, dz: +t.dz.toFixed(3), rot: +t.rot.toFixed(3), bounce: +(t.bounce || 0).toFixed(3), reactors: (t.reactors || []).map((a) => a.id) })),
   face: () => ({ mode: faceUI.mode, rect: faceUI.rect }),
+  led: () => (window.PochaLED ? window.PochaLED.state() : null),   // 背面のモニター（11/8）
+  cam: () => ({ front: camFrontAlpha(), to: camState.to }),
+  camHold: (a) => { camState.from = camState.to = a; camState.dur = 0; },   // 切り替えの途中で止めて撮る（確かめ用）
   force: (arr) => { game.forcedOutcome = arr; },   // 例: ['win','lose','win']（null で解除）
   setLuck: (p) => { settings.luckP = p; },
   setSlot: (s) => { settings.luckSlot = s; },
