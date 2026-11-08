@@ -78,6 +78,7 @@ const CFG = {
   camCut: qs.get('cut') === 'fade' ? 'fade' : 'flash',
   // タイトル中のアームは一番上まで上げておく（正面から見ると 0.63 では爪がモニターの1行目の頭「3かい」にかぶった）。コインで 0.63 へ下りる
   titleClawZ: 0.70,
+  titleClawX: -0.38,    // 11/9 パネルを壁いっぱいにしたら、定位置（-0.29）のアームが正面から見てパネルの左上 5 分の 1 にかかった＝タイトル中は景品口の上の左寄りで待つ
   camFlashSec: 0.55,    // 白く光って切り替わる時間（camCut＝flash の時。重ねる時は camMoveSec / camBackSec）
 };
 
@@ -274,7 +275,7 @@ async function load() {
     jobs.push(track(loadImage('assets/' + FCAM.file)).then((im) => { img.front = im; }));
   }
   if (scene.fg_chute) jobs.push(track(loadImage('assets/' + scene.fg_chute.file)).then((im) => { img.fg = im; }));
-  if (scene.monitor && window.PochaLED) jobs.push(track(window.PochaLED.load((u) => fetch(u).then((r) => r.json()))));
+  if (scene.monitor && window.PochaLED) jobs.push(track(window.PochaLED.load((u) => fetch(u).then((r) => r.json()), { cols: scene.monitor.cols, rows: scene.monitor.rows })));
   // 結果画面のステッカーの絵は最初に読んで手元に持つ。結果画面で読みに行くと、遊んで数分たった後の読み込みが落ちて「?」になることがあった
   // （10/30 本番の WebKit で通した時・HTTP2 の通信層のエラー。会場の不安定な回線でもご褒美の絵が欠けないように）
   for (const id of STICKER_IDS) jobs.push(track(loadImage('assets/sticker_0' + id + '.webp')).then((im) => { img.stickers[id] = im; }));
@@ -366,6 +367,16 @@ async function load() {
   cab.railTopV = project(0, m.rails.y_front, m.rails.z + m.rails.radius).v;
   cab.railBotV = project(0, m.rails.y_front, m.rails.z - m.rails.radius).v;
   cab.floorV = project(0, m.front - 0.03, -0.08).v;
+  if (scene.monitor && window.PochaLED) {
+    // 電光パネルの見える行（11/9 パネルを背面の壁いっぱいにした）：
+    //  gameTop＝いつもの斜め上から、手前の梁の下の縁より下に見える最初の行（それより上は梁の裏）
+    //  gameBottom＝奥の山の上（高さ 0.29m）より上の最後の行／frontClear＝正面から手前の山（0.36m まで）に隠れない最後の行
+    const sc = scene.monitor.screen, rows = scene.monitor.rows, pitch = (sc.z1 - sc.z0) / rows;
+    const zRow = (r) => sc.z1 - (r + 0.5) * pitch;
+    let gameTop = 0;
+    while (gameTop < rows - 1 && project(0, sc.y, zRow(gameTop)).v < cab.beamV + 8) gameTop++;
+    window.PochaLED.setZones({ gameTop, gameBottom: Math.floor((sc.z1 - 0.29) / pitch), frontClear: Math.floor((sc.z1 - 0.36) / pitch) });
+  }
   buildOutGeo();
   buildSupports();
 }
@@ -1190,6 +1201,7 @@ function setPhase(p) {
       resetClaw(); audio.motorOff(); audio.bgmStop(); hidePrize(true);
       resetPile();   // 正面の1枚絵（全部そろった並び）と合わせる
       claw.L = claw.cableTop - CFG.titleClawZ;   // アームは一番上（正面の絵と同じ高さ）
+      if (scene.monitor) { claw.cx = CFG.titleClawX; claw.cy = park.y; }   // 正面の絵と同じ所（パネルにかからない左寄り）
       camTo(true, prev === 'loading' ? 0 : (CFG.camCut === 'flash' ? CFG.camFlashSec : CFG.camBackSec));   // 正面のカメラへ（最初は切り替えなし）
       if (window.PochaLED) window.PochaLED.title(performance.now());   // モニターは遊び方の説明を流す
       coinUI.toHome(prev !== 'loading');   // 遊び終わり（や中断）ならコインが定位置に落ちて戻ってくる
@@ -1416,12 +1428,14 @@ function update(dt) {
       acc = stepCarriage(dt, 0, 0, spd); break;
     }
     case 'intro': {
-      // タイトルで一番上まで上げていたアームを、いつもの高さ（CFG.raisedZ）まで下ろす（ガクンと下りて少し揺れる）
+      // タイトルで一番上・左寄りに置いていたアームを、いつもの定位置と高さ（CFG.raisedZ）へ（動きながら下りて少し揺れる）
       if (claw.L < claw.cableTop - CFG.raisedZ) changeCable(Math.min(CFG.descendSpeed * 0.5 * dt, claw.cableTop - CFG.raisedZ - claw.L));
-      // カメラが斜め上に着く少し前に「1かいめ！」、着いてから 0.9 秒で操作へ（前は 1.0 秒で操作へ）
+      const home = moveTowards(dt, park.x, park.y, spd);
+      acc = home;
+      // カメラが斜め上に着く少し前に「1かいめ！」、着いてから 0.9 秒で操作へ（前は 1.0 秒で操作へ）。アームが定位置に着くまでは待つ
       const camT = game.introCamT || 0;
       if (!game.introMsg && game.phaseT > camT * 0.8) { game.introMsg = true; showMsg('1かいめ！', 'round', 900); }
-      if (game.phaseT > Math.max(1.0, camT + 0.9)) setPhase('moveX');
+      if (game.phaseT > Math.max(1.0, camT + 0.9) && home.arrived) setPhase('moveX');
       break;
     }
     case 'moveX': {
