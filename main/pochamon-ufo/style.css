@@ -37,10 +37,12 @@ body {
      1枚の絵（tools/pochamon-ufo/make_room.py → assets/room.webp）。CSS の全画面の重ね塗りで作ると WebKit で毎コマ重くなった */
   background: #2f2858 url('assets/room.webp') center bottom / cover no-repeat;
 }
+/* 高さはゲームが測った画面の高さ（game.js の appSize）。iPad のホーム画面のアプリで 100% が画面より短くなり、下に帯が残った（11/10） */
+html, body { height: var(--app-h, 100%); }
 
-#scene { position: fixed; inset: 0; display: block; }
+#scene { position: fixed; left: 0; top: 0; display: block; }
 
-#ui { position: fixed; inset: 0; pointer-events: none; }
+#ui { position: fixed; left: 0; right: 0; top: 0; height: var(--app-h, 100%); pointer-events: none; }
 #ui > * { pointer-events: none; }
 #ui button, #ui .screen.show { pointer-events: auto; }
 

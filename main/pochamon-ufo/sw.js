@@ -1,7 +1,7 @@
 // ぽちゃもん UFOキャッチャー Service Worker
 // 会場のオフライン対策：本体と素材を全部 precache する。
 // index.html / game.js / style.css / 素材を変えたら CACHE_NAME を bump すること（cache-first のため）。
-const CACHE_NAME = 'pochamon-ufo-v30';
+const CACHE_NAME = 'pochamon-ufo-v31';
 
 const CORE = [
   './',
@@ -14,6 +14,7 @@ const CORE = [
   './assets/bgm.mp3',
   './manifest.json',
   './assets/scene.json',
+  './assets/hfield.json',   // ぬいぐるみの本当の形（11/10・狙いの丸）
   './assets/console.json',
   './assets/face.json',
   './assets/sticker_01.webp',

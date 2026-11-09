@@ -74,6 +74,13 @@ const CFG = {
   // 狙いの目印（2026-10-30 本人「どの位置にいるかが分かりづらい。ぬいぐるみのどの真下を通っているか分かるように」）：
   // line＝台車の真下の表面に光る点＋アームの下から点までの点線／dot＝点だけ／off＝出さない。比べる時は URL に ?ptr=dot
   pointer: ['line', 'dot', 'off'].includes(qs.get('ptr')) ? qs.get('ptr') : 'line',
+  // 狙いの丸とアームの下りる所（2026-11-10 本人「丸が、一度通り越した所をまた通ることがある」「丸で狙って下ろしたのに隣のぬいぐるみを取る」
+  // 「丸が正確に立体に沿って動くように」「丸を下ろした付近にアームが下りるように」）
+  hfield: qs.get('hf') !== '0',          // ぬいぐるみの本当の形（assets/hfield.json＝Blender の上から見た高さの地図）で丸を置き、カメラから隠れたかを決める。?hf=0 で前の見積もり（丸屋根）
+  aimExact: qs.get('aim') !== 'old',     // アームは丸の乗っている子をつかみ、丸の所へ下りる。?aim=old で前の「近くて高い子のつかむ点へ寄る（最大25cm）」
+  aimPull: 0.03,                          // 丸の所から、つかむ子のつかむ点（てっぺん）の方へ寄せる距離の上限（m）。残りは持ち上げで子が爪の下へ寄る
+  padPress: 0.012,                        // 開いた爪先が、下の子の面へ押し込む深さの上限（m）。爪先がこれより深く入る高さでは止まる
+  ptrSelfGhost: qs.get('ghost') === 'self',   // 丸がその子自身の奥の斜面（カメラから見えない所）にある時も透ける輪を出すか。既定は出さない（顔の上を輪が下へ滑って見えた）
   // 80〜90年代の筐体の飾り（2026-10-30・参考＝宝島社「SEGA UFO CATCHER ほんものそっくりポーチBOOK」の付録のポーチ）：
   // 上の梁の前面に白い看板（assets/retro_sign.webp）・ガラスの下の前板に赤と青のライン。?deco=0 で前の筐体
   // （操作盤のふちの「星のはしご」は、ポーチの柱を真似たが何も囲まない帯になった＝本人「外しちゃっていい」で外した）
@@ -353,6 +360,10 @@ async function load() {
     toy.grip = -1; toy.hold0 = toy.hold; toy.holdUV0 = toy.holdUV; toy.below0 = toy.below; toy.armHold0 = toy.armHold;   // つまむ所を選ぶ前
   }
   for (const id of scene.order) toys.push(byId[id]);   // 奥 → 手前
+  // ぬいぐるみの本当の形（11/10）：上から見た高さの地図（tools/pochamon-ufo/sync_hfield.py）。狙いの丸の置き場所と、丸がカメラから見えるかに使う。
+  // 読めない時は前の見積もり（丸屋根＋絵の不透明な所）のまま遊べる
+  if (CFG.hfield) jobs.push(track(fetch('assets/hfield.json').then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then((h) => setupHfield(h, byId)).catch((e) => { console.warn('hfield', e); })));
   // アームの絵：高さごとのコマ表（claw_sheets・2度きざみ）。無ければ古い1枚ずつの絵（claw_sprites）
   if (scene.claw_sheets) {
     for (const sh of scene.claw_sheets) {
@@ -436,12 +447,29 @@ async function load() {
 }
 
 // ---------------- 画面サイズ ----------------
+// 画面の大きさ（11/10）：iPhone・iPad のホーム画面に置いたアプリ（standalone）では、ページを上の時計の帯の下まで広げている
+// （black-translucent・viewport-fit=cover）のに、innerHeight が画面より短く返ることがあり、画面の下に紫の帯が残った
+// （本人の iPad Pro 12.9・2021・下に約40pt）。アプリ表示で、窓が画面の横幅いっぱいの時だけ、端末の画面の大きさ（screen）を高さに使う。
+// Safari で開いた時・Android・iPad の小さな窓では今まで通り（navigator.standalone は iOS のホーム画面のアプリだけが true）
+function appSize() {
+  const w = window.innerWidth;
+  let h = window.innerHeight;
+  const app = navigator.standalone === true;
+  const sw = window.screen && screen.width, sh = window.screen && screen.height;
+  if (app && sw && sh) {
+    const land = w >= h, L = Math.max(sw, sh), S = Math.min(sw, sh);   // iOS の screen は向きで入れ替わらないことがある＝長い辺と短い辺で見る
+    const fw = land ? L : S, fh = land ? S : L;
+    if (Math.abs(w - fw) <= 2 && fh > h && fh - h <= 140) h = fh;
+  }
+  return { w, h, app, innerW: window.innerWidth, innerH: window.innerHeight, sw, sh };
+}
 function resize() {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const cw = window.innerWidth, ch = window.innerHeight;
+  const sz = appSize(), cw = sz.w, ch = sz.h;
   canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
   canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
-  view.dpr = dpr; view.cw = cw; view.ch = ch;
+  document.documentElement.style.setProperty('--app-h', ch + 'px');   // ページ（店内の絵）と操作の層も同じ高さに（style.css）
+  view.dpr = dpr; view.cw = cw; view.ch = ch; view.sz = sz;
   if (!scene) return;
   const W = scene.image.width, H = scene.image.height;
   // 筐体はまんなか・縦いっぱい。両脇の空きに左右の操作盤が入るので、脇は最低でも幅の 18.5% ずつ残す（4:3 の iPad で操作盤が小さくなりすぎない）。
@@ -457,7 +485,9 @@ function resize() {
   layoutConsoles();
 }
 window.addEventListener('resize', resize, { passive: true });
-window.addEventListener('orientationchange', () => setTimeout(resize, 60), { passive: true });
+// 回したすぐ後は iOS の大きさの値が遅れて変わることがある＝少し後にもう1回測る
+window.addEventListener('orientationchange', () => { setTimeout(resize, 60); setTimeout(resize, 450); }, { passive: true });
+if (window.visualViewport) window.visualViewport.addEventListener('resize', resize, { passive: true });
 
 // ---------------- 左右の操作盤（Blender で描いた絵・ボタンのキャップ・電光表示・コイン） ----------------
 // console.json の座標は描き出しの枠（frame）のピクセル。各操作盤は自分の切り抜き rect ぶんずらして画面に置く
@@ -1042,11 +1072,41 @@ function homeToGrip(x0, y0) {
       consider(Math.hypot(gx - x0, gy - y0), () => { setGrip(t, k); game.target = t; game.landOn = t; game.zTarget = Math.max(0.19, fl.z - CFG.padDz); });
     });
   }
-  const n = pickToy(x0, y0);
-  if (n) consider(Math.hypot(n.hold.x + n.dx - x0, n.hold.y + n.dy - y0), () => { game.target = n; game.landOn = n; game.zTarget = Math.max(0.19, n.hold.z + n.dz - CFG.padDz); });   // 行き先は aimFor（descend）
+  if (CFG.aimExact && HF.on) {
+    // 丸の所から一番近いふつうの子の体（地図で形のある所）へ寄せる（11/10）。前は「近くて上に出ている子」のつかむ点へ寄せていて、
+    // 丸が床の上の時に 13.5cm 先の大きな子へ行った（11/10 の下ろす確かめ・20番の奥の床）
+    const nb = nearestBodies(x0, y0);
+    for (const c of nb) {
+      const a = exactAim(c.t, c.x, c.y);
+      if (!a) continue;
+      consider(Math.hypot(a.x - x0, a.y - y0), () => { game.target = c.t; game.landOn = c.t; game.exact = { toy: c.t, aim: a }; game.zTarget = landingZ(a.x, a.y, c.t); });
+      break;
+    }
+  } else {
+    const n = pickToy(x0, y0);
+    if (n) consider(Math.hypot(n.hold.x + n.dx - x0, n.hold.y + n.dy - y0), () => { game.target = n; game.landOn = n; game.zTarget = Math.max(0.19, n.hold.z + n.dz - CFG.padDz); });   // 行き先は aimFor（descend）
+  }
   if (!best) return false;
   best.apply();
   return true;
+}
+// (x0, y0) から近い順の、ふつうの子の体の一番近い所（地図で形のあるます目の真ん中）：[{ t, x, y, d }]。
+// びろーんの下に入っている子（つかむ点がびろーんの輪郭＋3cm の中）は入れない＝爪はびろーんに当たる（pickToy と同じ）
+function nearestBodies(x0, y0) {
+  const out = [], s = HF.step;
+  for (const t of toys) {
+    if ((t.state !== 'rest' && t.state !== 'settle') || isFlat(t) || !t.hf) continue;
+    if (toys.some((o) => isFlat(o) && (o.state === 'rest' || o.state === 'settle') && o.data.footprint && inFootprint(o, t.hold.x + t.dx, t.hold.y + t.dy, -0.03))) continue;
+    const h = t.hf;
+    let bd = Infinity, bx = 0, by = 0;
+    for (let j = 0; j < h.ny; j++) for (let i = 0; i < h.nx; i++) {
+      if (h.top[j * h.nx + i] === HF_NONE) continue;
+      const px = h.x0 + i * s + t.dx, py = h.y0 + j * s + t.dy, d = Math.hypot(px - x0, py - y0);
+      if (d < bd) { bd = d; bx = px; by = py; }
+    }
+    if (bd < Infinity) out.push({ t, x: bx, y: by, d: bd });
+  }
+  return out.sort((a, b) => a.d - b.d);
 }
 // びろーん t の上の縁から見た (x, y)：s＝縁に沿った割合（0〜1）・dist＝縁からの距離（m）・
 // zSurf＝その所の面の高さ（縁から離れるほど下の端へ下がる面で見積もる・dz 抜き）。つかむ判定（flatLanding）と狙いの目印で同じ見積もりを使う
@@ -1124,16 +1184,109 @@ function surfaceUnder(x, y) {
     const t = fl.toy;
     let px = x, py = y;
     if (!inFootprint(t, x, y, 0.008)) { const q = nearestInside(t, x, y, 0.008); px = q.x; py = q.y; }
-    let zs = fl.grip === 3 ? fl.z : flatEdgeAt(t, px, py).zSurf + t.dz + flexDzAt(t, px, py);   // 尻尾の上では尻尾の高さ
+    // 本当の形（11/10）があれば、その所のびろーんの上の面（たわみも足す）。尻尾の上では尻尾の高さ
+    const zh = HF.on && fl.grip !== 3 ? hfTop(t, px, py) : null;
+    if (zh != null) return { z: zh, on: t, px, py };
+    let zs = fl.grip === 3 ? fl.z : flatEdgeAt(t, px, py).zSurf + t.dz + flexDzAt(t, px, py);
     // 面の見積もりが絵の外に写る時は、絵の中に写る高さまで下げる（ふつうの子と同じ確かめ方）
     for (let i = 0, z0 = t.data.zbottom + t.dz, zt = zs; i <= 8; i++) { const zi = zt - (zt - z0) * i / 8, p = project(px, py, zi); if (toyCovers(t, p.u, p.v)) { zs = zi; break; } }
     return { z: zs, on: t, px, py };
   }
   return Object.assign(normalTop(x, y), { px: x, py: y });
 }
+// ---------------- ぬいぐるみの本当の形（11/10） ----------------
+// Blender で1体ずつ、床の上の 5mm のます目ごとに見た目の形の一番高い所（top）と一番低い所（bot）を測った地図（ufo_export.py v11 hfield=1
+// → tools/pochamon-ufo/sync_hfield.py）。前は形を丸屋根で見積もっていて、奥の斜面（カメラから見えない所）にも輪を描いた＝↑たてで奥へ進むと
+// 輪が顔の上を下へ滑って戻って見えた（縦に動かした時に 393 か所・うち 352 か所は同じ子の上）。地図は休んでいる所のもので、動いた分（dx/dy/dz・弾み・
+// びろーんのたわみ）は足して使う
+const HF = { on: false, step: 0.005, zmax: 0 };
+const HF_NONE = 65535;
+function setupHfield(h, byId) {
+  const dec = (b64) => { const bin = atob(b64), n = bin.length >> 1, a = new Uint16Array(n); for (let i = 0; i < n; i++) a[i] = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8); return a; };
+  HF.step = h.step;
+  for (const e of h.toys) {
+    const t = byId[e.id];
+    if (!t) continue;
+    const top = dec(e.top), bot = dec(e.bot);
+    let q = 0;
+    for (const v of top) if (v !== HF_NONE && v > q) q = v;
+    t.hf = { x0: e.x0, y0: e.y0, nx: e.nx, ny: e.ny, top, bot, x1: e.x0 + (e.nx - 1) * h.step, y1: e.y0 + (e.ny - 1) * h.step, ztop: q / 4000 - 0.05 };
+    HF.zmax = Math.max(HF.zmax, t.hf.ztop);
+  }
+  HF.on = toys.every((t) => !!t.hf);   // 1体でも欠けたら使わない（前の見積もりと混ぜない）
+}
+// 子 t の地図の (x, y) の高さ（key＝top/bot・休んでいる所のまま・無ければ null）。一番近います目に形が無ければ無い。あれば形のあるます目だけで直線補間
+function hfSample(t, key, x, y) {
+  const h = t.hf, s = HF.step;
+  const fx = (x - t.dx - h.x0) / s, fy = (y - t.dy - h.y0) / s;
+  if (!(fx >= 0 && fy >= 0 && fx <= h.nx - 1 && fy <= h.ny - 1)) return null;
+  const a = h[key], n = h.nx;
+  if (a[Math.round(fy) * n + Math.round(fx)] === HF_NONE) return null;
+  const i0 = Math.min(h.nx - 2, Math.floor(fx)), j0 = Math.min(h.ny - 2, Math.floor(fy)), u = fx - i0, v = fy - j0;
+  let sum = 0, w = 0;
+  const add = (q, ww) => { if (q !== HF_NONE && ww > 0) { sum += q * ww; w += ww; } };
+  add(a[j0 * n + i0], (1 - u) * (1 - v)); add(a[j0 * n + i0 + 1], u * (1 - v));
+  add(a[(j0 + 1) * n + i0], (1 - u) * v); add(a[(j0 + 1) * n + i0 + 1], u * v);
+  return w > 0 ? sum / w / 4000 - 0.05 : null;
+}
+// 今の位置での上の面・下の面（動いた分・弾み・びろーんのたわみを足す）
+function hfMove(t, x, y) { return t.dz + (t.bounce || 0) + (isFlat(t) && t.data.footprint ? flexDzAt(t, x, y) : 0); }
+function hfTop(t, x, y) { const z = hfSample(t, 'top', x, y); return z == null ? null : z + hfMove(t, x, y); }
+function hfBot(t, x, y) { const z = hfSample(t, 'bot', x, y); return z == null ? null : z + hfMove(t, x, y); }
+// 休んでいる子（地図を使える子）
+function hfCands() { return toys.filter((t) => t.hf && (t.state === 'rest' || t.state === 'settle')); }
+// 子 t の (x, y, z) の上の面が、カメラの反対を向いているか（その子自身の奥の斜面＝カメラから見えない）。面の傾きは地図の隣のます目から。
+// 形の端（隣に形が無い所）は分からない＝false。わずかに裏を向くだけ（3%）の所は見えるとみなす（びろーんの小さなうねりで輪が点いたり消えたりしない）
+function hfBackFacing(t, x, y, z) {
+  const e = HF.step, zx1 = hfTop(t, x + e, y), zx0 = hfTop(t, x - e, y), zy1 = hfTop(t, x, y + e), zy0 = hfTop(t, x, y - e);
+  if (zx1 == null || zx0 == null || zy1 == null || zy0 == null) return false;
+  const gx = (zx1 - zx0) / (2 * e), gy = (zy1 - zy0) / (2 * e), C = CAM.position_local;
+  const vx = C[0] - x, vy = C[1] - y, vz = C[2] - z;
+  return (-gx * vx - gy * vy + vz) / (Math.hypot(gx, gy, 1) * Math.hypot(vx, vy, vz)) < -0.03;
+}
+// 点 (px, py, pz) とカメラの間に、ぬいぐるみの形（top〜bot の柱）があるか：カメラへ 4mm ずつたどって最初に入った子（無ければ null）。
+// 地図を使えない時は undefined（分からない）
+function hfOccluder(px, py, pz, cand) {
+  if (!HF.on) return undefined;
+  const C = CAM.position_local, ex = C[0] - px, ey = C[1] - py, ez = C[2] - pz, L = Math.hypot(ex, ey, ez);
+  const ux = ex / L, uy = ey / L, uz = ez / L, zMax = HF.zmax + 0.08;   // 動いた分・弾みを見込んで少し上まで
+  cand = cand || hfCands();
+  for (let s = 0.006; s < L; s += 0.004) {
+    const qz = pz + uz * s;
+    if (qz > zMax) break;
+    const qx = px + ux * s, qy = py + uy * s;
+    for (const t of cand) {
+      const h = t.hf;
+      if (qx < h.x0 + t.dx || qx > h.x1 + t.dx || qy < h.y0 + t.dy || qy > h.y1 + t.dy) continue;
+      const top = hfTop(t, qx, qy);
+      if (top == null || qz > top - 0.003) continue;
+      const bot = hfBot(t, qx, qy);
+      if (bot != null && qz < bot + 0.003) continue;
+      return t;
+    }
+  }
+  return null;
+}
+
+// (x, y) の真下で一番高い面（びろーんも入れる）。狙いの丸の縁の見通しと、アームの爪先が当たる高さに使う
+function topAt(x, y) {
+  let z = normalTop(x, y).z;
+  if (HF.on) for (const t of toys) if (isFlat(t) && (t.state === 'rest' || t.state === 'settle')) { const zh = hfTop(t, x, y); if (zh != null && zh > z) z = zh; }
+  return z;
+}
 // (x, y) の真下で一番高い、ふつうの子（びろーん以外）の表面か床：z と、その子 on
+// 本当の形（11/10）の時は真下の1点の高さ。小さな円盤が乗る高さ（半径 1.2cm の一番高い所）も試したが、奥の斜面の上に輪が浮いて「見える」扱いになり、
+// 斜面を下へ滑る動きが戻った（15px 以上続けて戻る所 5 → 13 か所・11/10 測定）。ぬいぐるみの間のすき間に落ちる時は透ける輪が一瞬下へ跳ぶ＝そのまま
 function normalTop(x, y) {
   let z = floorZAt(y), on = null;
+  if (HF.on) {
+    for (const t of toys) {
+      if ((t.state !== 'rest' && t.state !== 'settle') || isFlat(t) || !t.hf) continue;
+      const zh = hfTop(t, x, y);
+      if (zh != null && zh > z) { z = zh; on = t; }
+    }
+    return { z, on };
+  }
   for (const t of toys) {
     if ((t.state !== 'rest' && t.state !== 'settle') || isFlat(t)) continue;
     const zt = domeZ(t, x, y);
@@ -1472,8 +1625,9 @@ function stepFlex(dt) {
 // ふつうの子 t をつかみに下りる時の、台車の行き先。開いた爪がびろーんの中に深く（面より CFG.flatPressMax より下まで）入る時は、
 // 爪がびろーんの縁で外へ滑ったように、入らない所まで横へずらす（CFG.armShiftMax まで）。ずらしても入る時は null（びろーんに埋まっていてつかめない）。
 // 前は子のてっぺんがびろーんの輪郭から3cm離れていれば選んでいて、開いた爪（真ん中から左右に約7cm）が板の中に下り、13番では右の爪が面より10cm下まで入った
-function landingFor(t) {
-  const hx = t.hold.x + t.dx, hy = t.hold.y + t.dy, z = t.hold.z + t.dz - CFG.padDz;
+// (sx, sy)＝ずらし始める所（省くとつかむ点の真上。11/10 からは狙いの丸の所＝aimExact）
+function landingFor(t, sx, sy) {
+  const hx = sx != null ? sx : t.hold.x + t.dx, hy = sy != null ? sy : t.hold.y + t.dy, z = t.hold.z + t.dz - CFG.padDz;
   const flats = toys.filter((o) => o !== t && isFlat(o) && o.data.footprint && (o.state === 'rest' || o.state === 'settle'));
   const ok = (x, y) => {
     for (const p of padTips(x, y, z, CFG.armOpen)) {
@@ -1498,7 +1652,22 @@ function landingFor(t) {
 function aimFor(t) {
   if (!t) return null;
   if (isFlat(t)) return { x: t.hold.x + t.dx, y: t.hold.y + t.dy, shift: 0 };   // 外れて滑った分（flatSlip）も入れる（11/9 検品：入れないと 2.2cm ずれて下りた）
+  if (game.exact && game.exact.toy === t) return game.exact.aim;   // 狙いの丸の所（11/10・descend で決めた）
   return landingFor(t) || { x: t.hold.x + t.dx, y: t.hold.y + t.dy, shift: 0 };
+}
+// 狙いの丸で下りる時（11/10・aimExact）：丸の乗っている子 t をつかみに、丸の所 (x, y) から t のつかむ点の方へ CFG.aimPull だけ寄せた所。
+// 開いた爪がびろーんに深く入るなら、そこから横へずらす（landingFor・最大6cm）。ずらしても入るなら null（つかめない）
+function exactAim(t, x, y) {
+  const hx = t.hold.x + t.dx, hy = t.hold.y + t.dy, d = Math.hypot(hx - x, hy - y), k = d > 1e-6 ? Math.min(1, CFG.aimPull / d) : 0;
+  return landingFor(t, x + (hx - x) * k, y + (hy - y) * k);
+}
+// 開いた爪で (x, y) の真下へ下りた時に止まる円盤の高さ（11/10）。つかむ子 t の上では、真ん中が面から holdDzToy（5cm×大きさ）沈むまで
+// （前の「つかむ点＝てっぺんから5cm下」と同じ深さ）。つかむ子が無い時は面に着くまで。ただし開いた爪先が下の形（ぬいぐるみ・びろーん・床）へ
+// CFG.padPress より深く入る高さより下へは行かない（前は丸の所と関係なく、選んだ子のてっぺんから決めていた）
+function landingZ(x, y, t) {
+  let zc = topAt(x, y) - (t ? CFG.holdDzToy * t.data.scale : 0.004) - CFG.padDz;
+  for (const p of padTips(x, y, 0, CFG.armOpen)) zc = Math.max(zc, topAt(p.x, p.y) - CFG.padPress + CFG.padR - p.z);
+  return Math.max(0.19, zc);
 }
 // 絵の一部を、別の物の形で型を抜いて描き直す（びろーんとアーム・持った子の前後を、描く順番と逆にしたい所だけ）。
 // box＝背景の絵の px の範囲。content を描き、mask の不透明な所だけ残して、alpha で重ねる。2枚の canvas はその範囲の大きさだけ使う
@@ -1732,12 +1901,24 @@ function setPhase(p) {
       // 前は上の縁の真ん中1か所へ最大15cm寄せていて、閉じたまま滑る・空中で止まる・斜めに速く滑るのどれかが残った（検品4回）
       // 取れる回か（確定の回・運の当たり）は下りる前に決める（11/9：当たりの回は、つかめない所に下りる時に取れる所へ寄せるため。前は爪が閉じる時に決めていた）
       game.outcome = decideOutcome(game.tryIndex);
+      game.exact = null;
       const fl = flatLanding(claw.cx, claw.cy);
       if (fl) {
         if (fl.grip >= 0) setGrip(fl.toy, fl.grip);
         game.target = fl.grip >= 0 ? fl.toy : null;
         game.landOn = fl.toy;
         game.zTarget = Math.max(0.19, fl.z - CFG.padDz);
+      } else if (CFG.aimExact) {
+        // 狙いの丸の所へ下りる（11/10 本人「丸で狙って下ろしたのに隣のぬいぐるみを取る」「丸を下ろした付近にアームが下りてほしい」）。
+        // つかむのは丸の乗っている子。前は「近くて上に出ている子」を選び直して、そのつかむ点（てっぺん）へ寄っていた＝丸が子の上にある所の 20% で
+        // 別の子を選び、同じ子でも丸から平均 6.7cm（最大 25cm）離れた所に下りた。丸が床の上なら何もつかまない（当たりの回は下で寄せる）
+        const s = surfaceUnder(claw.cx, claw.cy);
+        let t = s.on && !isFlat(s.on) ? s.on : null, aim = null;
+        if (t) { aim = exactAim(t, claw.cx, claw.cy); if (!aim) t = null; }
+        game.target = t;
+        game.landOn = s.on;
+        if (t) game.exact = { toy: t, aim };
+        game.zTarget = landingZ(aim ? aim.x : claw.cx, aim ? aim.y : claw.cy, t);
       } else {
         game.target = pickToy(claw.cx, claw.cy);
         game.landOn = game.target;
@@ -1779,7 +1960,7 @@ function setPhase(p) {
       if (game.target && game.target.grip === 3) game.slipAt = 0.06 + Math.random() * 0.06;
       break;
     case 'lift':
-      if (game.target) { setupRides(game.target); game.target.state = 'held'; game.target.attach = 0; claw.held = game.target; faceUI.grin(); }   // つかめた→右下の子がニヤッ
+      if (game.target) { setupRides(game.target); game.target.state = 'held'; game.target.attach = 0; game.target.liftDz0 = game.target.dz; claw.held = game.target; faceUI.grin(); }   // つかめた→右下の子がニヤッ
       claw.damp = CFG.dampHeld; game.liftStartL = claw.L; audio.whir(); break;
     case 'slipping': audio.slip(); faceUI.normal(true); break;   // 途中で落ちた→真顔に戻る
     case 'hold': audio.motorOff(); break;   // 上で一呼吸（ぶら下がった子が揺れて止まるのを見せる）
@@ -1867,7 +2048,10 @@ function updateToys(dt) {
       // 爪先は円盤の中心から padDz 下＝ケーブルの向きに沿って振れる（前は円盤の真下に固定で、アームが揺れると爪先が子の面の上を滑った・10/30 朝の検品）
       const tipX = claw.x - CFG.padDz * Math.sin(claw.thx), tipY = claw.y - CFG.padDz * Math.sin(claw.thy);
       const tipZ = claw.z + CFG.padDz * Math.cos(claw.thx) * Math.cos(claw.thy);
-      t.dx = lerp(sx, tipX - t.hold.x, k); t.dy = lerp(sy, tipY - t.hold.y, k); t.dz = tipZ - t.hold.z - t.sag * 0.05;
+      // 上下も同じ 0.3 秒でなじませる（11/10）：狙いの丸の所に下りると、爪先がつかむ点（てっぺんから5cm下）と同じ高さとは限らない。
+      // 前は爪先の高さへ一気に吸い付いた（つかむ点の真上に下りていたので段差が無かった）
+      t.dz = lerp(t.liftDz0 != null ? t.liftDz0 : sz, tipZ - t.hold.z - t.sag * 0.05, k);
+      t.dx = lerp(sx, tipX - t.hold.x, k); t.dy = lerp(sy, tipY - t.hold.y, k);
       // ぶら下がった子の傾き（重心が爪の真下へ来る向き）。びろーんは平たく、つかむ点と重心の高さがほぼ同じ＝分母が小さくて 30° も出て筐体の外へはみ出した → 傾けない（10/30 検品）
       const hangTarget = isFlat(t) ? 0 : clamp(-Math.atan2(t.data.center[0] - t.hold.x, Math.max(0.03, t.hold.z - t.data.center[2])) * 0.8, -0.6, 0.6);
       t.hang = approach(t.hang, hangTarget, 1.5 * dt);
@@ -2682,8 +2866,43 @@ function drawScene() {
   }
   const drawFalling = (t, clip) => { ctx.save(); clipCabOpen(); drawToyDynamic(t, clip); ctx.restore(); };
   const ptr = pointer.a > 0.01 ? surfaceUnder(claw.cx, claw.cy) : null;
-  let iPtr = -1, iLine = -1, ghostRing = false, ghostLine = false;
-  if (ptr) {
+  let iPtr = -1, iLine = -1, ghostRing = false, ghostLine = false, ptrOcc = null;
+  if (ptr && HF.on) {
+    // 本当の形（11/10）：丸の真ん中からカメラへの見通しで、見えるか・どの子に隠れたかを決める。
+    //  ・見える：塗った輪を乗っている子の直後に描く（後から描く手前の子が縁を隠す）。縁の8点のうち2つ以上が隠れたら透ける輪も重ねる
+    //  ・手前の別の子に隠れた：塗った輪は描かず、透ける輪（点線）を重ねる＝どの子の下か分かる（10/30 本人「どのぬいぐるみの真下を通っているか分かるように」）
+    //  ・その子自身の奥の斜面（カメラから見えない所）：輪は出さず、線だけをその子の後ろへ入れる。前は奥の斜面にも塗った輪を描いていて、
+    //    ↑たてで奥へ進むと輪が顔の上を下へ滑り、一度通った所をまた通って見えた
+    const x = ptr.px, y = ptr.py, z = ptr.z + 0.004, cand = hfCands();
+    // その子自身の奥：面がカメラの反対を向いている所も入れる（見通しの線が先に手前の別の子に当たると、奥の斜面を透ける輪が下へ滑った・11/10 測定）
+    const back = ptr.on && ptr.on.hf ? hfBackFacing(ptr.on, x, y, ptr.z) : false;
+    ptrOcc = back ? ptr.on : hfOccluder(x, y, ptr.z + 0.002, cand);
+    const self = !!ptrOcc && ptrOcc === ptr.on;
+    // 透ける輪は「隠れた先が子の上」の時だけ（どの子の下か分かるための印）。床のすき間（子の後ろの床）では出さない：17番の奥の床で透ける輪が
+    // 画面の下へ跳び、一度通った所をまた通って見えた（11/10 コマ撮り）。出さない時も線はその子の後ろへ入る
+    const ghostOK = !!ptrOcc && ((!self && !!ptr.on) || CFG.ptrSelfGhost);
+    if (ptrOcc) { iPtr = -1; ghostRing = ghostOK; }
+    else {
+      iPtr = ptr.on ? rest.indexOf(ptr.on) + 1 : 0;
+      let hid = 0;
+      for (let i = 0; i < 8; i++) { const th = i * Math.PI / 4, rx = x + PTR_R * Math.cos(th), ry = y + PTR_R * Math.sin(th); if (hfOccluder(rx, ry, topAt(rx, ry) + 0.002, cand)) hid++; }
+      ghostRing = hid >= 2;
+    }
+    if (CFG.pointer === 'line') {
+      const { top, bot } = pointerLineEnds(ptr);
+      if (ptrOcc) {   // 隠している子の後ろ（その子自身の奥なら、その子の後ろ）へ線を入れる
+        const iOn = ptr.on ? rest.indexOf(ptr.on) : -1;
+        iLine = Math.max(0, Math.min(rest.indexOf(ptrOcc), iOn + 1));
+      } else {
+        const mid = project(x, y, (z + claw.z + scene.machine.claw.pad_bottom) / 2);
+        iLine = Math.max(iPtr, insertionIndex(rest, mid.d, [Math.min(top.u, bot.u) - 4, top.v, Math.max(top.u, bot.u) + 4, bot.v]));
+      }
+      if (!ptrOcc || ghostOK) {   // 線の途中がカメラから隠れていたら、透ける線も重ねる（輪を透かさない時は線も透かさない）
+        const zTop = claw.z + scene.machine.claw.pad_bottom - 0.012;
+        for (let i = 1; i < 6 && !ghostLine; i++) if (hfOccluder(x, y, lerp(zTop, z, i / 6), cand)) ghostLine = true;
+      }
+    }
+  } else if (ptr) {
     iPtr = ptr.on ? rest.indexOf(ptr.on) + 1 : 0;
     const x = ptr.px, y = ptr.py, z = ptr.z + 0.004;
     // 輪：真ん中と縁の8点のうち、後から描く子に覆われる点が2つ以上なら、透ける輪も重ねる
@@ -2697,7 +2916,8 @@ function drawScene() {
       for (let i = 1; i < 6 && !ghostLine; i++) if (coveredAfter(rest, iLine, lerp(top.u, bot.u, i / 6), lerp(top.v, bot.v, i / 6))) ghostLine = true;
     }
   }
-  dbg.pointer = ptr ? { a: pointer.a, x: ptr.px, y: ptr.py, z: ptr.z, on: ptr.on ? ptr.on.id : null, layer: iPtr, lineLayer: iLine, ghostRing, ghostLine, uv: project(ptr.px, ptr.py, ptr.z) } : null;
+  dbg.pointer = ptr ? { a: pointer.a, x: ptr.px, y: ptr.py, z: ptr.z, on: ptr.on ? ptr.on.id : null, layer: iPtr, lineLayer: iLine, ghostRing, ghostLine,
+    occ: ptrOcc ? ptrOcc.id : null, hf: HF.on, uv: project(ptr.px, ptr.py, ptr.z) } : null;
   // びろーんとアーム・持った子の前後（11/9 午後・本人「めり込む」）。描く順番は1体ずつの奥行きで決めているが、びろーんは幅26cmの平たい板で、
   // 奥の縁と手前の縁で奥行きが大きく違う＝奥の縁に乗った物まで板の裏になり、爪や持ち上げた子がびろーんにめり込んで見えた。
   //  ・アーム：爪が板に当たっている時（stepFlex が板を沈めている）・板より上にある時は手前
@@ -2896,6 +3116,9 @@ function openAdmin() {
   const c = settings.counters[todayKey()] || { games: 0, stickers: 0 };
   adm.cntGames.textContent = c.games; adm.cntStickers.textContent = c.stickers;
   renderStickerAdmin();
+  const z = view.sz || appSize(), dg = $('admDiag');   // 画面の大きさ（11/10・下に帯が残った件の確かめ用）
+  const ver = ((document.querySelector('script[src*="game.js"]') || {}).src || '').match(/[?&]v=(\d+)/);
+  if (dg) dg.textContent = 'view ' + z.w + 'x' + z.h + ' / inner ' + z.innerW + 'x' + z.innerH + ' / screen ' + z.sw + 'x' + z.sh + (z.app ? ' / app' : '') + (ver ? ' / v' + ver[1] : '');
   adminLabels(); ui.admin.classList.add('show');
 }
 // ステッカーの欄：絵・出やすさ（1〜10）・在庫。保存を押すまで settings には書かない
@@ -3017,6 +3240,10 @@ window.__ufo = {
   hangMix: (m) => { if (claw.held) claw.held.hangMix = m; return claw.held ? claw.held.hangMix : null; },   // 持った子の姿を決め打ち（時間を止めて、コマの切り替わりを見る用）
   aimAt: (x, y) => { claw.cx = x; claw.cy = y; claw.vx = claw.vy = 0; },   // 台車をその場所へ（目印の確かめ用）
   // その場所の真下の表面と、丸屋根の見積もりに入った子（目印の確かめ用）
+  hf: () => ({ on: HF.on, step: HF.step, zmax: HF.zmax }),   // 本当の形の地図（11/10）
+  // その場所の真下の表面がカメラから見えるか（隠している子の id・null は見える）と、下りた時の行き先・止まる高さ（確かめ用）
+  probeAim: (x, y) => { const s = surfaceUnder(x, y), occ = hfOccluder(s.px, s.py, s.z + 0.002); const t = s.on && !isFlat(s.on) ? s.on : null, a = t ? exactAim(t, x, y) : null;
+    return { z: s.z, on: s.on ? s.on.id : null, occ: occ === undefined ? 'n/a' : (occ ? occ.id : null), target: a ? t.id : null, aim: a, zc: landingZ(a ? a.x : x, a ? a.y : y, a ? t : null) }; },
   surfaceAt: (x, y) => { const r = surfaceUnder(x, y); return { z: r.z, on: r.on ? r.on.id : null, px: r.px, py: r.py, cands: toys.filter((t) => !isFlat(t) && (t.state === 'rest' || t.state === 'settle')).map((t) => ({ id: t.id, dome: domeZ(t, x, y), zb: t.data.zbottom, zt: t.data.ztop })).filter((c) => c.dome != null) }; },
   settings, CFG, decideOutcome: (i) => decideOutcome(i), makeSlots,
   // ルールの検算：n ゲーム回して取れた枚数の分布を返す（実際の判定関数を使う）

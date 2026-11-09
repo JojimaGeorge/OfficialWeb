@@ -15,7 +15,7 @@
   </script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=30">
+  <link rel="stylesheet" href="style.css?v=31">
   <title>ぽちゃもん UFOキャッチャー</title>
 </head>
 <body class="phase-loading">
@@ -96,6 +96,8 @@
           <button id="adminToTitle" class="mini-text" type="button">ゲームを中断してタイトルへ</button>
         </div>
         <div class="admin-hint">ひらきかた：タイトル画面の上の看板を 2秒 おしつづける ／ URLに #admin</div>
+        <!-- 画面の大きさ（11/10・iPad のホーム画面のアプリで下に帯が残った件の確かめ用。字は英数字だけ＝ゲームの書体は字を間引いてある） -->
+        <div class="admin-hint" id="admDiag"></div>
       </div>
     </div>
 
@@ -103,7 +105,7 @@
     <div id="coin" class="hidden" aria-label="ぽちゃもんコイン"><div id="coinImg"></div></div>
   </div>
 
-  <script src="led.js?v=30"></script>
-  <script src="game.js?v=30"></script>
+  <script src="led.js?v=31"></script>
+  <script src="game.js?v=31"></script>
 </body>
 </html>
