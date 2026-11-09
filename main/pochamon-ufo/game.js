@@ -92,7 +92,7 @@ const ui = {
   coin: $('coin'), coinImg: $('coinImg'),
   msg: $('msg'), guide: $('guide'), btnX: $('btnX'), btnY: $('btnY'),
   title: $('title'), result: $('result'), loading: $('loading'), loadProg: $('loadProg'), admin: $('admin'),
-  resultNum: $('resultNum'), resultStickers: $('resultStickers'), resultBtn: $('resultBtn'), muteBtn: $('muteBtn'),
+  resultNum: $('resultNum'), resultStickers: $('resultStickers'), resultBtn: $('resultBtn'),
   prize: $('prize'), prizeImg: $('prizeImg'),
 };
 
@@ -505,12 +505,12 @@ function priceTag(g, c, ox, oy) {
   g.lineWidth = 11 * k; g.strokeStyle = '#f490b8'; rr(X + 5.5 * k, Y + 5.5 * k, W - 11 * k, H - 11 * k, 29 * k); g.stroke();
   g.lineWidth = 3.2 * k; g.strokeStyle = '#2b3a7a'; rr(X + 20 * k, Y + 20 * k, W - 40 * k, H - 40 * k, 18 * k); g.stroke();
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  const fit = (text, px, maxW) => { g.font = '400 ' + px + 'px "Cherry Bomb One", "Zen Maru Gothic", sans-serif'; const m = g.measureText(text).width; if (m > maxW) { px *= maxW / m; g.font = '400 ' + px + 'px "Cherry Bomb One", "Zen Maru Gothic", sans-serif'; } return px; };
+  // 書体はゲームの他の字と同じ Zen Maru Gothic（11/9 本人「3PLAY ¥200 のフォントがくどいからシンプルに」＝前は Cherry Bomb One）
+  const fit = (text, px, maxW, wt) => { const f = (s) => wt + ' ' + s + 'px "Zen Maru Gothic", sans-serif'; g.font = f(px); const m = g.measureText(text).width; if (m > maxW) { px *= maxW / m; g.font = f(px); } return px; };
   const mx = X + W / 2;
-  fit('¥200', 150 * k, W - 90 * k);
-  g.lineJoin = 'round'; g.lineWidth = 12 * k; g.strokeStyle = '#ffffff'; g.strokeText('¥200', mx, Y + H * 0.38);
-  g.fillStyle = '#e2333f'; g.fillText('¥200', mx, Y + H * 0.38);
-  fit('3PLAY', 80 * k, W - 120 * k);
+  fit('¥200', 140 * k, W - 90 * k, 900);
+  g.fillStyle = '#e2333f'; g.fillText('¥200', mx, Y + H * 0.40);
+  fit('3PLAY', 70 * k, W - 140 * k, 700);
   g.fillStyle = '#2b3a7a'; g.fillText('3PLAY', mx, Y + H * 0.74);
   g.restore();
 }
@@ -2480,24 +2480,19 @@ let pressTimer = null, longPressed = false;
 const titleSub = document.querySelector('.title-hot');
 ui.title.addEventListener('pointerdown', (e) => {
   audio.unlock(); longPressed = false;
-  if (e.target.closest('#muteBtn')) return;
   clearTimeout(pressTimer);
   if (e.target.closest('.title-hot')) pressTimer = setTimeout(() => { longPressed = true; openAdmin(); }, 2000);
 });
 const titleUp = (e) => {
   clearTimeout(pressTimer); audio.unlock();
-  if (e.target.closest('#muteBtn')) return;
   if (longPressed) return;
   if (game.phase === 'title' && performance.now() - game.titleShownAt > 350) coinUI.nudge();
 };
 ui.title.addEventListener('pointerup', titleUp);
 ui.title.addEventListener('pointercancel', () => clearTimeout(pressTimer));
 titleSub.addEventListener('pointerleave', () => clearTimeout(pressTimer));
-ui.muteBtn.addEventListener('click', () => {
-  settings.muted = !settings.muted; saveSettings(); ui.muteBtn.classList.toggle('muted', settings.muted); if (!settings.muted) { audio.unlock(); audio.tap(); }
-  audio.bgmMute(settings.muted);
-});
-ui.muteBtn.classList.toggle('muted', settings.muted);
+// 音のボタンは外した（11/9 本人「音を出さない時は端末側をミュートする」）。前に消したままの端末で音が出なくならないよう、消音は戻す
+if (settings.muted) { settings.muted = false; saveSettings(); }
 ui.resultBtn.addEventListener('click', () => {
   if (performance.now() - (game.resultShownAt || 0) < 500) return;
   audio.unlock(); audio.tap(); setPhase('title'); game.titleShownAt = performance.now();

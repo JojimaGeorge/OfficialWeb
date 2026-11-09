@@ -15,7 +15,7 @@
   </script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=27">
+  <link rel="stylesheet" href="style.css?v=28">
   <title>ぽちゃもん UFOキャッチャー</title>
 </head>
 <body class="phase-loading">
@@ -38,10 +38,9 @@
 
     <!-- タイトル：筐体の上は覆わない（2026-11-08 本人「タイトルの札でUFOキャッチャーの絵が見えず、通りかかった人にどんなゲームか分からない」）。
          説明は背面の壁のモニターに流し（led.js）、カメラは正面（assets/front.webp）。コインを入れるといつもの斜め上に戻る。
-         ここは押した所でコインを揺らす・上の看板の所を 2 秒押しつづけると設定（前は札の「ぽちゃもん」）・音のボタンだけ -->
+         ここは押した所でコインを揺らす・上の看板の所を 2 秒押しつづけると設定（前は札の「ぽちゃもん」）。音のボタンは 11/9 に外した（消音は端末側で） -->
     <div id="title" class="screen cab">
       <div class="title-hot" aria-hidden="true"></div>
-      <button id="muteBtn" class="mini" type="button" aria-label="おと">♪</button>
     </div>
 
     <!-- 結果 -->
@@ -100,7 +99,7 @@
     <div id="coin" class="hidden" aria-label="ぽちゃもんコイン"><div id="coinImg"></div></div>
   </div>
 
-  <script src="led.js?v=27"></script>
-  <script src="game.js?v=27"></script>
+  <script src="led.js?v=28"></script>
+  <script src="game.js?v=28"></script>
 </body>
 </html>

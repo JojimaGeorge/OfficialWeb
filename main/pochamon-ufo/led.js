@@ -225,9 +225,10 @@ const titleScenes = [
     sprite('ufo', Math.round(COLS / 2 - 10 + Math.sin(t * 1.6) * 40), y0 + 42, { a: 0.9 });
   } },
   { name: 'prize', len: 3.4, draw(t, y0) {
-    textC('とれた かずだけ', y0 + 1, WHITE);
-    textC('ステッカー', y0 + 15, (X) => (((X + Math.floor(t * 16)) >> 3) % 2 ? YELLOW : ORANGE), { scale: 2 });
-    textC('が もらえるよ！', y0 + 40, WHITE);
+    // 3 行で 50 行に収める（11/9 本人「がもらえるよの下が途切れてる」＝前は y0+40 で光る所が 52 行目まで出て段の下で切れていた）。光る粒は字の 0〜11 行目、行の間は 2 行
+    textC('とれた かずだけ', y0, WHITE);
+    textC('ステッカー', y0 + 12, (X) => (((X + Math.floor(t * 16)) >> 3) % 2 ? YELLOW : ORANGE), { scale: 2 });
+    textC('が もらえるよ！', y0 + 37, WHITE);
   } },
   // 6 種は字の下の段（正面からは左上に待機中のアームの爪がかかる＝絵は爪より下へ）
   { name: 'lineup', len: 4.8, draw(t, y0) {
