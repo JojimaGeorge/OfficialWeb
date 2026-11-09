@@ -235,3 +235,13 @@ button.big:active { transform: translateY(4px); box-shadow: 0 2px 0 #1d1326; }
   #rotate { display: flex; z-index: 50; pointer-events: auto; }
   #rotate .small-card { font-size: clamp(16px, 5vw, 28px); padding: 1.2em 1.4em; }
 }
+
+/* ---------- 新しい版を読み込み中の小さな札（game.js の setupAutoUpdate） ---------- */
+.updateNote {
+  position: fixed; left: 50%; bottom: 1.2vh; transform: translateX(-50%);
+  z-index: 80; pointer-events: none;
+  padding: 0.35em 0.9em; font-size: clamp(11px, 1.4vh, 16px);
+  color: #fff; background: rgba(30, 30, 60, 0.7);
+  opacity: 0; transition: opacity 0.3s;
+}
+.updateNote.show { opacity: 1; }

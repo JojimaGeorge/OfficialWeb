@@ -2607,11 +2607,14 @@ window.__ufo = {
 // ---------------- 起動 ----------------
 async function init() {
   resize();
+  // 更新の合図は読み込みの最中にも来うる＝受け口は最初に置く（設置そのものは読み込みの後＝初回の回線を取り合わない）
+  const registerSW = ('serviceWorker' in navigator && location.protocol !== 'file:' && !qs.get('nosw')) ? setupAutoUpdate() : null;
   try {
     await load();
   } catch (e) {
     ui.loadProg.textContent = 'よみこみに しっぱい: ' + e.message;
     console.error(e);
+    if (registerSW) registerSW();
     return;
   }
   resize();
@@ -2619,9 +2622,44 @@ async function init() {
   setPhase('title'); game.titleShownAt = performance.now();
   requestAnimationFrame(loop);
   if (location.hash === '#admin') openAdmin();
-  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !qs.get('nosw')) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  }
+  if (registerSW) registerSW();
+}
+
+// ---------------- 新しい版の自動更新 ----------------
+// sw.js の CACHE_NAME が変わると、新しい SW が裏で素材を全部取り直し、入れ替わった瞬間に controllerchange が来る。
+// 画面はまだ古い game.js で動いているので、遊んでいない時（タイトルでコインに触っていない・設定画面を閉じている）に読み込み直す。
+// 開きっぱなしの iPad やホーム画面のアプリは開き直さないと版を確かめないので、画面に戻った時と5分ごとにも確かめる。
+function setupAutoUpdate() {
+  const sw = navigator.serviceWorker;
+  let controlled = !!sw.controller;   // 初めての設置（controller なし）で来る最初の入れ替わりだけは読み込み直さない
+  let pending = false;
+  let noteTimer = 0;
+  const note = document.createElement('div');
+  note.className = 'updateNote';
+  note.textContent = 'あたらしい版を よみこみ中…';
+  document.body.appendChild(note);
+  // コインが札の下に置いてある時だけ（入れ切った直後は phase が少しの間 title のまま＝hidden では判定しない）
+  const canReload = () => game.phase === 'title' && coinUI.state === 'home' && !ui.admin.classList.contains('show');
+  const tryReload = () => { if (pending && canReload()) { pending = false; location.reload(); } };
+  sw.addEventListener('controllerchange', () => {
+    if (!controlled) { controlled = true; return; }
+    pending = true; note.classList.remove('show'); tryReload();
+  });
+  setInterval(tryReload, 1000);
+  return () => sw.register('sw.js').then((reg) => {
+    const watch = (w) => {
+      if (!w || !sw.controller) return;   // 初めての設置は出さない
+      note.classList.add('show');
+      clearTimeout(noteTimer);
+      noteTimer = setTimeout(() => note.classList.remove('show'), 3 * 60 * 1000);   // 細い回線で止まっても出しっぱなしにしない
+      w.addEventListener('statechange', () => { if (w.state === 'redundant') note.classList.remove('show'); });
+    };
+    watch(reg.installing);
+    reg.addEventListener('updatefound', () => watch(reg.installing));
+    const check = () => reg.update().catch(() => {});   // オフライン（会場）では黙って失敗する
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+    setInterval(check, 5 * 60 * 1000);
+  }).catch(() => {});
 }
 init();
 })();
