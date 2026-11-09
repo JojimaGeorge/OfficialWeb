@@ -245,3 +245,17 @@ button.big:active { transform: translateY(4px); box-shadow: 0 2px 0 #1d1326; }
   opacity: 0; transition: opacity 0.3s;
 }
 .updateNote.show { opacity: 1; }
+
+/* ---------- 設定画面：ステッカーの出やすさと在庫（11/9） ---------- */
+.stk-head { font-weight: 900; margin: .9em 0 .4em; color: var(--pink-dark); }
+.stk-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: .5em; }
+.stk-row { display: flex; align-items: center; gap: .6em; padding: .4em .6em; background: #fff; border-radius: 12px; }
+.stk-row.off .stk-pic { opacity: .3; filter: grayscale(1); }
+.stk-pic { width: 3.4em; height: 3.4em; object-fit: contain; flex: none; }
+.stk-mid { flex: 1; min-width: 0; }
+.stk-lab { font-weight: 700; font-size: .9em; }
+.stk-row input[type=range] { width: 100%; }
+.admin-card .stk-on { display: flex; align-items: center; gap: .2em; font-size: .8em; font-weight: 700; flex: none; margin: 0; }
+.stk-on input { width: 1.6em; height: 1.6em; }
+.stk-row.off .stk-on span { color: #c0303c; }
+.stk-warn { color: #c0303c; font-weight: 700; font-size: .9em; }

@@ -11,11 +11,23 @@
 // ---------------- 設定（スタッフ用・端末に保存） ----------------
 const LS_KEY = 'pochamon-ufo-settings-v1';
 const DEFAULTS = { luckP: 0.3, luckSlot: 'random', volume: 0.8, speed: 1.0, muted: false, counters: {} };
+// ステッカーの出やすさ（重み 1〜10）と在庫（11/9 本人「ほいみたいにステッカーの確率の管理画面を」「当日のステッカー切れ」）。初期値は全部 5・在庫あり
+const stickerDefaults = () => { const o = {}; for (let id = 1; id <= 6; id++) o[id] = { weight: 5, on: true }; return o; };
+function cleanStickers(src) {
+  const o = stickerDefaults();
+  for (let id = 1; id <= 6; id++) {
+    const v = src && src[id];
+    if (!v) continue;
+    if (Number.isFinite(v.weight)) o[id].weight = Math.max(1, Math.min(10, Math.round(v.weight)));
+    if (typeof v.on === 'boolean') o[id].on = v.on;
+  }
+  return o;
+}
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-    return Object.assign({}, DEFAULTS, s, { counters: Object.assign({}, s.counters || {}) });
-  } catch (e) { return Object.assign({}, DEFAULTS, { counters: {} }); }
+    return Object.assign({}, DEFAULTS, s, { counters: Object.assign({}, s.counters || {}), stickers: cleanStickers(s.stickers) });
+  } catch (e) { return Object.assign({}, DEFAULTS, { counters: {}, stickers: stickerDefaults() }); }
 }
 function saveSettings() { try { localStorage.setItem(LS_KEY, JSON.stringify(settings)); } catch (e) { /* private mode */ } }
 const settings = loadSettings();
@@ -1221,10 +1233,18 @@ function pressAround(x, y, r, impulse) {
 
 // ---------------- ステッカーの絵柄 ----------------
 // 1ゲームの中でかぶらない絵柄をランダムに1つ（むいてほいゲームと同じ「かぶりなし」。3回までなので6種で足りる）
+// 在庫ありの中から重みで選ぶ。1ゲームの中ではまだ出ていない絵柄を先に（在庫ありが全部出たらかぶってよい）。
+// 全部「在庫なし」にされた時は止めずに 6 種から均等に（設定画面に注意を出す）
 function pickSticker() {
-  const left = STICKER_IDS.filter((id) => !game.stickers.includes(id));
-  const pool = left.length ? left : STICKER_IDS;
-  return pool[Math.floor(Math.random() * pool.length)];
+  const st = settings.stickers;
+  let pool = STICKER_IDS.filter((id) => st[id] && st[id].on);
+  if (!pool.length) pool = STICKER_IDS.slice();
+  const left = pool.filter((id) => !game.stickers.includes(id));
+  if (left.length) pool = left;
+  const w = (id) => (st[id] && st[id].on ? st[id].weight : 1);
+  let r = Math.random() * pool.reduce((s, id) => s + w(id), 0);
+  for (const id of pool) { r -= w(id); if (r < 0) return id; }
+  return pool[pool.length - 1];
 }
 // 最初に読んで手元に持っている絵を写す（遊んで数分たった後の読み込みは落ちることがある・10/30）
 function stickerEl(id) {
@@ -2518,7 +2538,49 @@ function openAdmin() {
   adm.volume.value = Math.round(settings.volume * 100); adm.speed.value = Math.round(settings.speed * 100);
   const c = settings.counters[todayKey()] || { games: 0, stickers: 0 };
   adm.cntGames.textContent = c.games; adm.cntStickers.textContent = c.stickers;
+  renderStickerAdmin();
   adminLabels(); ui.admin.classList.add('show');
+}
+// ステッカーの欄：絵・出やすさ（1〜10）・在庫。保存を押すまで settings には書かない
+function renderStickerAdmin() {
+  const box = $('stkList'); box.textContent = '';
+  for (const id of STICKER_IDS) {
+    const s = settings.stickers[id];
+    const row = document.createElement('div'); row.className = 'stk-row' + (s.on ? '' : ' off'); row.dataset.id = id;
+    const pic = stickerEl(id); pic.className = 'stk-pic'; pic.alt = 'ステッカー' + id;
+    const mid = document.createElement('div'); mid.className = 'stk-mid';
+    const lab = document.createElement('div'); lab.className = 'stk-lab';
+    const val = document.createElement('span'); val.className = 'stk-val';
+    lab.append('出やすさ ', val);
+    const rng = Object.assign(document.createElement('input'), { type: 'range', min: 1, max: 10, step: 1, value: s.weight });
+    rng.className = 'stk-w';
+    mid.append(lab, rng);
+    const tog = document.createElement('label'); tog.className = 'stk-on';
+    const cb = Object.assign(document.createElement('input'), { type: 'checkbox', checked: s.on });
+    const txt = document.createElement('span');
+    tog.append(cb, txt);
+    const sync = () => { val.textContent = rng.value; txt.textContent = cb.checked ? '在庫あり' : '在庫なし'; row.classList.toggle('off', !cb.checked); stickerOdds(); };
+    rng.addEventListener('input', sync); cb.addEventListener('change', sync);
+    row.append(pic, mid, tog); box.appendChild(row); sync();
+  }
+}
+function readStickerAdmin() {
+  const o = stickerDefaults();
+  for (const row of $('stkList').children) {
+    const id = +row.dataset.id;
+    o[id] = { weight: +row.querySelector('.stk-w').value, on: row.querySelector('input[type=checkbox]').checked };
+  }
+  return o;
+}
+// 1枚目に出る確率を絵の横に（在庫ありの重みの割合）。全部「在庫なし」なら注意
+function stickerOdds() {
+  const cur = readStickerAdmin(), on = STICKER_IDS.filter((id) => cur[id].on);
+  const sum = on.reduce((s, id) => s + cur[id].weight, 0);
+  for (const row of $('stkList').children) {
+    const id = +row.dataset.id, el = row.querySelector('.stk-val');
+    el.textContent = cur[id].weight + (cur[id].on && sum ? '（' + Math.round(cur[id].weight / sum * 100) + '%）' : '');
+  }
+  $('stkWarn').textContent = on.length ? '' : '全部「在庫なし」です。この時は 6 種から均等に出ます';
 }
 function adminLabels() {
   adm.luckPVal.textContent = adm.luckP.value + '%'; adm.volVal.textContent = adm.volume.value + '%'; adm.speedVal.textContent = adm.speed.value + '%';
@@ -2535,18 +2597,30 @@ adm.cntReset.addEventListener('click', () => {
   adm.cntReset.textContent = 'ほんとに消す？（もう1回おす）';
   resetArmed = setTimeout(() => { resetArmed = null; adm.cntReset.textContent = 'リセット'; }, 3000);
 });
-adm.toTitle.addEventListener('click', () => { ui.admin.classList.remove('show'); setPhase('title'); game.titleShownAt = performance.now(); });
+// ステッカーの欄を変えたまま保存せずにとじる時は 1 回止める（11/9 検品：在庫なしにしたつもりで消える事故）
+const stickerDirty = () => JSON.stringify(readStickerAdmin()) !== JSON.stringify(settings.stickers);
+let leaveArmed = null;
+function confirmLeave(btn, go) {
+  if (leaveArmed === btn || !stickerDirty()) { clearTimeout(leaveArmed && leaveArmed._t); leaveArmed = null; restoreLeaveText(); go(); return; }
+  restoreLeaveText(); leaveArmed = btn; btn.dataset.text = btn.textContent;
+  btn.textContent = 'ステッカーの変更が保存されていません（もう1回おすと捨てる）';
+  btn._t = setTimeout(() => { leaveArmed = null; restoreLeaveText(); }, 4000);
+}
+function restoreLeaveText() { for (const b of [adm.close, adm.toTitle]) if (b.dataset.text) { b.textContent = b.dataset.text; delete b.dataset.text; } }
+adm.toTitle.addEventListener('click', () => confirmLeave(adm.toTitle, () => { ui.admin.classList.remove('show'); setPhase('title'); game.titleShownAt = performance.now(); }));
 adm.save.addEventListener('click', () => {
   settings.luckP = adm.luckP.value / 100; settings.luckSlot = adm.luckSlot.value;
   settings.volume = adm.volume.value / 100; settings.speed = adm.speed.value / 100;
+  settings.stickers = readStickerAdmin(); leaveArmed = null; restoreLeaveText();
   saveSettings(); audio.setVolume(settings.volume); ui.admin.classList.remove('show');
 });
-adm.close.addEventListener('click', () => ui.admin.classList.remove('show'));
+adm.close.addEventListener('click', () => confirmLeave(adm.close, () => ui.admin.classList.remove('show')));
 window.addEventListener('hashchange', () => { if (location.hash === '#admin') openAdmin(); });
 
 // ---------------- 確認用の窓口（Playwright から使う） ----------------
 const dbg = {};
 window.__ufo = {
+  drawStickers: (n, reset) => { const out = {}; for (let i = 0; i < (n || 1); i++) { if (reset !== false) game.stickers = []; const id = pickSticker(); out[id] = (out[id] || 0) + 1; } return out; },   // 確かめ用：重みと在庫どおりに出るか
   dbg,
   unlockAudio: () => { audio.unlock(); audio.tap(); },
   setLastInput: (v) => { game.lastInputAt = v; },

@@ -15,7 +15,7 @@
   </script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=28">
+  <link rel="stylesheet" href="style.css?v=29">
   <title>ぽちゃもん UFOキャッチャー</title>
 </head>
 <body class="phase-loading">
@@ -84,6 +84,10 @@
           <input type="range" id="volume" min="0" max="100" step="10"></label>
         <label>速さ <span id="speedVal"></span>
           <input type="range" id="speed" min="60" max="160" step="10"></label>
+        <div class="stk-head">ステッカー（出やすさ 1〜10・在庫）</div>
+        <div id="stkList" class="stk-list"></div>
+        <div id="stkWarn" class="stk-warn"></div>
+        <div class="admin-hint">在庫なしのステッカーは出ません。（　）の％は 1 枚目に出る確率。1 ゲームの中では、まだ出ていないステッカーから選びます</div>
         <div class="admin-counter">きょう：<span id="cntGames">0</span>回あそんで ステッカー <span id="cntStickers">0</span>枚
           <button id="cntReset" class="mini-text" type="button">リセット</button></div>
         <div class="admin-actions">
@@ -99,7 +103,7 @@
     <div id="coin" class="hidden" aria-label="ぽちゃもんコイン"><div id="coinImg"></div></div>
   </div>
 
-  <script src="led.js?v=28"></script>
-  <script src="game.js?v=28"></script>
+  <script src="led.js?v=29"></script>
+  <script src="game.js?v=29"></script>
 </body>
 </html>
