@@ -459,7 +459,9 @@ function appSize() {
   if (app && sw && sh) {
     const land = w >= h, L = Math.max(sw, sh), S = Math.min(sw, sh);   // iOS の screen は向きで入れ替わらないことがある＝長い辺と短い辺で見る
     const fw = land ? L : S, fh = land ? S : L;
-    if (Math.abs(w - fw) <= 2 && fh > h && fh - h <= 140) h = fh;
+    // 足すのは 60px まで（本人の iPad の帯は約 40pt＝時計の帯 24＋下のバー 20）。iPad の窓表示（ステージマネージャ等）で横幅いっぱい・
+    // 高さだけ少し短い窓に、画面の高さを当てて下がはみ出さないように（11/10 検品）
+    if (Math.abs(w - fw) <= 2 && fh > h && fh - h <= 60) h = fh;
   }
   return { w, h, app, innerW: window.innerWidth, innerH: window.innerHeight, sw, sh };
 }
@@ -1102,7 +1104,8 @@ function nearestBodies(x0, y0) {
     for (let j = 0; j < h.ny; j++) for (let i = 0; i < h.nx; i++) {
       if (h.top[j * h.nx + i] === HF_NONE) continue;
       const px = h.x0 + i * s + t.dx, py = h.y0 + j * s + t.dy, d = Math.hypot(px - x0, py - y0);
-      if (d < bd) { bd = d; bx = px; by = py; }
+      // その子が一番上に出ている所だけ（ほかの子の下敷きの所へ寄せると、上の子の高さで止まって下の子を抜き取る形になる・11/10 検品）
+      if (d < bd && normalTop(px, py).on === t) { bd = d; bx = px; by = py; }
     }
     if (bd < Infinity) out.push({ t, x: bx, y: by, d: bd });
   }
@@ -1659,7 +1662,9 @@ function aimFor(t) {
 // 開いた爪がびろーんに深く入るなら、そこから横へずらす（landingFor・最大6cm）。ずらしても入るなら null（つかめない）
 function exactAim(t, x, y) {
   const hx = t.hold.x + t.dx, hy = t.hold.y + t.dy, d = Math.hypot(hx - x, hy - y), k = d > 1e-6 ? Math.min(1, CFG.aimPull / d) : 0;
-  return landingFor(t, x + (hx - x) * k, y + (hy - y) * k);
+  // 台車の動ける範囲の中へ（範囲の外の点で止まる高さを決めると、着く所と合わない・11/10 検品）
+  const a = landingFor(t, clamp(x + (hx - x) * k, bounds.x0, bounds.x1), clamp(y + (hy - y) * k, bounds.y0, bounds.y1));
+  return a && { x: clamp(a.x, bounds.x0, bounds.x1), y: clamp(a.y, bounds.y0, bounds.y1), shift: a.shift };
 }
 // 開いた爪で (x, y) の真下へ下りた時に止まる円盤の高さ（11/10）。つかむ子 t の上では、真ん中が面から holdDzToy（5cm×大きさ）沈むまで
 // （前の「つかむ点＝てっぺんから5cm下」と同じ深さ）。つかむ子が無い時は面に着くまで。ただし開いた爪先が下の形（ぬいぐるみ・びろーん・床）へ
@@ -1667,6 +1672,9 @@ function exactAim(t, x, y) {
 function landingZ(x, y, t) {
   let zc = topAt(x, y) - (t ? CFG.holdDzToy * t.data.scale : 0.004) - CFG.padDz;
   for (const p of padTips(x, y, 0, CFG.armOpen)) zc = Math.max(zc, topAt(p.x, p.y) - CFG.padPress + CFG.padR - p.z);
+  // つかむ子の上では、爪先をその子のつかむ点（てっぺんから5cm下）より下へは下ろさない。丸が子の脇の斜面にあると最大 6cm 低く止まり、
+  // 持ち上げの初めに子が 1cm ほど沈んでから上がった（11/10 検品）
+  if (t) zc = Math.max(zc, t.hold.z + t.dz - CFG.padDz);
   return Math.max(0.19, zc);
 }
 // 絵の一部を、別の物の形で型を抜いて描き直す（びろーんとアーム・持った子の前後を、描く順番と逆にしたい所だけ）。
@@ -2892,7 +2900,10 @@ function drawScene() {
       const { top, bot } = pointerLineEnds(ptr);
       if (ptrOcc) {   // 隠している子の後ろ（その子自身の奥なら、その子の後ろ）へ線を入れる
         const iOn = ptr.on ? rest.indexOf(ptr.on) : -1;
-        iLine = Math.max(0, Math.min(rest.indexOf(ptrOcc), iOn + 1));
+        // 丸が床の上（乗っている子が無い）なら、隠している子のすぐ前。前は 0（全部の子の前）にしていて、線より奥の子の絵が
+        // 見えるはずの線を切った（床で隠れる 154 点のうち 75 点・11/10 検品）
+        const iOcc = rest.indexOf(ptrOcc);
+        iLine = Math.max(0, ptr.on ? Math.min(iOcc, iOn + 1) : iOcc);
       } else {
         const mid = project(x, y, (z + claw.z + scene.machine.claw.pad_bottom) / 2);
         iLine = Math.max(iPtr, insertionIndex(rest, mid.d, [Math.min(top.u, bot.u) - 4, top.v, Math.max(top.u, bot.u) + 4, bot.v]));
