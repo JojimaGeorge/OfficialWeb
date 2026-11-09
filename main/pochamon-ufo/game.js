@@ -59,6 +59,16 @@ const CFG = {
   bulbStep: 0.22,       // 電球の追いかけ点灯の1コマ（秒）
   bgmVol: 0.5,          // BGM の音量（効果音に対する割合）
   slump: 0.55,          // 持ち上げた子の上に乗っていた子が穴へ沈む深さ（持ち上げた子の高さに対する割合）
+  // びろーんの縁の上下（11/9 午後・本人「びろーんの下の子をすくい上げる時に、その子がびろーんにめり込む。物理的にちゃんと段差が上がるように」
+  // 「クレーンが降りる時も、そのままめり込む」）。びろーんを平たい板とみなし、反対側の縁を軸に、当たった所を上下させる（stepFlex）
+  padR: 0.016,          // 爪の先の玉の半径（m）
+  flatPressMax: 0.03,   // 爪が上から当たった時に、びろーんが沈む深さの上限（m）。これより深く入る所へは下りない（横へずらす＝armShiftMax）
+  armShiftMax: 0.06,    // 開いた爪がびろーんの中に深く下りる時、台車を横へずらす距離の上限（m）。ずらしても入る子は選ばない
+  flatThick: 0.015,     // びろーんの厚み（上の面から裏まで・m）
+  flatRideK: 0.6,       // 下の子が持ち上がる速さに対して、上に乗っていたびろーんの縁が上がる割合（肩の上を滑りながら上がる）
+  flatRideMax: 0.045,   // 縁が上がる高さの上限（m）。ここで肩から外れて落ちる
+  flatSlide: 0.02,      // 外れた後に、持ち上げた子から離れる距離（m）
+  flatFollow: 0.3,      // 当たっている間、縁が目標の高さに追いつく速さ（m/秒・アームが上がる速さくらい。0.6 では爪が離れた瞬間に 3cm 跳ねた）
   shadowAlpha: 0.6,     // UFO の影の濃さ（Blender の影そのままだと絵の上で穴に見える）
   clawShadow: false,    // UFO の影を描くか（2026-10-29 本人「不自然だから一旦消す」＝止めている。絵と仕組みは残す）
   // 狙いの目印（2026-10-30 本人「どの位置にいるかが分かりづらい。ぬいぐるみのどの真下を通っているか分かるように」）：
@@ -99,7 +109,7 @@ const CFG = {
 // ---------------- DOM ----------------
 const $ = (id) => document.getElementById(id);
 const canvas = $('scene');
-const ctx = canvas.getContext('2d', { alpha: true });
+let ctx = canvas.getContext('2d', { alpha: true });   // びろーんとの前後を描き直す時だけ、一時的に別の canvas に差し替える（drawMasked）
 const ui = {
   coin: $('coin'), coinImg: $('coinImg'),
   msg: $('msg'), guide: $('guide'), btnX: $('btnX'), btnY: $('btnY'),
@@ -608,13 +618,31 @@ function drawConsoles() {
   const L = con.data.L, inPlay = game.phase !== 'title' && game.phase !== 'loading';
   drawLed(conRect('L', L.led_tries), inPlay ? CFG.tries - game.tryIndex : (con.credit ? CFG.tries : null), 'tries');
   drawLed(conRect('L', L.led_got), inPlay ? game.got : (con.credit ? 0 : null), 'got');
-  // タイトル中：投入口がやわらかく光って「ここに入れる」を教える
+  // タイトル中：投入口が中から光って「ここに入れる」を教える（11/9 午後 本人「光り方が汚いというか雑」＝前は桃色の丸いもやを金属の板の上に
+  // ふつうに重ねていて、口は暗いまま、灰色の金属と混ざって濁った紫になっていた）。口の中に明るい芯、まわりは口の形の細いにじみだけ（足し算で
+  // 重ねる＝濁らない）。にじみは金属の板の中だけ。1.4 秒でゆっくり明るくなったり暗くなったりする
   if (game.phase === 'title' && coinUI.state !== 'inserting') {
-    const sl = conRect('L', L.slit), g = 0.3 + 0.3 * (0.5 + 0.5 * Math.sin(t * 2 * Math.PI / 1.2));
-    const cx = sl.x + sl.w / 2, cy = sl.y + sl.h / 2, rr = sl.h * 0.9;
-    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
-    grd.addColorStop(0, 'rgba(255,170,205,' + g + ')'); grd.addColorStop(1, 'rgba(255,170,205,0)');
-    ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.fill();
+    // 光らせる所は、絵の暗い溝に合わせる（console.json の slit より、絵の溝は下へ 11px・左へ 2px 長い＝操作盤の絵で測った）
+    const s0 = L.slit, sl = conRect('L', [s0[0] - 2, s0[1], s0[2] + 2, s0[3] + 11]), pl = conRect('L', L.slot_plate), pulse = 0.5 + 0.5 * Math.sin(t * 2 * Math.PI / 1.4);
+    const rr = (x, y, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
+    ctx.save();
+    ctx.beginPath(); ctx.rect(pl.x, pl.y, pl.w, pl.h); ctx.clip();
+    // にじみ：口の形を、ぼかした影だけで足す（影の大きさは画面の画素で指定する＝dpr を掛ける）
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = 'rgba(255,92,160,' + (0.5 + 0.4 * pulse).toFixed(3) + ')';
+    ctx.shadowBlur = sl.w * (2.2 + 1.0 * pulse) * view.dpr;
+    ctx.fillStyle = 'rgba(255,92,160,' + (0.25 + 0.2 * pulse).toFixed(3) + ')';
+    rr(sl.x, sl.y, sl.w, sl.h, sl.w / 2); ctx.fill();
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+    // 芯：口の中の光（上下の端は少し暗く、真ん中が白っぽい桃色）
+    ctx.globalCompositeOperation = 'source-over';
+    const g = ctx.createLinearGradient(0, sl.y, 0, sl.y + sl.h), a = 0.78 + 0.22 * pulse;
+    g.addColorStop(0, 'rgba(255,120,180,' + (a * 0.55).toFixed(3) + ')');
+    g.addColorStop(0.5, 'rgba(255,226,240,' + a.toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(255,120,180,' + (a * 0.55).toFixed(3) + ')');
+    ctx.fillStyle = g;
+    rr(sl.x + sl.w * 0.18, sl.y + sl.w * 0.18, sl.w * 0.64, sl.h - sl.w * 0.36, sl.w * 0.32); ctx.fill();
+    ctx.restore();
   }
 }
 // コイン：タイトルの札の真下にある → 持つと縦向きになる → 投入口へドラッグして離すと入る（チャリン）→ 表示が点く → スタート。
@@ -862,6 +890,7 @@ function resetToy(t) {
   if (t.hold0) { t.hold = t.hold0; t.holdUV = t.holdUV0; t.below = t.below0; t.armHold = t.armHold0; t.grip = -1; t._frames = null; }
   t.bounce = 0; t.bv = 0; t.target = null; t.reactors = null; t.reacted = false; t.landDz = 0; t.landRot = 0; t.out = null; t.prize = null;
   t.refilling = false; t.refillAt = null; t.fallAfter = null; restPose(t);
+  t.flex = null; t.flexD = 0; t.flexV = 0; t.sags = null; t.ride = null; t.press = 0; t.fClaw = null; t.fHeld = null;
 }
 function resetPile() { for (const t of toys) resetToy(t); }
 // タイトルに戻した時の片づけ：山を元の並びに・アームは一番上の左寄り（正面の絵と同じ）・パネルは説明へ
@@ -936,6 +965,7 @@ function relaxAround(t) {
 }
 function glideBack(a, delay) {
   if (a.state !== 'rest' && a.state !== 'settle') return;
+  a.ride = null; if (a.sags) for (const s of a.sags) s.rest = 0;   // びろーんの縁のたわみも戻る（stepFlex がばねで戻す）
   const T = restTarget(a);
   if (!(Math.abs(a.dx) + Math.abs(a.dy) + Math.abs(a.dz) + Math.abs(a.rot) + Math.abs(T.dx) + Math.abs(T.dy) + Math.abs(T.dz) + Math.abs(T.rot) > 1e-5)) return;
   a.target = { dx: 0, dy: 0, dz: 0, rot: 0 };
@@ -957,6 +987,7 @@ function pickToy(x, y) {
     if ((t.state !== 'rest' && t.state !== 'settle') || isFlat(t)) continue;
     if (toys.some((o) => isFlat(o) && (o.state === 'rest' || o.state === 'settle') && o.data.footprint &&
         inFootprint(o, t.hold.x + t.dx, t.hold.y + t.dy, -0.03))) continue;
+    if (!landingFor(t)) continue;   // 開いた爪が、横へずらしてもびろーんの中に深く入る（11/9 午後）
     const d = Math.hypot(t.hold.x + t.dx - x, t.hold.y + t.dy - y);
     let covered = 0;
     for (const o of toys) {
@@ -988,8 +1019,8 @@ function flatLanding(x, y) {
       grip = 3; z = tl.z + t.dz;
     } else if (e.dist <= 0.06) {
       grip = [1 / 6, 0.5, 5 / 6].reduce((bi, sk, k, arr) => (Math.abs(e.s - sk) < Math.abs(e.s - arr[bi]) ? k : bi), 0);
-      z = G[grip].z + t.dz;
-    } else z = e.zSurf + t.dz;
+      z = G[grip].z + t.dz + flexDzAt(t, G[grip].grab[0] + t.dx, G[grip].grab[1] + t.dy);
+    } else z = e.zSurf + t.dz + flexDzAt(t, x, y);
     if (!best || z > best.z) best = { toy: t, grip, z };
   }
   return best;
@@ -1012,7 +1043,7 @@ function homeToGrip(x0, y0) {
     });
   }
   const n = pickToy(x0, y0);
-  if (n) consider(Math.hypot(n.hold.x + n.dx - x0, n.hold.y + n.dy - y0), () => { game.target = n; game.landOn = n; game.zTarget = Math.max(0.19, n.hold.z + n.dz - CFG.padDz); });
+  if (n) consider(Math.hypot(n.hold.x + n.dx - x0, n.hold.y + n.dy - y0), () => { game.target = n; game.landOn = n; game.zTarget = Math.max(0.19, n.hold.z + n.dz - CFG.padDz); });   // 行き先は aimFor（descend）
   if (!best) return false;
   best.apply();
   return true;
@@ -1044,6 +1075,18 @@ function domeZ(t, x, y) {
   if (q >= 1) return null;
   const zm = (t.data.ztop + t.data.zbottom) / 2;
   return zm + (t.data.ztop - zm) * Math.sqrt(1 - q) + t.dz;
+}
+// ふつうの子 t の (x, y) での下の面の高さ（無ければ null）：domeZ の丸屋根を上下に返した形（裾は箱の高さの真ん中・一番下は zbottom）。
+// 持ち上げた子が、びろーんの縁より上に抜けたかを見る（11/9 午後：底の真ん中で見ると、縁が乗っていた肩の側はとっくに抜けているのに奥に描いた）
+function domeUnder(t, x, y) {
+  const b = t.data.bbox, gx = t.data.grab[0] + t.dx, gy = t.data.grab[1] + t.dy;
+  const rx = x >= gx ? b[1][0] + t.dx - gx : gx - (b[0][0] + t.dx);
+  const ry = y >= gy ? b[1][1] + t.dy - gy : gy - (b[0][1] + t.dy);
+  if (rx < 0.005 || ry < 0.005) return null;
+  const q = Math.abs((x - gx) / rx) ** 4 + Math.abs((y - gy) / ry) ** 4;
+  if (q >= 1) return null;
+  const zm = (t.data.ztop + t.data.zbottom) / 2;
+  return zm - (zm - t.data.zbottom) * Math.sqrt(1 - q) + t.dz;
 }
 // ぬいぐるみの絵の不透明な所（α）を、読み込んだ時に1回だけ取っておく：目印が「その子の絵の上に写るか」「手前の子に隠れるか」を絵で確かめる
 function buildMask(t) {
@@ -1081,7 +1124,7 @@ function surfaceUnder(x, y) {
     const t = fl.toy;
     let px = x, py = y;
     if (!inFootprint(t, x, y, 0.008)) { const q = nearestInside(t, x, y, 0.008); px = q.x; py = q.y; }
-    let zs = fl.grip === 3 ? fl.z : flatEdgeAt(t, px, py).zSurf + t.dz;   // 尻尾の上では尻尾の高さ
+    let zs = fl.grip === 3 ? fl.z : flatEdgeAt(t, px, py).zSurf + t.dz + flexDzAt(t, px, py);   // 尻尾の上では尻尾の高さ
     // 面の見積もりが絵の外に写る時は、絵の中に写る高さまで下げる（ふつうの子と同じ確かめ方）
     for (let i = 0, z0 = t.data.zbottom + t.dz, zt = zs; i <= 8; i++) { const zi = zt - (zt - z0) * i / 8, p = project(px, py, zi); if (toyCovers(t, p.u, p.v)) { zs = zi; break; } }
     return { z: zs, on: t, px, py };
@@ -1193,6 +1236,7 @@ function pileReact(src, drop, depth) {
   if (depth > 3) return;
   for (const a of toys) {
     if (a === src || (a.state !== 'rest' && a.state !== 'settle')) continue;
+    if (a.ride && a.ride.on === src) continue;   // 持ち上げた子に乗っていたびろーん：縁が一緒に上がって外れる（stepFlex・flatSlip）
     const s = a.supports.find((x) => x.t === src);
     let amount = 0, lean = 0;
     if (s) {
@@ -1229,6 +1273,266 @@ function pressAround(x, y, r, impulse) {
     const d = Math.hypot(t.hold.x - x, t.hold.y - y);
     if (d < r) nudgeToy(t, impulse * (1 - d / r));
   }
+}
+
+// ---------------- びろーんの縁の上下（11/9 午後） ----------------
+// 本人「びろーんの下の子をすくい上げる時に、その子がびろーんにめり込む。物理的にちゃんと段差が上がるように」「クレーンが降りる時も、そのままめり込む」。
+// 前はびろーんが動かず、爪と持ち上げた子がびろーんの裏を通って見えた（描く順番は1体ずつの奥行きで、幅26cmの板の奥の縁に乗った物まで板の裏になる）。
+// びろーんを平たい板とみなし、当たった所の反対側の縁を軸にして、当たった所を上下させる（絵は1枚のまま、画面の上で3点を合わせて変形する＝flexMatrix）。
+//  ・爪が上から当たる：当たった所が沈む（CFG.flatPressMax まで）。爪は板の手前に描く（drawScene）
+//  ・下の子を持ち上げる：その子の肩が板の裏に当たったら、縁が一緒に上がる（CFG.flatRideK の割合で CFG.flatRideMax まで）→ 肩から外れて
+//    弾みながら落ち、空いた所へ少したわんで、持ち上げた子から少し離れる（flatSlip）
+// t.flex＝{ ax, ay（軸の上の1点・その子の dx/dy を引いた値）, nx, ny（軸から当たった所への向き）, d0（軸から当たった所まで）}
+// t.flexD＝今当たっている所の上下（m・上が正。何も当たっていなければ 0 へ戻る）。t.sags＝外れた後のたわみ [{ f（軸）, d, v, rest, on }]
+// （軸ごとに別に持って足す。外れた後も同じ軸を使い続けると、次の回に軸の近くを押した時に割り増しされて潰れた・11/9 検品）
+// アームの爪先（左右2本の玉の中心）：円盤の中心 (x, y, z) から、開き具合 arm（度・負が開く）で腕を回した所。腕は世界の x の向きに開く（Blender の寸法）
+function padTips(x, y, z, arm) {
+  const C = scene.machine.claw, th = -arm * Math.PI / 180;
+  const vx = C.pad_dx - C.pivot_dx, vz = C.pad_dz - C.pivot_dz;   // 支点 → 爪先（閉じた 0° の時）
+  const ox = C.pivot_dx + vx * Math.cos(th) - vz * Math.sin(th), oz = C.pivot_dz + vx * Math.sin(th) + vz * Math.cos(th);
+  return [{ x: x - ox, y, z: z + oz }, { x: x + ox, y, z: z + oz }];
+}
+// 今のアームの爪先（ケーブルの振れの分もずらす。持った子の爪先の見積もりと同じ）
+function clawPads() {
+  return padTips(claw.x - CFG.padDz * Math.sin(claw.thx), claw.y - CFG.padDz * Math.sin(claw.thy), claw.z, claw.arm);
+}
+// (x, y) からびろーん t の床の輪郭までの距離（中が正・外が負）。凸の輪郭の辺ごとの距離の一番小さいもの
+function flatInset(t, x, y) {
+  const fp = t.data.footprint, px = x - t.dx, py = y - t.dy;
+  let m = Infinity;
+  for (let i = 0; i < fp.length; i++) {
+    const a = fp[i], b = fp[(i + 1) % fp.length], ex = b[0] - a[0], ey = b[1] - a[1];
+    const d = (ex * (py - a[1]) - ey * (px - a[0])) / (Math.hypot(ex, ey) || 1);
+    if (d < m) m = d;
+  }
+  return m;
+}
+// びろーん t の (x, y) での上の面の高さ。輪郭の外なら、輪郭の内側の一番近い所の高さ。
+// mode＝true：縁の上下を入れない／'sag'：外れた後のたわみだけ入れる／無し：全部入れる
+function flatSurf(t, x, y, mode) {
+  let px = x, py = y;
+  if (flatInset(t, x, y) < 0.008) { const q = nearestInside(t, x, y, 0.008); px = q.x; py = q.y; }
+  let z = flatEdgeAt(t, px, py).zSurf + t.dz;
+  if (mode === 'sag') { if (t.sags) for (const s of t.sags) z += s.d * flexW(s.f, t, px, py); } else if (mode !== true) z += flexDzAt(t, px, py);
+  return z;
+}
+// 当たった所 (cx, cy) の反対側の縁を軸にする：輪郭の真ん中から当たった所への向きで見て、一番遠い端を通り、その向きに直角な線
+function flexAxis(t, cx, cy) {
+  const fp = t.data.footprint;
+  let gx = 0, gy = 0;
+  for (const p of fp) { gx += p[0]; gy += p[1]; }
+  gx = gx / fp.length + t.dx; gy = gy / fp.length + t.dy;
+  let nx = cx - gx, ny = cy - gy;
+  const nl = Math.hypot(nx, ny);
+  if (nl < 0.01) { nx = 0; ny = 1; } else { nx /= nl; ny /= nl; }   // 真ん中に当たった時は手前の縁を軸に（奥が沈む）
+  let lo = Infinity, ax = gx, ay = gy;
+  for (const p of fp) { const v = (p[0] + t.dx) * nx + (p[1] + t.dy) * ny; if (v < lo) { lo = v; ax = p[0] + t.dx; ay = p[1] + t.dy; } }
+  return { ax: ax - t.dx, ay: ay - t.dy, nx, ny, d0: Math.max(0.05, (cx - ax) * nx + (cy - ay) * ny) };
+}
+// 軸 f（flexAxis の戻り値）から見て、(x, y) がどれだけ離れているか（当たった所を 1 とする割合）。板の中では直線のまま（変形を3点で表せる）
+function flexW(f, t, x, y) { return clamp(((x - f.ax - t.dx) * f.nx + (y - f.ay - t.dy) * f.ny) / f.d0, 0, 3); }
+function flexWeight(t, x, y) { return t.flex ? flexW(t.flex, t, x, y) : 0; }
+// (x, y) の上下＝今当たっている分（t.flex・t.flexD）＋外れた後のたわみ（t.sags。それぞれ自分の軸を持つ）の和
+function flexDzAt(t, x, y) {
+  let z = t.flex && t.flexD ? t.flexD * flexW(t.flex, t, x, y) : 0;
+  if (t.sags) for (const s of t.sags) z += s.d * flexW(s.f, t, x, y);
+  return z;
+}
+// 輪郭の点のうち、一番大きい三角形になる3つ（変形を写す3点。1回だけ探す）
+function bigTriangle(fp) {
+  let best = [0, 1, 2], ba = -1;
+  for (let i = 0; i < fp.length; i++) for (let j = i + 1; j < fp.length; j++) for (let k = j + 1; k < fp.length; k++) {
+    const a = Math.abs((fp[j][0] - fp[i][0]) * (fp[k][1] - fp[i][1]) - (fp[k][0] - fp[i][0]) * (fp[j][1] - fp[i][1]));
+    if (a > ba) { ba = a; best = [i, j, k]; }
+  }
+  return best;
+}
+// 画面の上での変形（びろーんの絵に掛ける ctx.transform の6つ）：板の輪郭の3点が、上下した所へ写る対応（どの軸の上下も板の中では直線＝足しても3点で表せる）
+function flexMatrix(t) {
+  if (!((t.flex && Math.abs(t.flexD || 0) > 1e-4) || (t.sags && t.sags.length))) return null;
+  const fp = t.data.footprint, tri = t.flexTri || (t.flexTri = bigTriangle(fp)), src = [], dst = [];
+  for (const i of tri) {
+    const x = fp[i][0] + t.dx, y = fp[i][1] + t.dy, z = flatSurf(t, x, y, true);
+    src.push(project(x, y, z)); dst.push(project(x, y, z + flexDzAt(t, x, y)));
+  }
+  const x0 = src[0].u, y0 = src[0].v, det = (src[1].u - x0) * (src[2].v - y0) - (src[2].u - x0) * (src[1].v - y0);
+  if (Math.abs(det) < 1e-6) return null;
+  const solve = (q0, q1, q2) => {   // q＝写した先の u か v を、元の u・v の1次式 A*u + B*v + C で表す
+    const A = ((q1 - q0) * (src[2].v - y0) - (q2 - q0) * (src[1].v - y0)) / det;
+    const B = ((src[1].u - x0) * (q2 - q0) - (src[2].u - x0) * (q1 - q0)) / det;
+    return [A, B, q0 - A * x0 - B * y0];
+  };
+  const U = solve(dst[0].u, dst[1].u, dst[2].u), V = solve(dst[0].v, dst[1].v, dst[2].v);
+  return [U[0], V[0], U[1], V[1], U[2], V[2]];
+}
+// 持ち上げ始め：持ち上げる子 T の上に乗っているびろーんを覚える（その子の肩が板の裏に当たったら、縁が一緒に上がる）
+function setupRides(T) {
+  for (const t of toys) {
+    if (t === T || !isFlat(t) || !t.data.footprint || (t.state !== 'rest' && t.state !== 'settle')) continue;
+    const s = (t.supports || []).find((x) => x.t === T);
+    if (!s || s.f < 0.1) continue;
+    const c = nearestInside(t, T.data.center[0] + T.dx, T.data.center[1] + T.dy, 0.02);   // 板のうち、その子に一番近い所（ここが肩に乗っている）
+    const top = domeZ(T, c.x, c.y);   // そこでの、その子の面の高さ（丸屋根の見積もり）
+    if (top == null) continue;
+    const others = t.supports.reduce((acc, x) => acc + (x.t !== T ? x.f : 0), 0) + t.floorF * 0.6, loss = s.f / (s.f + others);
+    const half = (T.data.ztop - T.data.zbottom) / 2;
+    t.ride = { on: T, h0: T.dz, slipped: false, cx: c.x - t.dx, cy: c.y - t.dy,
+               gap: Math.max(0, flatSurf(t, c.x, c.y) - CFG.flatThick - top),   // 板の裏と肩の隙間（この分は持ち上げても縁は動かない）
+               cap: clamp(half * 0.5, 0.015, CFG.flatRideMax),                  // 縁が上がる高さ（肩の丸みの上を滑る分）
+               sag: clamp(half * 2 * CFG.slump * loss * 1.5, 0.01, 0.035),     // 外れた後に、空いた所へたわむ深さ
+               slide: CFG.flatSlide * clamp(loss / 0.2, 0.5, 1.5) };
+    if (!t.flex || Math.abs(t.flexD || 0) < 0.002) t.flex = flexAxis(t, c.x, c.y);   // 今当たっている分の軸（爪で押している最中なら、その軸のまま）
+  }
+}
+// 縁が肩から外れる：今上がっている分を「外れた後のたわみ」（自分の軸を持つ）へ移し、ばねで空いた所へ落とす（弾む）。
+// 今当たっている分の枠は空けて、次に当たった所で軸を取り直す（11/9 検品：外れた後も同じ軸を使い続け、次の回に軸の近くを爪で押すと
+// 押した深さが軸からの近さで割り増しされ、2.2cm 押しただけで縁が 7.2cm 沈んで潰れた）。持ち上げた子から少し離れる
+function flatSlip(t) {
+  const R = t.ride, T = R.on;
+  R.slipped = true;
+  if (t.flex) (t.sags || (t.sags = [])).push({ f: t.flex, d: t.flexD || 0, v: t.flexV || 0, rest: -R.sag, on: T });
+  t.flex = null; t.flexD = 0; t.flexV = 0;
+  const cx = R.cx + t.dx, cy = R.cy + t.dy;
+  let nx = cx - (T.data.center[0] + (T.restDx || 0)), ny = cy - (T.data.center[1] + (T.restDy || 0));
+  const nl = Math.hypot(nx, ny) || 1;
+  nx /= nl; ny /= nl;
+  const base = restTarget(t);
+  t.target = { dx: base.dx + nx * R.slide, dy: base.dy + ny * R.slide, dz: base.dz, rot: base.rot };
+  t.settleFrom = { dx: t.dx, dy: t.dy, dz: t.dz, rot: t.rot }; t.settleT = 0;
+  t.settleDur = 0.45; t.settleDelay = 0; t.state = 'settle'; t.vz = 0;
+}
+// ばね（2Hz・1割ほど行き過ぎて戻る。減衰 9 では外れた後に 2.3cm 行き過ぎて深く沈んだ）。[位置, 速さ] を返す
+function flexSpring(d, v, target, dt) {
+  v += (-(d - target) * 160 - v * 14) * dt; d += v * dt;
+  if (Math.abs(d - target) < 3e-4 && Math.abs(v) < 3e-3) { d = target; v = 0; }
+  return [d, v];
+}
+// 毎コマ：爪が当たっている深さと、下の子の持ち上がりから、びろーんの縁の上下を決める。当たっていない時は 0 へばねで戻る（弾む）。
+// 外れた後のたわみ（t.sags）は、それぞれの rest へばねで動き、戻りきったら消える
+function stepFlex(dt) {
+  if (!(dt > 0)) return;
+  const pads = clawPads();
+  for (const t of toys) {
+    if (!isFlat(t) || !t.data.footprint) continue;
+    if (t.state !== 'rest' && t.state !== 'settle') {   // 持たれた（吊った姿の絵になる）・落ちた：上下は消す
+      t.flexD = approach(t.flexD || 0, 0, 0.4 * dt); t.flexV = 0; t.ride = null; t.press = 0;
+      if (!t.flexD) t.flex = null;
+      if (t.sags) { for (const s of t.sags) { s.d = approach(s.d, 0, 0.4 * dt); s.v = 0; } t.sags = t.sags.filter((s) => s.d); if (!t.sags.length) t.sags = null; }
+      continue;
+    }
+    // ① 爪が上から当たる（玉の外側が輪郭の外の帯で触れるだけの時は弱く）。下りる・閉じる間だけ。持ち上げ始めたら、ばねで戻る（爪について上がる）
+    let press = 0, pc = null;
+    if ((game.phase === 'descend' || game.phase === 'grab') && claw.held !== t && game.target !== t) {
+      for (const p of pads) {
+        const ins = flatInset(t, p.x, p.y), band = CFG.padR + 0.01;
+        if (ins < -band) continue;
+        const need = flatSurf(t, p.x, p.y, 'sag') - (p.z - CFG.padR);   // 外れた後のたわみだけ入れた面より、爪の下が低い分（今当たっている分は入れない＝押した分で減らない）
+        if (need <= 0) continue;
+        const k = clamp((ins + band) / band, 0, 1), v = Math.min(need, CFG.flatPressMax) * k * k * (3 - 2 * k);
+        if (v > press) { press = v; pc = p; }
+      }
+    }
+    t.press = press;
+    // ② 下の子が持ち上がる
+    let ride = null;
+    const R = t.ride;
+    if (R) {
+      const T = R.on;
+      if (!R.slipped && (T.state === 'held' || (T.state === 'falling' && !T.refilling))) {
+        const up = (T.dz - R.h0 - R.gap) * CFG.flatRideK;
+        if (T.state === 'held' && up >= R.cap) flatSlip(t); else ride = clamp(up, 0, R.cap);
+      } else if (T.refilling || T.state === 'gone') {
+        // 補充で上から落とし直す・取り出し口から去った：もう乗っていない（11/9 検品：補充の落下を外れの回の落下と読み、縁が 4.3cm 上がった）。
+        // 外れた後のたわみはそのまま（補充の glideBack が戻す）。上がっていく途中の勢いは捨てる（持ち上げていた子が消えたのに、縁だけ跳ね上がらない）
+        t.ride = null; t.flexV = 0;
+      } else if (T.state === 'rest' || T.state === 'settle') {   // 外れの回で落ちて元の場所に戻った：縁も戻る
+        t.ride = null;
+        if (t.sags) for (const s of t.sags) if (s.on === T) s.rest = 0;
+      }
+    }
+    // ③ 今当たっている分：当たったら軸を取る（押しているのが小さい時だけ取り直す）→ 目標の高さへ追いつく。当たっていなければ 0 へばねで戻る
+    const driven = press > 0 || ride != null;
+    if (driven && (!t.flex || (press > 0 && ride == null && Math.abs(t.flexD || 0) < 0.002))) {
+      t.flex = flexAxis(t, pc ? pc.x : R.cx + t.dx, pc ? pc.y : R.cy + t.dy);
+    }
+    let target = ride != null ? ride : 0;
+    if (press > 0) target = Math.min(target, -Math.min(press / Math.max(0.5, flexWeight(t, pc.x, pc.y)), CFG.flatPressMax * 1.6));
+    const d0 = t.flexD || 0;
+    if (driven) { t.flexD = approach(d0, target, CFG.flatFollow * dt); t.flexV = (t.flexD - d0) / dt; }
+    else if (d0 || t.flexV) [t.flexD, t.flexV] = flexSpring(d0, t.flexV || 0, 0, dt);
+    if (!t.flexD && !driven) t.flex = null;
+    // ④ 外れた後のたわみ
+    if (t.sags) {
+      for (const s of t.sags) [s.d, s.v] = flexSpring(s.d, s.v, s.rest, dt);
+      t.sags = t.sags.filter((s) => s.rest || s.d || s.v);
+      if (!t.sags.length) t.sags = null;
+    }
+  }
+}
+// ふつうの子 t をつかみに下りる時の、台車の行き先。開いた爪がびろーんの中に深く（面より CFG.flatPressMax より下まで）入る時は、
+// 爪がびろーんの縁で外へ滑ったように、入らない所まで横へずらす（CFG.armShiftMax まで）。ずらしても入る時は null（びろーんに埋まっていてつかめない）。
+// 前は子のてっぺんがびろーんの輪郭から3cm離れていれば選んでいて、開いた爪（真ん中から左右に約7cm）が板の中に下り、13番では右の爪が面より10cm下まで入った
+function landingFor(t) {
+  const hx = t.hold.x + t.dx, hy = t.hold.y + t.dy, z = t.hold.z + t.dz - CFG.padDz;
+  const flats = toys.filter((o) => o !== t && isFlat(o) && o.data.footprint && (o.state === 'rest' || o.state === 'settle'));
+  const ok = (x, y) => {
+    for (const p of padTips(x, y, z, CFG.armOpen)) {
+      for (const o of flats) {
+        if (flatInset(o, p.x, p.y) <= CFG.padR * 0.5) continue;   // 縁に触れるだけなら、押して沈める（stepFlex）
+        if (flatSurf(o, p.x, p.y) - (p.z - CFG.padR) > CFG.flatPressMax + 0.01) return false;
+      }
+    }
+    return true;
+  };
+  if (!flats.length || ok(hx, hy)) return { x: hx, y: hy, shift: 0 };
+  for (let r = 0.005; r <= CFG.armShiftMax + 1e-9; r += 0.005) {
+    for (let k = 0; k < 16; k++) {
+      const x = hx + r * Math.cos(k * Math.PI / 8), y = hy + r * Math.sin(k * Math.PI / 8);
+      if (x < bounds.x0 || x > bounds.x1 || y < bounds.y0 || y > bounds.y1) continue;
+      if (ok(x, y)) return { x, y, shift: r };
+    }
+  }
+  return null;
+}
+// 下りる先（台車の行き先）：びろーんはつまむ所の真上、ふつうの子は爪がびろーんに深く入らない所
+function aimFor(t) {
+  if (!t) return null;
+  if (isFlat(t)) return { x: t.hold.x + t.dx, y: t.hold.y + t.dy, shift: 0 };   // 外れて滑った分（flatSlip）も入れる（11/9 検品：入れないと 2.2cm ずれて下りた）
+  return landingFor(t) || { x: t.hold.x + t.dx, y: t.hold.y + t.dy, shift: 0 };
+}
+// 絵の一部を、別の物の形で型を抜いて描き直す（びろーんとアーム・持った子の前後を、描く順番と逆にしたい所だけ）。
+// box＝背景の絵の px の範囲。content を描き、mask の不透明な所だけ残して、alpha で重ねる。2枚の canvas はその範囲の大きさだけ使う
+const maskA = document.createElement('canvas'), maskB = document.createElement('canvas');
+const maskGA = maskA.getContext('2d'), maskGB = maskB.getContext('2d');
+const MASK_GROW = [[0, 0], [2, 0], [-2, 0], [0, 2], [0, -2], [1.4, 1.4], [-1.4, 1.4], [1.4, -1.4], [-1.4, -1.4]];   // 型をずらして重ねる所（画素）
+const boxAnd = (a, b) => { const x0 = Math.max(a[0], b[0]), y0 = Math.max(a[1], b[1]), x1 = Math.min(a[2], b[2]), y1 = Math.min(a[3], b[3]); return x1 > x0 && y1 > y0 ? [x0, y0, x1, y1] : null; };
+function drawMasked(box, content, mask, alpha) {
+  if (!box || !(alpha > 0.01) || qs.get('flatfix') === '0') return;   // ?flatfix=0 で描き直しを止める（比べる時）
+  // 裏の canvas の画素を、画面の canvas の画素にぴったり揃える（1画素未満ずれると、型と本体の位置が合わず輪郭が細い線で残った・11/9 午後）
+  const T = ctx.getTransform(), S = T.a;   // 背景の絵の px → 画面の canvas の画素（拡大と平行移動だけ）
+  const px0 = Math.floor(box[0] * S + T.e) - 2, py0 = Math.floor(box[1] * S + T.f) - 2;
+  const w = Math.ceil(box[2] * S + T.e) + 2 - px0, h = Math.ceil(box[3] * S + T.f) + 2 - py0;
+  if (w < 2 || h < 2 || w > 4096 || h > 4096) return;
+  for (const [cv, g] of [[maskA, maskGA], [maskB, maskGB]]) {
+    if (cv.width < w || cv.height < h) { cv.width = Math.max(cv.width, w); cv.height = Math.max(cv.height, h); }
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(0, 0, w, h);
+    g.setTransform(S, 0, 0, S, T.e - px0, T.f - py0);
+  }
+  const main = ctx;
+  // 型は8方向に2画素ずつずらして重ね、外側へ2画素太らせる（輪郭の外側の半透明な帯まで覆う）。そのまま1回だと、型の縁で描き直しが半分しか乗らず、
+  // 下に描いてあった物の黒い輪郭線が細い線で残った（11/9 午後・18番を持ち上げた時。4回重ねて 8%・1画素太らせてもうっすら残った）
+  // 描く物の中で save/clip が残っても次へ持ち越さないように、裏の canvas は1回ずつ保存して戻す（11/9 検品）
+  try {
+    ctx = maskGA; maskGA.save(); try { content(); } finally { maskGA.restore(); }
+    ctx = maskGB;
+    for (const [ox, oy] of MASK_GROW) { maskGB.setTransform(S, 0, 0, S, T.e - px0 + ox, T.f - py0 + oy); maskGB.save(); try { mask(); } finally { maskGB.restore(); } }
+  } finally { ctx = main; }
+  maskGA.setTransform(1, 0, 0, 1, 0, 0); maskGA.globalCompositeOperation = 'destination-in';
+  maskGA.drawImage(maskB, 0, 0, w, h, 0, 0, w, h);
+  maskGA.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = alpha;
+  ctx.drawImage(maskA, 0, 0, w, h, px0, py0, w, h);
+  ctx.restore();
 }
 
 // ---------------- ステッカーの絵柄 ----------------
@@ -1444,10 +1748,13 @@ function setPhase(p) {
       // 前は空振りにして、当たりを後の外れの回へ持ち越していた＝最後の回だと持ち越せずに消えた）
       game.homing = false;
       if (game.outcome === 'win' && !game.target) game.homing = homeToGrip(claw.cx, claw.cy);
-      // つかむ所が離れていても、下りきるまでに寄せ切る（寄せが残ると閉じたまま滑る）。びろーんは縁に沿って数cmだけ。寄せる時（homing）は少し速く
+      // 台車の行き先（11/9 午後）：ふつうの子は、開いた爪がびろーんの中に深く入らない所（横へずれた分は、持ち上げで子が爪の真下へ寄る）
+      game.aim = aimFor(game.target);
+      // つかむ所が離れていても、下りきるまでに寄せ切る（寄せが残ると閉じたまま滑る）。びろーんは縁に沿って数cmだけ。寄せる時（homing）は少し速く。
+      // 爪をびろーんから外すためにずらした時も、下りきるまでに着く（着かないと爪がびろーんの中に下りる）
       game.driftV = CFG.driftSpeed;
-      if (game.target && (isFlat(game.target) || game.homing)) {
-        const d = Math.hypot(game.target.hold.x - claw.cx, game.target.hold.y - claw.cy);
+      if (game.target && (isFlat(game.target) || game.homing || game.aim.shift > 0)) {
+        const d = Math.hypot(game.aim.x - claw.cx, game.aim.y - claw.cy);
         game.driftV = clamp(d / (Math.max(0.2, (claw.z - game.zTarget) / CFG.descendSpeed) * 0.85), CFG.driftSpeed, game.homing ? 0.32 : 0.18);
       }
       claw.armTarget = CFG.armOpen; audio.whir(); guide('どうかな…！'); break;
@@ -1472,7 +1779,7 @@ function setPhase(p) {
       if (game.target && game.target.grip === 3) game.slipAt = 0.06 + Math.random() * 0.06;
       break;
     case 'lift':
-      if (game.target) { game.target.state = 'held'; game.target.attach = 0; claw.held = game.target; faceUI.grin(); }   // つかめた→右下の子がニヤッ
+      if (game.target) { setupRides(game.target); game.target.state = 'held'; game.target.attach = 0; claw.held = game.target; faceUI.grin(); }   // つかめた→右下の子がニヤッ
       claw.damp = CFG.dampHeld; game.liftStartL = claw.L; audio.whir(); break;
     case 'slipping': audio.slip(); faceUI.normal(true); break;   // 途中で落ちた→真顔に戻る
     case 'hold': audio.motorOff(); break;   // 上で一呼吸（ぶら下がった子が揺れて止まるのを見せる）
@@ -1660,14 +1967,14 @@ function update(dt) {
     }
     case 'descend': {
       changeCable(CFG.descendSpeed * settings.speed * dt);
-      if (game.target) acc = moveTowards(dt, game.target.hold.x, game.target.hold.y, (game.driftV || CFG.driftSpeed) * settings.speed);
+      if (game.target) acc = moveTowards(dt, game.aim.x, game.aim.y, (game.driftV || CFG.driftSpeed) * settings.speed);
       else acc = stepCarriage(dt, 0, 0, spd);
       if (claw.z <= game.zTarget) { claw.L = claw.cableTop - game.zTarget; setPhase('grab'); }
       break;
     }
     case 'grab': {
       // 閉じている間も寄せ続ける
-      if (game.target) acc = moveTowards(dt, game.target.hold.x, game.target.hold.y, (game.driftV || CFG.driftSpeed) * settings.speed);
+      if (game.target) acc = moveTowards(dt, game.aim.x, game.aim.y, (game.driftV || CFG.driftSpeed) * settings.speed);
       else acc = stepCarriage(dt, 0, 0, spd);
       if (game.phaseT > 0.6) setPhase('lift');
       break;
@@ -1759,7 +2066,7 @@ function update(dt) {
       const dropping = toys.some((t) => t.refillAt != null || t.state === 'falling' || t.state === 'chute' || t.state === 'held');
       // 補充の子から離れていて戻らなかった子（取らなかった回に崩れた子など）は、落ちるのが終わってからまとめて戻す
       if (!dropping && !game.refillRelaxed) { game.refillRelaxed = true; for (const t of toys) glideBack(t, 0.02 + Math.random() * 0.1); }
-      const busy = dropping || toys.some((t) => t.state === 'settle' || Math.abs(t.bounce || 0) > 0.001);
+      const busy = dropping || toys.some((t) => t.state === 'settle' || Math.abs(t.bounce || 0) > 0.001 || Math.abs(t.flexD || 0) > 0.001 || !!t.sags);
       const calm = Math.abs(claw.thx) < 0.01 && Math.abs(claw.thy) < 0.01 && Math.abs(claw.wx) < 0.06 && Math.abs(claw.wy) < 0.06;
       const ready = !busy && game.refillRelaxed && r.arrived && claw.L <= claw.cableTop - CFG.raisedZ + 1e-6 && calm && game.phaseT > 0.2;
       if (ready || game.phaseT > 6) { resetPile(); resetClaw(); setPhase('title'); }   // 6 秒は保険（どこかで止まっても先へ）
@@ -1770,6 +2077,7 @@ function update(dt) {
   claw.arm = approach(claw.arm, claw.armTarget, CFG.armRate * dt);
   stepPendulum(dt, acc.ax, acc.ay, rumble);
   updateToys(dt);
+  stepFlex(dt);   // びろーんの縁の上下（爪が当たる・下の子が持ち上がる）
   {   // 狙いの目印：操作中（よこ・たて・寄せ）だけ出す。景品口の上（床が無い）と、下り始めたら 0.25 秒で消える
     const ch = scene.machine.chute;
     const aiming = game.phase === 'moveX' || game.phase === 'moveY' || game.phase === 'settle';
@@ -1882,7 +2190,7 @@ function insertionIndex(list, depth, box) {
 }
 function drawToyRest(t) {
   const r = t.data.sprite.rect;
-  if (t.state === 'falling' || t.state === 'settle' || t.dz !== 0 || t.rot !== 0 || t.dx !== 0 || t.dy !== 0 || t.bounce || t.hangMix) { drawToyDynamic(t, false); return; }
+  if (t.state === 'falling' || t.state === 'settle' || t.dz !== 0 || t.rot !== 0 || t.dx !== 0 || t.dy !== 0 || t.bounce || t.hangMix || t.flexD || t.sags) { drawToyDynamic(t, false); return; }
   ctx.drawImage(t.img, r[0], r[1]);
 }
 // びろーんの姿のコマ：寝た姿（f=0）→ 途中の傾き6枚 → ぶら下がった姿（f=1）。掴んだ上の縁が上がり、残りが山を引きずりながら
@@ -1960,6 +2268,8 @@ function drawToyDynamic(t, clipChute) {
     for (let i = 1; i < 4; i++) ctx.lineTo(chuteClip[i].u, chuteClip[i].v);
     ctx.closePath(); ctx.clip();
   }
+  const FM = t.flexD || t.sags ? flexMatrix(t) : null;   // びろーんの縁の上下（画面の上での変形・11/9 午後）
+  if (FM) ctx.transform(FM[0], FM[1], FM[2], FM[3], FM[4], FM[5]);
   ctx.translate(p1.u, p1.v);
   // 絵は休んでいた所の遠近で描いてある。運ばれた所の縦の線の傾きとの差だけ斜めにずらす（アームと同じ。景品口の上で、吊った子の下の端が 2.8cm 真ん中寄りになる）
   const dl = leanAt(h.x + t.dx, h.y + t.dy, h.z + t.dz) - leanAt(h.x, h.y, h.z);
@@ -2185,7 +2495,9 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!img.bg) return;
   ctx.setTransform(view.k * view.dpr, 0, 0, view.k * view.dpr, view.ox * view.dpr, view.oy * view.dpr);
+  const prevFrame = frameNow;
   frameNow = performance.now();
+  game.drawDt = prevFrame ? clamp((frameNow - prevFrame) / 1000, 0, 0.1) : 0;
   // タイトルは正面のカメラの絵、ゲーム中はいつもの斜め上の絵。11/9 からは、間をカメラが動く途中のコマ（Blender の絵）でつなぐ
   let fa = camFrontAlpha(frameNow), flash = 0;
   if (useMove()) {
@@ -2298,11 +2610,12 @@ function drawScene() {
   const rest = restingToys();
   const cb = clawBox();
   // UFO の層（ケーブル・UFO・持った子）をどの子の後に描くか：UFO の箱だけでなく、ぶら下がった子の範囲と奥行き（手前にある方）も見る
-  let layerDepth = project(claw.x, claw.y, claw.z + CFG.padDz).d, layerBox = cb.box;
+  let layerDepth = project(claw.x, claw.y, claw.z + CFG.padDz).d, layerBox = cb.box, heldBox = null;
   if (claw.held) {
     const t = claw.held, h = t.hold, p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz), s = t.holdUV.d / p1.d, lk = toyLook(t), r = lk.rect;
     const x0 = p1.u - (t.holdUV.u - r[0]) * s, y0 = p1.v - (t.holdUV.v - r[1]) * s, w = r[2] * s, hh = r[3] * s, mg = Math.max(w, hh) * 0.15;
-    layerBox = [Math.min(layerBox[0], x0 - mg), Math.min(layerBox[1], y0 - mg), Math.max(layerBox[2], x0 + w + mg), Math.max(layerBox[3], y0 + hh + mg)];
+    heldBox = [x0 - mg, y0 - mg, x0 + w + mg, y0 + hh + mg];
+    layerBox = [Math.min(layerBox[0], heldBox[0]), Math.min(layerBox[1], heldBox[1]), Math.max(layerBox[2], heldBox[2]), Math.max(layerBox[3], heldBox[3])];
     layerDepth = Math.min(layerDepth, project(lk.center[0], lk.center[1], lk.center[2]).d);
   }
   let iClaw = insertionIndex(rest, layerDepth, layerBox);
@@ -2326,13 +2639,10 @@ function drawScene() {
   const zs = top.z;
   const sp = project(claw.x, claw.y, zs);
   const iSh = top.on ? rest.indexOf(top.on) + 1 : 0;
-  const drawClawLayer = () => {
-    ctx.save(); clipBehindFront(); clipCabOpen();   // 手前の梁とレールの裏に隠れる（奥の高い所にいる時に上へはみ出ない）・左右の柱の外へ出ない
-    if (claw.held) drawToyDynamic(claw.held, false);
-    drawCable(cb.p);
-    drawClaw(cb.p);
-    ctx.restore();
-  };
+  // アームの層：持った子 → ケーブルとアーム。手前の梁とレールの裏に隠れる（奥の高い所にいる時に上へはみ出ない）・左右の柱の外へ出ない。
+  // びろーんとの前後を別々に決めるので、2つに分けて描く（11/9 午後）
+  const drawHeldPart = () => { if (!claw.held) return; ctx.save(); clipBehindFront(); clipCabOpen(); drawToyDynamic(claw.held, false); ctx.restore(); };
+  const drawClawPart = () => { ctx.save(); clipBehindFront(); clipCabOpen(); drawCable(cb.p); drawClaw(cb.p); ctx.restore(); };
   dbg.shadow = { zs, sp, iSh, iClaw, n: rest.length, h: claw.z - zs };
   // 景品口へ落ちる子：床より上にいる間は、山の子と奥行きで前後を決める（前は全部の上に描いていて、手前の子や札にかぶった・10/30 検品）。
   // 床より下に入ったら最後に描いて、景品口の窓で切り抜く（窓の辺は奥ほど寄る斜めの線なので、高い所で切ると幅の広い子が大きく欠ける）
@@ -2388,17 +2698,64 @@ function drawScene() {
     }
   }
   dbg.pointer = ptr ? { a: pointer.a, x: ptr.px, y: ptr.py, z: ptr.z, on: ptr.on ? ptr.on.id : null, layer: iPtr, lineLayer: iLine, ghostRing, ghostLine, uv: project(ptr.px, ptr.py, ptr.z) } : null;
+  // びろーんとアーム・持った子の前後（11/9 午後・本人「めり込む」）。描く順番は1体ずつの奥行きで決めているが、びろーんは幅26cmの平たい板で、
+  // 奥の縁と手前の縁で奥行きが大きく違う＝奥の縁に乗った物まで板の裏になり、爪や持ち上げた子がびろーんにめり込んで見えた。
+  //  ・アーム：爪が板に当たっている時（stepFlex が板を沈めている）・板より上にある時は手前
+  //  ・持った子：板の縁が乗っている間（stepFlex の ride）は奥、外れて縁より上に出たら手前。板の上を運ぶ時も手前
+  //  ・どれでもない時は描く順番のまま
+  // 順番と逆にしたい所だけ、びろーんの形で型を抜いて描き直す（drawMasked）。入れ替わる時は 0.12 秒で溶かす（ぱっと切り替わらない）
+  const flatFix = [];
+  {
+    const pads = clawPads(), lowZ = Math.min(pads[0].z, pads[1].z) - CFG.padR, H = claw.held, ddt = game.drawDt || 0;
+    const heldBottom = H ? H.hold.z + H.dz - toyLook(H).below : 0, hc = H ? toyLook(H).center : null;
+    const cTop = project(claw.cx, claw.cy, claw.cableTop);
+    const clawBoxAll = [Math.min(cb.box[0], cTop.u - 6), Math.min(cb.box[1], cTop.v), Math.max(cb.box[2], cTop.u + 6), cb.box[3]];
+    for (let iB = 0; iB < rest.length; iB++) {
+      const B = rest[iB];
+      if (!isFlat(B) || !B.data.footprint) continue;
+      const base = iB < iClaw ? 1 : 0;   // 描く順番どおりなら、アームの層は板の手前（1）か奥（0）か
+      let tc = null, th = null;
+      for (const p of pads) if (flatInset(B, p.x, p.y) > -(CFG.padR + 0.012) && p.z - CFG.padR < flatSurf(B, p.x, p.y) + 0.02) tc = 1;
+      if (tc == null && flatInset(B, claw.x, claw.y) > -0.06 && lowZ > flatSurf(B, claw.x, claw.y) - 0.005) tc = 1;
+      if (H) {
+        const R = B.ride;
+        if (R && R.on === H) {   // 縁が乗っていた所で、持った子の下の面が縁より上に抜けたら手前（そこに体が無ければ抜けている）
+          const cx = R.cx + B.dx, cy = R.cy + B.dy, u = R.slipped ? domeUnder(H, cx, cy) : null;
+          th = R.slipped && (u == null || u > flatSurf(B, cx, cy) - 0.005) ? 1 : 0;
+        }
+        else if (flatInset(B, hc[0], hc[1]) > -0.08 && heldBottom > flatSurf(B, hc[0], hc[1]) - 0.005) th = 1;
+      }
+      B.fClaw = approach(B.fClaw == null ? base : B.fClaw, tc == null ? base : tc, ddt / 0.12);
+      B.fHeld = approach(B.fHeld == null ? base : B.fHeld, th == null ? base : th, ddt / 0.12);
+      const sc = B.data.screen, w = sc[2] - sc[0], h = sc[3] - sc[1], bb = [sc[0] - w * 0.3, sc[1] - h * 0.5, sc[2] + w * 0.3, sc[3] + h * 0.3];
+      flatFix.push({ B, iB, claw: boxAnd(clawBoxAll, bb), held: heldBox ? boxAnd(heldBox, bb) : null });
+    }
+  }
+  dbg.flatFix = flatFix.map((f) => ({ id: f.B.id, iB: f.iB, iClaw, fClaw: f.B.fClaw, fHeld: f.B.fHeld }));
+  const drawFlat = (B) => () => drawToyRest(B);
   for (let i = 0; i <= rest.length; i++) {
     if (i === iSh) drawClawShadow(sp, zs);
     if (i === iPtr) drawPointerRing(ptr, false);
     if (i === iLine) drawPointerLine(ptr, false);
     if (i === iFg && !fgAfterClaw) drawFgChute();
     for (const [t, k] of fallAt) if (k === i) drawFalling(t, false);
-    if (i === iClaw) drawClawLayer();
+    if (i === iClaw) {
+      drawHeldPart();
+      // 順番では板の奥に描いた板（iB < iClaw）：縁が乗っている間の持った子・板の裏になるアームは、板を上から描き直して隠す
+      for (const f of flatFix) if (f.iB < iClaw && f.held && f.B.fHeld < 0.99) drawMasked(f.held, drawFlat(f.B), drawHeldPart, 1 - f.B.fHeld);
+      drawClawPart();
+      for (const f of flatFix) if (f.iB < iClaw && f.claw && f.B.fClaw < 0.99) drawMasked(f.claw, drawFlat(f.B), drawClawPart, 1 - f.B.fClaw);
+    }
     if (i === iFg && fgAfterClaw) drawFgChute();
     if (i < rest.length) {
       // 補充で上から落ちてくる子は、手前の梁とレールの裏（上の看板の下）から出てくる（11/9）
       if (rest[i].refilling) { ctx.save(); clipBehindFront(); clipCabOpen(); drawToyRest(rest[i]); ctx.restore(); } else drawToyRest(rest[i]);
+      // 順番では手前に描く板（iB >= iClaw）：板より上にある・板に当たっているアームと持った子は、板の形で型を抜いて上から描き直す
+      for (const f of flatFix) {
+        if (f.iB !== i || f.iB < iClaw) continue;
+        if (f.held && f.B.fHeld > 0.01) drawMasked(f.held, drawHeldPart, drawFlat(f.B), f.B.fHeld);
+        if (f.claw && f.B.fClaw > 0.01) drawMasked(f.claw, drawClawPart, drawFlat(f.B), f.B.fClaw);
+      }
     }
   }
   for (const t of toys) if (t.state === 'chute' && !fallAt.has(t)) drawFalling(t, true);
@@ -2642,6 +2999,13 @@ window.__ufo = {
   // 描画 1 回の時間（ms）：カメラを s に止めて n 回描く（確かめ用。電光パネルの粒の描き直しは秒 30 回に間引いてある＝その分は入らないことがある）
   bench: (n, s) => { const keep = Object.assign({}, camState); camState.from = camState.to = s; camState.dur = 0; const t0 = performance.now(); for (let i = 0; i < n; i++) { frameNow = performance.now(); draw(); } const ms = (performance.now() - t0) / n; Object.assign(camState, keep); return ms; },
   descend: () => ({ target: game.target ? game.target.id : null, grip: game.target ? game.target.grip : null, homing: !!game.homing, outcome: game.outcome, landOn: game.landOn ? game.landOn.id : null }),
+  raw: () => ({ toys, claw, game, view, project }),   // 確かめ用：中身をそのまま（台本から支えや位置を読む）
+  flex: () => toys.filter((t) => isFlat(t)).map((t) => ({ id: t.id, state: t.state, flexD: +(t.flexD || 0).toFixed(4), sags: (t.sags || []).map((s) => ({ d: +s.d.toFixed(4), rest: s.rest, on: s.on.id })),
+    maxDz: +Math.max(0, ...t.data.footprint.map((q) => Math.abs(flexDzAt(t, q[0] + t.dx, q[1] + t.dy)))).toFixed(4),   // 輪郭の点が一番大きく上下した量（m） press: +(t.press || 0).toFixed(4),
+    ride: t.ride ? { on: t.ride.on.id, slipped: t.ride.slipped, gap: +t.ride.gap.toFixed(3), cap: +t.ride.cap.toFixed(3), sag: +t.ride.sag.toFixed(3) } : null,
+    fClaw: t.fClaw, fHeld: t.fHeld, dx: +t.dx.toFixed(3), dy: +t.dy.toFixed(3) })),   // びろーんの縁の上下（確かめ用）
+  landing: (id) => { const t = toys.find((x) => x.id === id); return t ? landingFor(t) : null; },
+  aim: () => game.aim,
   biroons: () => toys.filter((t) => isFlat(t)).map((t) => ({ id: t.id, state: t.state, footprint: t.data.footprint, grips: (t.data.grips || []).map((g) => g.grab), dx: t.dx, dy: t.dy })),
   camHold: (a) => { camState.from = camState.to = a; camState.dur = 0; },   // 切り替えの途中で止めて撮る（確かめ用）
   force: (arr) => { game.forcedOutcome = arr; },   // 例: ['win','lose','win']（null で解除）
