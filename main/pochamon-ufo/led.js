@@ -356,9 +356,10 @@ function switchMode(mode, now) {
 }
 
 // ---------------- 外から使う ----------------
-let lastDraw = -1, lastRender = -1e9;
+let lastDraw = -1, lastRender = -1e9, paused = false;
 window.PochaLED = {
   DOT, get COLS() { return COLS; }, get ROWS() { return ROWS; }, get canvas() { return out; },
+  get font() { return font; }, get art() { return art; },   // 結果画面の電光パネル（result.js・11/10）も同じ文字と絵を使う
   ready: () => !!(font && art && out),
   async load(fetchJSON, size) {
     const [f, a] = await Promise.all([fetchJSON('assets/led_font.json'), fetchJSON('assets/led_art.json')]);
@@ -378,8 +379,11 @@ window.PochaLED = {
   // いま描いた絵の中のステッカーの絵柄（粒の座標・半径・濃さ）。ゲームがパネルの投影どおりに1枚の画像で貼る
   stickers: () => stk,
   // 1 コマ描く（同じ時刻なら描き直さない）。戻り値＝out
+  // 描き直しを止める（11/10：結果のテレビ（result.js）が出ている間はパネルがテレビの裏に隠れる＝前の絵のまま。粒の描き直しはテレビの方で使う）
+  pause(on) { paused = !!on; },
   draw(now) {
     if (!font || !art || !out) return null;
+    if (paused && lastDraw >= 0) return out;
     const T = now / 1000, t = T - state.t0;
     // 秒 30 回に間引く（粒の絵は細かい動きが要らない・11/9 検品：144×103 粒の描き直しで 1 コマ 5〜6ms・PC の headless）
     if (t === lastDraw || (now - lastRender < 1000 / 30 - 2 && now >= lastRender)) return out;

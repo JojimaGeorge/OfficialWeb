@@ -78,7 +78,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await page.waitForFunction(() => window.__ufo.state().phase === 'result', null, { timeout: 60000 });
   await sleep(1200);
   await shot('08_result_led');
-  await page.click('#resultBtn');
+  // 11/10 からは結果がテレビの電光パネル：「おしまい」は全部出そろってから出る（.ready）。テレビが使えない時は前のカードのボタン
+  await page.click('#result.led #resultBtnTv.ready, #result:not(.led) #resultBtn', { timeout: 15000 });
   await sleep(300);
   await shot('09_coin_returning');
   await sleep(900);

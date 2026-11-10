@@ -184,6 +184,42 @@ html, body { height: var(--app-h, 100%); }
 @keyframes prizespin { to { transform: rotate(360deg); } }
 @keyframes prizeout { to { opacity: 0; transform: scale(1.08); } }
 
+/* ---------- 結果：テレビの電光パネル（11/10 本人「後ろのテレビの電光掲示板みたいなデザインで、アニメーションを賑やかに」） ----------
+   中の粒は result.js が canvas に描く（4:3・192×144 粒）。ここは枠（テレビ）とボタンだけ。
+   電光パネルが使える時は #result に .led が付き、前のカード（.result-card）は隠す。使えない時はカードのまま */
+#result.led .result-card { display: none; }
+#result:not(.led) .result-tv { display: none; }
+.result-tv {
+  position: relative;
+  /* 幅は筐体の 94% まで・高さは画面の 92% まで（4:3 の画面＋上の縁 12px＋下の枠 約 80px） */
+  width: min(94%, calc((var(--app-h, 100vh) * 0.92 - 92px) * 4 / 3 + 24px));
+  padding: 12px 12px 0;
+  background: linear-gradient(180deg, #4b3b66 0%, #2f2444 55%, #251c37 100%);
+  border-radius: 24px;
+  box-shadow: 0 0 0 4px var(--pink), 0 10px 0 4px var(--pink-dark), 0 22px 40px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.16);
+  animation: tvin .5s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes tvin { from { transform: scale(.82) translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.result-screen { position: relative; border-radius: 12px; overflow: hidden; background: #0c0a12; box-shadow: 0 0 0 2px #120d1c; }
+.result-screen canvas { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; }
+/* ガラスの映り込み（左上にうすい光）と、画面の縁の暗がり */
+.result-screen::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(155deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.03) 26%, rgba(255,255,255,0) 44%);
+  box-shadow: inset 0 0 22px rgba(0,0,0,.7);
+}
+.result-foot { display: flex; justify-content: center; align-items: center; padding: 14px 0 16px; }
+/* 「おしまい」：押せるものはピンクの塗り（操作盤のボタンと同じ合図）。全部出そろってから出す（.ready・game.js） */
+.result-btn {
+  font-family: inherit; font-weight: 900; font-size: clamp(16px, 3vh, 30px); letter-spacing: .06em; color: #fff;
+  background: var(--pink-deep); border: 3px solid #fff; border-radius: 999px; padding: .42em 2.4em; margin: 0; cursor: pointer;
+  box-shadow: 0 6px 0 var(--pink-dark), 0 10px 18px rgba(0,0,0,.35);
+  opacity: 0; transform: scale(.6); pointer-events: none !important;
+  transition: opacity .3s, transform .4s cubic-bezier(.2,1.6,.4,1);
+}
+.result-btn.ready { opacity: 1; transform: none; pointer-events: auto !important; }
+.result-btn.ready:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--pink-dark), 0 6px 12px rgba(0,0,0,.3); }
+
 .result-card { min-width: 50vw; }
 .result-head { font-size: clamp(18px, 3.4vh, 34px); font-weight: 900; color: var(--lav-deep); letter-spacing: .08em; }
 .result-stickers { display: flex; justify-content: center; gap: 2vw; margin: 2vh 0 1.6vh; min-height: 12vh; }

@@ -52,7 +52,19 @@ const CFG = {
   armOpen: -18, armHold: 0, armHoldBig: -7, armClosed: 16, armRate: 95, armHoldFlat: 10, tailReach: 0.045,   // armHoldFlat＝びろーん（薄い）をつまむ時   // 度・度/秒
   dampFree: 0.9, dampHeld: 1.3, dampGround: 9,
   g: 9.81,
-  slipMin: 0.30, slipMax: 0.72,   // 運枠で外す時、持ち上げのどの辺で落とすか
+  slipMin: 0.30, slipMax: 0.72,   // 運枠で外す時、持ち上げのどの辺で落とすか（?slip=old の前の形だけ）
+  // つかみそこね（11/10 本人「シェイクするキョロで落ちるのが不自然。本物のUFOキャッチャーの物理の感じで、つかみ上げて、ちょっとしたらポロって落ちる」）。
+  // 前は持ち上げの途中で 0.5 秒、横に 14° 揺らしてから手を離していた。今は揺らさない：爪の中をずるっと少し滑る → 一瞬引っかかる →
+  // 片方の爪から先に外れて傾きながら、ずるずるっと抜ける（爪は押されて少し開く）→ 落ちて山にぽすっと沈む。軽くなった爪は少し跳ね上がる
+  slipOld: qs.get('slip') === 'old',
+  slipLiftShare: 0.55,  // 外れの回のうち、持ち上げの途中で抜ける割合（残りは上まで上がって止まった反動で抜ける）
+  slipLiftMin: 0.5, slipLiftMax: 0.9,   // 持ち上げの途中で抜ける時、持ち上げのどの辺で滑り始めるか
+  slipTopMin: 0.1, slipTopMax: 0.35,    // 上で止まってから滑り始めるまで（秒。止まる間は holdSec）
+  slipDur: 0.62,        // 滑り始めてから抜けるまで（秒）：ずるっ（0〜0.16）・引っかかる（〜0.32）・ずるずるっ（〜0.62）
+  slipDist: 0.034,      // 抜けるまでに爪の中を滑り下りる距離（m）
+  slipTilt: 0.26,       // 片方の爪から先に外れて傾く角度（ラジアン・最大。子ごとに 0.7〜1 倍）
+  slipArmOpen: 6,       // 滑り下りる子に押されて爪が開く角度（度）
+  clawBob: 0.2,         // 子が抜けた瞬間に爪が跳ね上がる速さ（m/秒・ケーブルのばね）
   coinSize: 0.17,       // 手に持ったコインの直径（画面の高さに対する割合。iPad 768px で約130px＝実物の500円玉に近い）
   coinAtSlit: 0.85,     // 投入口のそばでのコインの直径（投入口の縦幅に対する割合＝遠近で小さくなって口に入る）
   holdSec: 0.75,        // 上げ切った後に止まっている時間（本物のUFOキャッチャーの「間」）
@@ -93,6 +105,11 @@ const CFG = {
   outDist: 0.20,        // 転がる距離（右へ）
   prizeAt: 0.72,        // 転がりのどの辺でステッカーの絵柄を出すか（0〜1）
   prizeSec: 1.7,        // ステッカーの絵柄を出している時間
+  // 出てくる子は正面を向いた絵で（11/10 本人「出口から転がって出てくる時、中に並んでた時の角度のまま（下向き・変な方向）。何をゲットしたか
+  // 分からないから、ゲットした時は正面を向くように」）。?outpose=0 で前の形（山にいた時の絵を回す）
+  outPose: qs.get('outpose') !== '0',
+  // 結果の画面はテレビの電光パネル（11/10・result.js）。?rtv=0 で前のカード
+  resultTv: qs.get('rtv') !== '0',
   morph: qs.get('morph') !== '0',   // びろーんの持ち上げのコマの間を埋める（morphOf）。比べる時は URL に ?morph=0
   // コマの間を埋める時、板の表の面（顔）にどれだけ合わせるか（0〜1）。既定は 0＝合わせない：合わせると顔は跳ねなくなるが、今度は輪郭とつまんだ点が
   // 同じだけ跳ね、切り替わりで変わる画素は 1.3〜1.7 倍に増えた（11/6 に 4 つのつまみ方で実測）。厚みのある物を1枚の絵の変形で埋める限界。比べる時は ?mface=1
@@ -122,6 +139,7 @@ const ui = {
   msg: $('msg'), guide: $('guide'), btnX: $('btnX'), btnY: $('btnY'),
   title: $('title'), result: $('result'), loading: $('loading'), loadProg: $('loadProg'), admin: $('admin'),
   resultNum: $('resultNum'), resultStickers: $('resultStickers'), resultBtn: $('resultBtn'),
+  resultLed: $('resultLed'), resultBtnTv: $('resultBtnTv'),   // 結果のテレビ（11/10・result.js）
   prize: $('prize'), prizeImg: $('prizeImg'),
 };
 
@@ -129,7 +147,7 @@ const ui = {
 let scene = null;          // scene.json
 let CAM = null, MC = null, UNIT = 1;
 let FCAM = null, FMC = null;   // 正面のカメラ（タイトル）：scene.json の front_camera
-const img = { bg: null, stickers: {}, front: null, fg: null };
+const img = { bg: null, stickers: {}, front: null, fg: null, outPose: {} };   // outPose＝取り出し口から出てくる子の正面を向いた絵（種類ごと・11/10）
 // カメラが正面⇄いつもの斜め上を動く途中のコマ（11/9）：{ s（0＝いつもの・1＝正面）, M（カメラ行列）, K（fx・cy など）, img }。s の小さい順
 const moveFrames = [];
 // 景品のステッカー（メタリック6種＝むいてほいゲームと同じ景品。1 おにぎり・2 ねむり・3 びろーん・4 みかん・5 レモン・6 腹減り）
@@ -267,6 +285,7 @@ const audio = (() => {
     bump: () => { noise(0.12, 0.35, 300, 0.7); },
     whir: () => tone(160, 0.25, 'triangle', 0.08, 190),
     slip: () => { tone(900, 0.45, 'sine', 0.25, 260); tone(1200, 0.3, 'triangle', 0.12, 400, 0.05); },
+    rub: (dur) => { noise(dur || 0.16, 0.16, 650, 0.7); },   // 爪の中を滑る「ずるっ」（布がこすれる音・11/10）
     thud: () => { noise(0.18, 0.5, 180, 0.6); tone(90, 0.18, 'sine', 0.35, 50); },
     drop: () => { noise(0.25, 0.4, 420, 0.5); tone(140, 0.25, 'sine', 0.3, 60); },
     win: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'square', 0.16, null, i * 0.11)); tone(1568, 0.5, 'triangle', 0.14, null, 0.46); },
@@ -337,6 +356,11 @@ async function load() {
   // 結果画面のステッカーの絵は最初に読んで手元に持つ。結果画面で読みに行くと、遊んで数分たった後の読み込みが落ちて「?」になることがあった
   // （10/30 本番の WebKit で通した時・HTTP2 の通信層のエラー。会場の不安定な回線でもご褒美の絵が欠けないように）
   for (const id of STICKER_IDS) jobs.push(track(loadImage('assets/sticker_0' + id + '.webp')).then((im) => { img.stickers[id] = im; }));
+  // 取り出し口から出てくる子の正面を向いた絵（11/10・Blender ufo_export.py v12 の outpose=1 → tools/pochamon-ufo/sync_outpose.py）。
+  // 読めなかった種類は前と同じ（山にいた時の絵を回す）
+  if (CFG.outPose && scene.out_pose) for (const [kd, k] of Object.entries(scene.out_pose.kinds)) {
+    jobs.push(track(loadImage('assets/' + k.file)).then((im) => { img.outPose[kd] = im; }).catch((e) => { console.warn('out pose', kd, e); }));
+  }
   const byId = {};
   for (const t of scene.toys) {
     const hold = { x: t.grab[0], y: t.grab[1], z: t.ztop - CFG.holdDzToy * t.scale };
@@ -906,7 +930,7 @@ function updateHud() {
 }
 function resetClaw() {
   claw.cx = park.x; claw.cy = park.y; claw.vx = claw.vy = 0;
-  claw.L = claw.cableTop - CFG.raisedZ; claw.thx = claw.thy = claw.wx = claw.wy = 0;
+  claw.L = claw.cableTop - CFG.raisedZ; claw.thx = claw.thy = claw.wx = claw.wy = 0; claw.bob = claw.bobV = 0;
   claw.arm = claw.armTarget = CFG.armClosed; claw.held = null; claw.damp = CFG.dampFree;
 }
 function makeSlots() {
@@ -919,6 +943,7 @@ function makeSlots() {
 // そこから斜め上へ切り替わる間に、取った子が欠けた並びが透けて見えないように
 function resetToy(t) {
   t.state = 'rest'; t.dx = t.dy = t.dz = t.vz = 0; t.rot = t.hang = t.sag = 0; t.alpha = 1; t.shadowA = 1; t.hangMix = 0;
+  t.slide = 0; t.tilt = 0; t.squash = 0; t.fallRotV = 0; t.softLand = false;   // つかみそこねの滑り・傾き・着いた時のつぶれ（11/10）
   if (t.hold0) { t.hold = t.hold0; t.holdUV = t.holdUV0; t.below = t.below0; t.armHold = t.armHold0; t.grip = -1; t._frames = null; }
   t.bounce = 0; t.bv = 0; t.target = null; t.reactors = null; t.reacted = false; t.landDz = 0; t.landRot = 0; t.out = null; t.prize = null;
   t.refilling = false; t.refillAt = null; t.fallAfter = null; restPose(t);
@@ -1760,19 +1785,34 @@ function buildOutGeo() {
   for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (project(xc, yF, mid).v > H - 10) lo = mid; else hi = mid; }
   outGeo = { door, xc, yF, zFloor: hi };
 }
+// 正面を向いた絵（11/10）：種類ごとに1枚。anchor＝Blender で浮かせた点が絵のどこに写るか（u, v, 奥行き）。大きい子（scale 1.1）は絵ごと大きく
+function outPoseOf(t) {
+  const op = scene.out_pose, k = op && op.kinds[t.data.kind], im = img.outPose[t.data.kind];
+  return k && im ? { k, im, A: op.anchor, sc: t.data.scale || 1 } : null;
+}
 function startOut(t) {
-  const r = t.data.sprite.rect, c = t.data.center, d0 = project(c[0], c[1], c[2]).d, flat = isFlat(t);
-  const pxm = lenPx(1, d0);   // その子の絵の 1m あたりの px
-  // 見た目の半径（m）：絵の縁の余白を除いた大きさ。平たいびろーんは寝た絵の縦の半分
-  const R = (flat ? r[3] * 0.42 : Math.min(r[2], r[3]) * 0.46) / pxm;
-  // 止まった時のまんなかの高さ：絵の下の端（縁の余白を除く）が、絵の下端のすぐ上に写る高さ。
-  // 前は「受け皿の高さ＋半径」で置いていて、35°の見下ろしでは高さの分が画面で 0.82 倍しか上がらず、1180×820 で下の 2 割が切れた
-  // （顔が絵の下側にある子は後ろ姿だけになった・11/5 検品）
-  const pad = (0.08 * Math.max(r[2], r[3]) + 6) / 1.16, hb = r[3] / 2 - pad, H = scene.image.height;
+  const r = t.data.sprite.rect, c = t.data.center, d0 = project(c[0], c[1], c[2]).d, flat = isFlat(t), H = scene.image.height;
+  const fp = CFG.outPose ? outPoseOf(t) : null;
+  let R, below, dRef;   // R＝見た目の半径（m）・below＝点から絵の下の端（縁の余白を除く）までの px（dRef の奥行きで）
+  if (fp) {
+    // 正面を向いた絵：形の箱（余白なし）から。点（anchor）＝絵の中の子のまんなか
+    const b = fp.k.box, pxm = lenPx(1, fp.A[2]);
+    R = 0.5 * Math.min(b[2] - b[0], b[3] - b[1]) * fp.sc / pxm;
+    below = (b[3] - fp.A[1]) * fp.sc; dRef = fp.A[2];
+  } else {
+    const pxm = lenPx(1, d0);   // その子の絵の 1m あたりの px
+    // 見た目の半径（m）：絵の縁の余白を除いた大きさ。平たいびろーんは寝た絵の縦の半分
+    R = (flat ? r[3] * 0.42 : Math.min(r[2], r[3]) * 0.46) / pxm;
+    // 前は「受け皿の高さ＋半径」で置いていて、35°の見下ろしでは高さの分が画面で 0.82 倍しか上がらず、1180×820 で下の 2 割が切れた
+    // （顔が絵の下側にある子は後ろ姿だけになった・11/5 検品）
+    const pad = (0.08 * Math.max(r[2], r[3]) + 6) / 1.16;
+    below = r[3] / 2 - pad; dRef = d0;
+  }
+  // 止まった時のまんなかの高さ：絵の下の端（縁の余白を除く）が、絵の下端のすぐ上に写る高さ
   let lo = -0.6, hi = 0.3;
-  for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2, q = project(outGeo.xc + 0.1, outGeo.yF, mid); if (q.v + hb * d0 / q.d > H - 8) lo = mid; else hi = mid; }
+  for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2, q = project(outGeo.xc + 0.1, outGeo.yF, mid); if (q.v + below * dRef / q.d > H - 8) lo = mid; else hi = mid; }
   t.state = 'out'; t.alpha = 1; t.shadowA = 0;
-  t.out = { T: 0, d0, R, zRest: hi, flat, vis: false, x: 0, y: 0, z: 0, k: 0, rot: 0, sx: 1, sy: 1, stage: 0, leaveT: 0, rot0: 0 };
+  t.out = { T: 0, d0, R, zRest: hi, flat, vis: false, x: 0, y: 0, z: 0, k: 0, rot: 0, sx: 1, sy: 1, stage: 0, leaveT: 0, rot0: 0, fp };
 }
 function stepOut(t, dt) {
   const o = t.out, g = outGeo, D = g.door;
@@ -1836,11 +1876,20 @@ function stepOut(t, dt) {
 function drawToyOut(t) {
   const o = t.out;
   if (!o || !o.vis || !t.img) return;
-  const p = project(o.x, o.y, o.z), s = o.d0 / p.d * o.k, r = t.data.sprite.rect;
+  const p = project(o.x, o.y, o.z);
   ctx.save();
   ctx.globalAlpha = 1;
-  ctx.translate(p.u, p.v); ctx.rotate(o.rot); ctx.scale(s * o.sx, s * o.sy);
-  ctx.drawImage(t.img, -r[2] / 2, -r[3] / 2);
+  ctx.translate(p.u, p.v); ctx.rotate(o.rot);
+  if (o.fp) {
+    // 正面を向いた絵（いつもの 1.5 倍の細かさで描いてある＝rect の大きさに縮めて貼る）。点（anchor）を中心に回す
+    const { k, im, A, sc } = o.fp, s = A[2] / p.d * o.k * sc;
+    ctx.scale(s * o.sx, s * o.sy);
+    ctx.drawImage(im, k.rect[0] - A[0], k.rect[1] - A[1], k.rect[2], k.rect[3]);
+  } else {
+    const s = o.d0 / p.d * o.k, r = t.data.sprite.rect;
+    ctx.scale(s * o.sx, s * o.sy);
+    ctx.drawImage(t.img, -r[2] / 2, -r[3] / 2);
+  }
   ctx.restore();
 }
 
@@ -1853,12 +1902,18 @@ function setPhase(p) {
   switch (p) {
     case 'outro':
       ui.result.classList.remove('show'); setButtons(false, false); guide('');
+      if (window.PochaResult) window.PochaResult.hide();   // 結果のテレビの粒の描き直しを止める
+      if (window.PochaLED && window.PochaLED.pause) window.PochaLED.pause(false);   // 背面のパネルを動かし直す
+      ui.resultBtnTv.classList.remove('ready');
       audio.motorOff(); audio.bgmStop(); hidePrize(true); faceUI.normal(false);
       claw.armTarget = CFG.armClosed; claw.damp = CFG.dampGround;   // 揺れを早く止める（コマの絵のアームは真下に下がっている）
       startRefill();
       break;
     case 'title': {
       ui.title.classList.add('show'); ui.result.classList.remove('show'); setButtons(false, false); guide('');
+      if (window.PochaResult) window.PochaResult.hide();
+      if (window.PochaLED && window.PochaLED.pause) window.PochaLED.pause(false);
+      ui.resultBtnTv.classList.remove('ready');
       audio.motorOff(); audio.bgmStop(); hidePrize(true);
       if (useMove()) {
         // 11/9：カメラが動く途中のコマで正面へ。山とアームは outro で戻してある（ここで片づけても見た目は変わらない）。
@@ -1962,15 +2017,29 @@ function setPhase(p) {
         if (j > 0) { game.slots[j] = 'W'; game.slots[game.tryIndex] = 'L'; }
       }
       if (game.outcome == null) game.outcome = decideOutcome(game.tryIndex);   // 取れる回かは descend で決めてある（運の回を2回振らない）
-      game.slipAt = CFG.slipMin + Math.random() * (CFG.slipMax - CFG.slipMin);
+      // 外れの回にどこで抜けるか（11/10）：持ち上げの後半で滑り始める（lift）か、上まで上がって止まった反動で滑り始める（top）
+      if (CFG.slipOld) { game.slipMode = 'lift'; game.slipAt = CFG.slipMin + Math.random() * (CFG.slipMax - CFG.slipMin); }
+      else if (Math.random() < CFG.slipLiftShare) { game.slipMode = 'lift'; game.slipAt = CFG.slipLiftMin + Math.random() * (CFG.slipLiftMax - CFG.slipLiftMin); }
+      else { game.slipMode = 'top'; game.slipAt = CFG.slipTopMin + Math.random() * (CFG.slipTopMax - CFG.slipTopMin); }
       // 尻尾でつまんだ外れの回は、持ち上げ始めてすぐ抜ける（細い尻尾は抜けやすい）。高く上げてから落とすと、逆さに吊った半回転を
       // 空中で巻き戻して縦の板が出た（10/31 検品）。重ねて入れ替える・着いた瞬間に替える、はどちらも幽霊や跳びが出たので不採用
-      if (game.target && game.target.grip === 3) game.slipAt = 0.06 + Math.random() * 0.06;
+      if (game.target && game.target.grip === 3) { game.slipMode = 'lift'; game.slipAt = 0.06 + Math.random() * 0.06; }
+      if (game.forcedSlip) { game.slipMode = game.forcedSlip.mode; game.slipAt = game.forcedSlip.at; }   // 確かめ用（__ufo.forceSlip）
       break;
     case 'lift':
       if (game.target) { setupRides(game.target); game.target.state = 'held'; game.target.attach = 0; game.target.liftDz0 = game.target.dz; claw.held = game.target; faceUI.grin(); }   // つかめた→右下の子がニヤッ
       claw.damp = CFG.dampHeld; game.liftStartL = claw.L; audio.whir(); break;
-    case 'slipping': audio.slip(); faceUI.normal(true); break;   // 途中で落ちた→真顔に戻る
+    case 'slipping':
+      if (CFG.slipOld) { audio.slip(); faceUI.normal(true); break; }   // 前の形：揺らしてから落とす（真顔はここで）
+      {
+        // 11/10：揺らさずに滑り抜ける。片方の爪から先に外れる向き（dir）と傾きの大きさは回ごとに変える。
+        // 持ち上げの途中なら、アームは同じ速さで上がり続ける（本物はモーターを止めない＝子だけが爪の中を滑る）
+        const t = claw.held;
+        game.slip = { dir: Math.random() < 0.5 ? -1 : 1, tilt: CFG.slipTilt * (0.7 + Math.random() * 0.3),
+                      rise: game.slipMode === 'lift', arm0: t ? t.armHold : CFG.armHold, rub: 0 };
+        audio.rub(0.16);   // ずるっ
+      }
+      break;
     case 'hold': audio.motorOff(); break;   // 上で一呼吸（ぶら下がった子が揺れて止まるのを見せる）
     case 'carry': claw.damp = CFG.dampHeld; guide(''); game.carryTo = carryTarget(claw.held); break;
     case 'release': claw.armTarget = CFG.armOpen; break;
@@ -1987,8 +2056,18 @@ function setPhase(p) {
         const d = document.createElement('div'); d.className = 'sticker'; d.style.animationDelay = (0.15 + i * 0.18) + 's';
         const im = stickerEl(id); im.alt = ''; d.appendChild(im); ui.resultStickers.appendChild(d);
       });
+      // テレビの電光パネル（11/10）：取れた絵柄を 1 枚ずつ出す（そのたびにキラッの音）→ 出そろったらファンファーレと「おしまい」。
+      // 文字と絵が読めていない時（led.js の読み込みが落ちた等）は前のカード
+      ui.resultBtnTv.classList.remove('ready');
+      const tv = CFG.resultTv && window.PochaResult && window.PochaResult.show(ui.resultLed, game.stickers, img.stickers, {
+        onReveal: () => audio.prize(),
+        onDone: (late) => { if (!late) audio.fanfare(); ui.resultBtnTv.classList.add('ready'); },
+      });
+      ui.result.classList.toggle('led', !!tv);
+      if (tv && window.PochaLED && window.PochaLED.pause) window.PochaLED.pause(true);   // 背面のパネルはテレビの裏＝描き直しを止める（重さをふだんと同じに）
+      ui.resultLed.setAttribute('aria-label', 'ステッカー ' + zen(game.got) + ' まい ゲット！ スタッフに みせてね');
       ui.result.classList.add('show'); game.resultShownAt = performance.now();
-      audio.fanfare();
+      if (!tv) audio.fanfare();
       const k = todayKey(); const c = settings.counters[k] || { games: 0, stickers: 0 };
       c.games++; c.stickers += game.got; settings.counters[k] = c; saveSettings();
       break;
@@ -2019,7 +2098,12 @@ function stepPendulum(dt, ax, ay, rumble) {
   claw.thy = clamp(claw.thy + claw.wy * dt, -0.6, 0.6);
   claw.x = claw.cx + claw.L * Math.sin(claw.thx);
   claw.y = claw.cy + claw.L * Math.sin(claw.thy);
-  claw.z = claw.cableTop - claw.L;
+  // 上下のばね（11/10）：持っていた子が抜けた瞬間に、軽くなった爪がケーブルのばねで跳ね上がって戻る（1.6Hz・0.6 秒ほどで落ち着く）
+  if (claw.bob || claw.bobV) {
+    claw.bobV += (-claw.bob * 100 - claw.bobV * 7) * dt; claw.bob += claw.bobV * dt;
+    if (Math.abs(claw.bob) < 0.0003 && Math.abs(claw.bobV) < 0.003) { claw.bob = 0; claw.bobV = 0; }
+  }
+  claw.z = claw.cableTop - claw.L + (claw.bob || 0);
 }
 function changeCable(dL) {
   // ケーブルが伸び縮みしても横の速さは保つ → 角速度を縮尺する
@@ -2041,6 +2125,7 @@ function moveTowards(dt, tx, ty, speed) {
 
 function updateToys(dt) {
   for (const t of toys) {
+    if (t.squash) { t.squash *= Math.exp(-13 * dt); if (t.squash < 0.002) t.squash = 0; }   // 着いた時のつぶれが戻る（0.2 秒くらい）
     if (t.state === 'rest' || t.state === 'settle') {
       // 上下の弾み（押された・落ちてきた子に押された）：減衰するばね
       if (t.bounce || t.bv) {
@@ -2058,14 +2143,16 @@ function updateToys(dt) {
       const tipZ = claw.z + CFG.padDz * Math.cos(claw.thx) * Math.cos(claw.thy);
       // 上下も同じ 0.3 秒でなじませる（11/10）：狙いの丸の所に下りると、爪先がつかむ点（てっぺんから5cm下）と同じ高さとは限らない。
       // 前は爪先の高さへ一気に吸い付いた（つかむ点の真上に下りていたので段差が無かった）
-      t.dz = lerp(t.liftDz0 != null ? t.liftDz0 : sz, tipZ - t.hold.z - t.sag * 0.05, k);
+      // t.slide＝爪の中を滑り下りた分（つかみそこねの回・11/10）。?slip=old の前の形は t.sag（最大 5cm ずり落ちる）
+      t.dz = lerp(t.liftDz0 != null ? t.liftDz0 : sz, tipZ - t.hold.z - t.sag * 0.05 - (t.slide || 0), k);
       t.dx = lerp(sx, tipX - t.hold.x, k); t.dy = lerp(sy, tipY - t.hold.y, k);
       // ぶら下がった子の傾き（重心が爪の真下へ来る向き）。びろーんは平たく、つかむ点と重心の高さがほぼ同じ＝分母が小さくて 30° も出て筐体の外へはみ出した → 傾けない（10/30 検品）
       const hangTarget = isFlat(t) ? 0 : clamp(-Math.atan2(t.data.center[0] - t.hold.x, Math.max(0.03, t.hold.z - t.data.center[2])) * 0.8, -0.6, 0.6);
       t.hang = approach(t.hang, hangTarget, 1.5 * dt);
       // 画面の回転は「正＝時計回り（下の端が左へ）」、振り子の thx は「正＝右へ振れる」＝向きが逆なので符号を返す。
       // 前はそのまま足していて、運び始めにアームと子が進む向きへ傾き、吊った子の重心が爪の真下から横へ逃げた（10/30 朝の検品）
-      t.rot = lerp(t.restRot || 0, -(claw.thx + t.hang), k) + t.sag * Math.sin(game.phaseT * 28) * 0.25;
+      // t.tilt＝片方の爪から先に外れて傾いた分（つかむ点＝爪先のまわりに回る）。前の形（?slip=old）は t.sag で横に 14° 揺らしていた
+      t.rot = lerp(t.restRot || 0, -(claw.thx + t.hang), k) + t.sag * Math.sin(game.phaseT * 28) * 0.25 + (t.tilt || 0);
       t.shadowA = clamp(1 - (t.dz - sz) / 0.25, 0, 1);
       // びろーん：持ち上げて4cmのあいだに、寝た絵からぶら下がった絵へ入れ替える。平たく柔らかい子は、つまんだ上の縁から縦に垂れる
       // （前は寝た姿のまま板のように浮いていた・10/30 朝の検品）
@@ -2081,6 +2168,8 @@ function updateToys(dt) {
       t.vz -= CFG.g * dt; t.dz += t.vz * dt;
       const land = t.landDz || 0;
       const k = clamp((t.dz - land) / Math.max(0.01, t.fallFrom - land), 0, 1);
+      // 抜けた時の回る勢い（片方の爪から先に外れた傾き）を少し持ったまま落ちる。着く高さに近づくほど元の向きへ（絵は山にいた姿＝向きは戻す）
+      if (t.fallRotV) { t.fallRot += t.fallRotV * dt; t.fallRotV *= Math.exp(-3 * dt); }
       t.dx = lerp(t.restDx || 0, t.fallDx, k); t.dy = lerp(t.restDy || 0, t.fallDy, k); t.rot = lerp(t.landRot || 0, t.fallRot, k);
       t.shadowA = clamp(1 - (t.dz - land) / 0.25, 0, 1);
       // 吊った姿のまま落ち、下の端が山に着くあたり（元の場所の16cm上）から後ろへ倒れて寝た姿に戻る。寝る向きにしか進めず、1コマずつ
@@ -2090,8 +2179,13 @@ function updateToys(dt) {
         t.dz = land;
         for (const a of (t.reactors || [])) nudgeToy(a, 0.25 * Math.min(1, -t.vz));   // 落ちてきた子に押される
         if (t.refilling && !t.refillHit) { t.refillHit = true; relaxAround(t); pressAround(t.hold.x, t.hold.y, 0.16, 0.12); }   // 補充の子が着いた：まわりの崩れが戻る
-        if (t.vz < -0.7) { t.vz = -t.vz * 0.22; audio.thud(); }
-        else { t.vz = 0; t.dx = t.restDx || 0; t.dy = t.restDy || 0; t.rot = t.landRot || 0; t.state = 'rest'; t.shadowA = 1; t.hangMix = 0; t.refilling = false; restPose(t); if (!t.landedMsg) { t.landedMsg = true; showMsg('おしい…！', 'miss', 1300); audio.miss(); } }
+        // ぬいぐるみは柔らかい：着いた瞬間に少しつぶれる（t.squash・絵の下の端を軸に横へ広がる）。つかみそこねの子だけ（補充の子は前のまま）
+        if (t.vz < -0.7) { if (t.softLand) t.squash = Math.min(0.09, -t.vz * 0.045); t.vz = -t.vz * 0.22; audio.thud(); }
+        else {
+          t.vz = 0; t.dx = t.restDx || 0; t.dy = t.restDy || 0; t.rot = t.landRot || 0; t.state = 'rest'; t.shadowA = 1; t.hangMix = 0; t.refilling = false; restPose(t);
+          if (t.softLand) { t.bv = (t.bv || 0) - 0.22; t.softLand = false; }   // 山にぽすっと沈んで戻る（休んでいる子の上下のばね）
+          if (!t.landedMsg) { t.landedMsg = true; showMsg('おしい…！', 'miss', 1300); audio.miss(); }
+        }
       }
     } else if (t.state === 'settle') {
       // 穴へ沈む：ゆっくり始まり、少し行き過ぎて戻って落ち着く（ぬいぐるみが崩れて収まる感じ）。時間で動かすのでカクつかない
@@ -2176,16 +2270,52 @@ function update(dt) {
       acc = stepCarriage(dt, 0, 0, spd);
       const L0 = claw.cableTop - CFG.raisedZ;
       const prog = (game.liftStartL - claw.L) / Math.max(0.01, game.liftStartL - L0);
-      if (game.outcome === 'lose' && claw.held && prog >= game.slipAt) { setPhase('slipping'); break; }
+      if (game.outcome === 'lose' && claw.held && game.slipMode !== 'top' && prog >= game.slipAt) { setPhase('slipping'); break; }
       if (claw.L <= L0) { claw.L = L0; setPhase('hold'); }   // 上げ切ったら一呼吸止まる（本物と同じ）
       break;
     }
     case 'hold': {
       acc = stepCarriage(dt, 0, 0, spd);
+      // 上まで上がって止まった反動で滑り始める回（11/10）。止まる間に始まらなかった外れ（保険）も、持ったまま戻らずにここで滑らせる
+      if (game.outcome === 'lose' && claw.held && (game.phaseT >= game.slipAt || game.phaseT > CFG.holdSec)) { setPhase('slipping'); break; }
       if (game.phaseT > CFG.holdSec) setPhase(game.outcome === 'win' && claw.held ? 'carry' : 'return');
       break;
     }
     case 'slipping': {
+      if (!CFG.slipOld) {
+        // 11/10：ずるっ（0〜0.16 秒で 3 割）→ 引っかかる（〜0.32 秒・止まる）→ ずるずるっ（〜slipDur・加速しながら残り 7 割）→ 抜ける
+        const S = game.slip, T = game.phaseT, D = CFG.slipDur, t = claw.held;
+        const L0 = claw.cableTop - CFG.raisedZ;
+        if (S.rise && claw.L > L0) changeCable(-Math.min(CFG.liftSpeed * settings.speed * dt, claw.L - L0));   // アームは同じ速さで上がり続ける
+        acc = stepCarriage(dt, 0, 0, spd);
+        if (!t) { setPhase('return'); break; }
+        const T1 = D * 0.26, T2 = D * 0.52;
+        let f;   // 滑った割合（0〜1）
+        if (T < T1) { const u = T / T1; f = 0.3 * (1 - (1 - u) * (1 - u)); }
+        else if (T < T2) f = 0.3;
+        else { const u = Math.min(1, (T - T2) / (D - T2)); f = 0.3 + 0.7 * u * u; if (!S.rub) { S.rub = 1; audio.rub(0.22); } }   // ずるずるっ
+        t.slide = CFG.slipDist * f;
+        // 傾き：はじめの「ずるっ」ではほとんど傾かず、2回目で片方の爪から外れて一気に傾く（つかむ点＝爪先のまわりに回る）
+        t.tilt = S.dir * S.tilt * f * f;
+        claw.armTarget = S.arm0 - CFG.slipArmOpen * f;   // 滑り下りる子に押されて爪が少し開く
+        if (T >= D) {
+          // ポロッ：抜けた子は、その時の上下の速さ（アームと一緒に上がる分 − 爪の中を滑る分）と傾く勢いのまま落ちる
+          const vSlide = CFG.slipDist * 0.7 * 2 / (D - T2);   // ずるずるっの終わりの滑る速さ（m/秒）
+          const vUp = S.rise && claw.L > L0 + 1e-4 ? CFG.liftSpeed * settings.speed : 0;
+          const rs = (t.reactors || []).filter((a) => a.state === 'rest' || a.state === 'settle');
+          t.landDz = rs.length ? Math.min(0.05, rs.reduce((s, a) => s + Math.abs(restTarget(a).dz), 0) / rs.length * 0.5) : 0;
+          t.landRot = rs.length ? (Math.random() - 0.5) * 0.24 : 0;
+          t.state = 'falling'; t.vz = vUp - vSlide; t.fallFrom = Math.max(0.01, t.dz); t.fallDx = t.dx; t.fallDy = t.dy; t.fallRot = t.rot;
+          t.fallRotV = S.dir * S.tilt * 2 * 2 / (D - T2) * 0.35;   // 傾いていた勢いの 3 割ちょっと
+          t.slide = 0; t.tilt = 0; t.sag = 0; t.landedMsg = false; t.softLand = true;
+          claw.held = null; claw.armTarget = CFG.armClosed; claw.damp = CFG.dampFree;
+          claw.bobV = (claw.bobV || 0) + CFG.clawBob;   // 軽くなった爪がケーブルのばねで跳ね上がる
+          claw.wx += S.dir * 0.35;   // 最後まで掴んでいた側へ少し振れる
+          audio.slip(); faceUI.normal(true);   // ポロッ（右下の子が真顔に戻るのは、落ちた瞬間）
+          setPhase('return');
+        }
+        break;
+      }
       changeCable(-CFG.liftSpeed * 0.35 * dt);
       acc = stepCarriage(dt, 0, 0, spd);
       const t = claw.held;
@@ -2382,7 +2512,7 @@ function insertionIndex(list, depth, box) {
 }
 function drawToyRest(t) {
   const r = t.data.sprite.rect;
-  if (t.state === 'falling' || t.state === 'settle' || t.dz !== 0 || t.rot !== 0 || t.dx !== 0 || t.dy !== 0 || t.bounce || t.hangMix || t.flexD || t.sags) { drawToyDynamic(t, false); return; }
+  if (t.state === 'falling' || t.state === 'settle' || t.dz !== 0 || t.rot !== 0 || t.dx !== 0 || t.dy !== 0 || t.bounce || t.hangMix || t.flexD || t.sags || t.squash) { drawToyDynamic(t, false); return; }
   ctx.drawImage(t.img, r[0], r[1]);
 }
 // びろーんの姿のコマ：寝た姿（f=0）→ 途中の傾き6枚 → ぶら下がった姿（f=1）。掴んだ上の縁が上がり、残りが山を引きずりながら
@@ -2467,6 +2597,11 @@ function drawToyDynamic(t, clipChute) {
   const dl = leanAt(h.x + t.dx, h.y + t.dy, h.z + t.dz) - leanAt(h.x, h.y, h.z);
   if (Math.abs(dl) > 1e-4) ctx.transform(1, 0, dl, 1, 0, 0);
   ctx.rotate(t.rot); ctx.scale(s, s);
+  if (t.squash) {
+    // 着いた瞬間のつぶれ（11/10）：絵の下の端（縁の余白を除く）を軸に、縦に縮んで横に広がる
+    const r = t.data.sprite.rect, by = r[1] + r[3] - (0.08 * Math.max(r[2], r[3]) + 6) - p0.v, bx = r[0] + r[2] / 2 - p0.u;
+    ctx.translate(bx, by); ctx.scale(1 + t.squash * 0.8, 1 - t.squash); ctx.translate(-bx, -by);
+  }
   // びろーんの途中の姿も、つかむ点（hold）を中心に回して描いた絵なので、同じ点を基準に描く。
   // 近い方の1コマだけを描くパラパラ漫画（隣のコマを薄く重ねると、目の位置が数px違うので顔が二重にぶれた・10/30 昼）
   const m = hasHang(t) ? (t.hangMix || 0) : 0;
@@ -3101,10 +3236,12 @@ ui.title.addEventListener('pointercancel', () => clearTimeout(pressTimer));
 titleSub.addEventListener('pointerleave', () => clearTimeout(pressTimer));
 // 音のボタンは外した（11/9 本人「音を出さない時は端末側をミュートする」）。前に消したままの端末で音が出なくならないよう、消音は戻す
 if (settings.muted) { settings.muted = false; saveSettings(); }
-ui.resultBtn.addEventListener('click', () => {
-  if (performance.now() - (game.resultShownAt || 0) < 500) return;
+const endResult = () => {
+  if (game.phase !== 'result' || performance.now() - (game.resultShownAt || 0) < 500) return;
   audio.unlock(); audio.tap(); setPhase('title'); game.titleShownAt = performance.now();
-});
+};
+ui.resultBtn.addEventListener('click', endResult);
+ui.resultBtnTv.addEventListener('click', endResult);   // テレビの下の枠の「おしまい」（11/10）
 // キーボード（PCでの確認用）：→ よこ、↑ おく、Enter スタート
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
@@ -3243,9 +3380,13 @@ window.__ufo = {
   biroons: () => toys.filter((t) => isFlat(t)).map((t) => ({ id: t.id, state: t.state, footprint: t.data.footprint, grips: (t.data.grips || []).map((g) => g.grab), dx: t.dx, dy: t.dy })),
   camHold: (a) => { camState.from = camState.to = a; camState.dur = 0; },   // 切り替えの途中で止めて撮る（確かめ用）
   force: (arr) => { game.forcedOutcome = arr; },   // 例: ['win','lose','win']（null で解除）
+  forceSlip: (mode, at) => { game.forcedSlip = mode ? { mode, at } : null; },   // 外れの回の抜け方を決め打ち（'lift', 0.7）／（'top', 0.2）。null で解除
+  slip: () => (game.slip ? Object.assign({ phase: game.phase, phaseT: game.phaseT, bob: claw.bob || 0, arm: claw.arm }, game.slip) : null),
   setLuck: (p) => { settings.luckP = p; },
   setSlot: (s) => { settings.luckSlot = s; },
   timeScale: (k) => { game.timeScale = k; },
+  // 時間を止めたまま（timeScale(0)）ゲームの時間だけ sec 秒進めて描く（確かめ用：こま撮りを決まった間隔で撮る）
+  step: (sec) => { const n = Math.max(1, Math.round(sec * 240)); for (let i = 0; i < n; i++) update(sec / n); frameNow = performance.now(); draw(); return game.phase; },
   out: () => toys.filter((t) => t.state === 'out').map((t) => Object.assign({ id: t.id, prize: t.prize }, t.out)),   // 取り出し口から出てくる子（確かめ用）
   outGeo: () => outGeo, pickSticker,
   hangMix: (m) => { if (claw.held) claw.held.hangMix = m; return claw.held ? claw.held.hangMix : null; },   // 持った子の姿を決め打ち（時間を止めて、コマの切り替わりを見る用）

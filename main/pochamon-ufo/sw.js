@@ -1,7 +1,7 @@
 // ぽちゃもん UFOキャッチャー Service Worker
 // 会場のオフライン対策：本体と素材を全部 precache する。
 // index.html / game.js / style.css / 素材を変えたら CACHE_NAME を bump すること（cache-first のため）。
-const CACHE_NAME = 'pochamon-ufo-v31';
+const CACHE_NAME = 'pochamon-ufo-v32';
 
 const CORE = [
   './',
@@ -9,6 +9,7 @@ const CORE = [
   './style.css?v=9',
   './game.js?v=9',
   './led.js?v=9',
+  './result.js?v=9',   // 結果のテレビの電光パネル（11/10）
   './assets/led_font.json',
   './assets/led_art.json',
   './assets/bgm.mp3',
