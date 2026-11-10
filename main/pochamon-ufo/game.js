@@ -91,7 +91,15 @@ const CFG = {
   // 「丸が正確に立体に沿って動くように」「丸を下ろした付近にアームが下りるように」）
   hfield: qs.get('hf') !== '0',          // ぬいぐるみの本当の形（assets/hfield.json＝Blender の上から見た高さの地図）で丸を置き、カメラから隠れたかを決める。?hf=0 で前の見積もり（丸屋根）
   aimExact: qs.get('aim') !== 'old',     // アームは丸の乗っている子をつかみ、丸の所へ下りる。?aim=old で前の「近くて高い子のつかむ点へ寄る（最大25cm）」
-  aimPull: 0.03,                          // 丸の所から、つかむ子のつかむ点（てっぺん）の方へ寄せる距離の上限（m）。残りは持ち上げで子が爪の下へ寄る
+  // 爪の閉じ具合を、爪先が子の体に当たった所で決める（11/10 夜・本人「下の方の子をつかむと、アームが何もない所をつかんでぬいぐるみが引き上がる」
+  // 「掴んでいるように見せかけて不自然な開き方」）。前は子の大きさで決めた固定の角度（0°／大きい子 −7°）まで閉じ、つかんだ子を爪先へ 0.3 秒で吸い寄せていた。
+  // 今は閉じる途中で爪先が体（高さ地図）へ gripSink 入った角度で止め、両方の爪先が体に届かなければつかめない（空振り）。持ち上げても子は今の位置のまま。?grip=old で前の形
+  gripContact: qs.get('grip') !== 'old',
+  openAtHome: qs.get('homeopen') !== '0',   // 外れの回に定位置で爪を一回開く（11/10 夜）。?homeopen=0 で前の形
+  openAtHomeSec: 0.3,                       // 開いたまま止まる時間（秒）
+  gripSink: 0.012,                        // 爪先が体へ入る深さ（m）。ここで爪が止まる＝ぬいぐるみを軽く押した所
+  gripShiftMax: 0.035,                    // 片方の爪だけ深く入る時、閉じる爪に押されて子が横へ寄る距離の上限（m）。これより偏っていればつかめない
+  aimPull: 0.03,                        // 丸の所から、つかむ子のつかむ点（てっぺん）の方へ寄せる距離の上限（m）。残りは持ち上げで子が爪の下へ寄る
   padPress: 0.012,                        // 開いた爪先が、下の子の面へ押し込む深さの上限（m）。爪先がこれより深く入る高さでは止まる
   ptrSelfGhost: qs.get('ghost') === 'self',   // 丸がその子自身の奥の斜面（カメラから見えない所）にある時も透ける輪を出すか。既定は出さない（顔の上を輪が下へ滑って見えた）
   // 80〜90年代の筐体の飾り（2026-10-30・参考＝宝島社「SEGA UFO CATCHER ほんものそっくりポーチBOOK」の付録のポーチ）：
@@ -948,7 +956,7 @@ function makeSlots() {
 // そこから斜め上へ切り替わる間に、取った子が欠けた並びが透けて見えないように
 function resetToy(t) {
   t.state = 'rest'; t.dx = t.dy = t.dz = t.vz = 0; t.rot = t.hang = t.sag = 0; t.alpha = 1; t.shadowA = 1; t.hangMix = 0;
-  t.slide = 0; t.tilt = 0; t.squash = 0; t.fallRotV = 0; t.softLand = false;   // つかみそこねの滑り・傾き・着いた時のつぶれ（11/10）
+  t.slide = 0; t.tilt = 0; t.squash = 0; t.fallRotV = 0; t.softLand = false; t.gripOff = null; t.pinUV = null;   // つかみそこねの滑り・傾き・着いた時のつぶれ（11/10）・爪先とのずれ（11/10 夜）
   if (t.hold0) { t.hold = t.hold0; t.holdUV = t.holdUV0; t.below = t.below0; t.armHold = t.armHold0; t.grip = -1; t._frames = null; }
   t.bounce = 0; t.bv = 0; t.target = null; t.reactors = null; t.reacted = false; t.landDz = 0; t.landRot = 0; t.out = null; t.prize = null;
   t.refilling = false; t.refillAt = null; t.fallAfter = null; restPose(t);
@@ -1111,6 +1119,7 @@ function homeToGrip(x0, y0) {
     for (const c of nb) {
       const a = exactAim(c.t, c.x, c.y);
       if (!a) continue;
+      if (CFG.gripContact && !gripContact(c.t, a.x, a.y, landingZ(a.x, a.y, c.t))) continue;   // 爪が体に届かない所へは寄せない（11/10 夜）
       consider(Math.hypot(a.x - x0, a.y - y0), () => { game.target = c.t; game.landOn = c.t; game.exact = { toy: c.t, aim: a }; game.zTarget = landingZ(a.x, a.y, c.t); });
       break;
     }
@@ -1707,6 +1716,74 @@ function landingZ(x, y, t) {
   if (t) zc = Math.max(zc, t.hold.z + t.dz - CFG.padDz);
   return Math.max(0.19, zc);
 }
+// 持った子の絵を描く置き方（drawToyDynamic と同じ：つかむ点 → 斜めのずらし → 回転 → 拡大）で、絵の点 o（休んでいた時の画面の px・つかむ点から）が今どこに出るか
+function toyScreenAt(t, dx, dz, o) {
+  const h = t.hold, p1 = project(h.x + dx, h.y + t.dy, h.z + dz + (t.bounce || 0)), s = t.holdUV.d / p1.d;
+  const dl = leanAt(h.x + dx, h.y + t.dy, h.z + dz) - leanAt(h.x, h.y, h.z), c = Math.cos(t.rot), sn = Math.sin(t.rot);
+  const ru = (o.u * c - o.v * sn) * s, rv = (o.u * sn + o.v * c) * s;
+  return { u: p1.u + ru + dl * rv, v: p1.v + rv };
+}
+// 画面の点 q の下にある、子 t の絵の点（toyScreenAt の逆）
+function toyPointUnder(t, q) {
+  const h = t.hold, p1 = project(h.x + t.dx, h.y + t.dy, h.z + t.dz + (t.bounce || 0)), s = t.holdUV.d / p1.d;
+  const dl = leanAt(h.x + t.dx, h.y + t.dy, h.z + t.dz) - leanAt(h.x, h.y, h.z);
+  const vv = q.v - p1.v, vu = q.u - p1.u - dl * vv, c = Math.cos(-t.rot), sn = Math.sin(-t.rot);
+  return { u: (vu * c - vv * sn) / s, v: (vu * sn + vv * c) / s };
+}
+// 持った子を、つかんだ時に爪先の下にあった絵の点（t.pinUV）が画面の上で爪先 tip に重なる所へ（11/10 夜）。
+// 3D の位置だけで合わせると、1枚の絵を拡大縮小して描くぶん、持ち上げて手前に来ると爪先が絵の上を最大 26px 滑った。左右（dx）と高さ（dz）を2回の近似で解く
+function pinToTip(t, tip, k) {
+  const o = t.pinUV; if (!o) return;
+  const x0 = t.dx, z0 = t.dz;
+  for (let it = 0; it < 2; it++) {
+    const e = toyScreenAt(t, t.dx, t.dz, o), ex = toyScreenAt(t, t.dx + 0.001, t.dz, o), ez = toyScreenAt(t, t.dx, t.dz + 0.001, o);
+    const a = (ex.u - e.u) / 0.001, b = (ez.u - e.u) / 0.001, c = (ex.v - e.v) / 0.001, d = (ez.v - e.v) / 0.001, det = a * d - b * c;
+    if (!(Math.abs(det) > 1e-6)) break;
+    const ru = tip.u - e.u, rv = tip.v - e.v;
+    t.dx += (d * ru - b * rv) / det; t.dz += (-c * ru + a * rv) / det;
+  }
+  // 直しすぎない（6cm まで）・つかんだ直後のなじむ間は少しずつ
+  const cx = clamp(t.dx - x0, -0.06, 0.06), cz = clamp(t.dz - z0, -0.06, 0.06);
+  t.dx = x0 + cx * k; t.dz = z0 + cz * k;
+}
+// 爪先 p（玉の中心）が子 t の体に入っている深さ（m・入っていなければ 0）。上から入った深さと、外側（out＝外の向き ±1）へ抜けるまでの横の深さの小さい方
+function tipDepth(t, p, out) {
+  const R = CFG.padR, lo = p.z - R, hi = p.z + R;
+  const inside = (x) => { const top = hfTop(t, x, p.y); if (top == null || top < lo) return false; const bot = hfBot(t, x, p.y); return bot == null || bot <= hi; };
+  if (!inside(p.x)) return 0;
+  let side = 0.04;
+  for (let s = 0.002; s <= 0.04 + 1e-9; s += 0.002) if (!inside(p.x + out * s)) { side = s; break; }
+  return Math.min(hfTop(t, p.x, p.y) - lo, side);
+}
+// 円盤を (x, y, zc) に下ろして爪を開いた所から閉じていく時、つかむ子 t のどこで爪が止まるか（11/10 夜）。
+// 爪先が体へ CFG.gripSink 入った角度で止める。両方の爪先が体に届かない（下の子の上で、まわりの子に乗って高い所で止まった等）なら null＝つかめない。
+// 片方だけ深く入る時は、深い方の爪に押されて子が横へ寄る（shift・x の向き）。寄る分が CFG.gripShiftMax を超えるならつかめない
+function gripContact(t, x, y, zc) {
+  if (!t || !t.hf || !HF.on) return null;
+  const hit = [null, null], stop = [null, null], lastIn = [null, null];
+  let a = CFG.armOpen;
+  for (; a <= CFG.armClosed + 1e-9; a += 0.5) {
+    const ps = padTips(x, y, zc, a);
+    for (let i = 0; i < 2; i++) {
+      if (stop[i] != null) continue;
+      const d = tipDepth(t, ps[i], i === 0 ? -1 : 1);
+      if (d > 0) { if (hit[i] == null) hit[i] = a; lastIn[i] = a; }
+      if (d >= CFG.gripSink) stop[i] = a;
+    }
+    if (stop[0] != null && stop[1] != null) break;
+  }
+  if (hit[0] == null || hit[1] == null) return null;   // 片方の爪先が空を切る＝挟めない
+  // 両方がちょうど止まる角度＝後から止まった方。先に止まった方は、その分だけ子を向こうへ押す
+  // 深さが gripSink に届かなかった爪は、最後に体に入っていた角度（薄い所を突き抜けた・閉じきっても浅い）
+  const hold = Math.min(CFG.armClosed, Math.max(stop[0] != null ? stop[0] : lastIn[0], stop[1] != null ? stop[1] : lastIn[1]));
+  const ps = padTips(x, y, zc, hold);
+  const d0 = tipDepth(t, ps[0], -1), d1 = tipDepth(t, ps[1], 1);
+  if (!(d0 > 0 && d1 > 0)) return null;   // 止まった角度で片方が体から出ている＝挟めていない（検品：約2%で片方の深さが 0 だった）
+  // 子が shift 寄ると片方は shift 浅く・もう片方は shift 深くなる＝釣り合うのは入り過ぎの差の半分（左の爪が深い＝子は右（+x）へ）
+  const shift = (Math.max(0, d0 - CFG.gripSink) - Math.max(0, d1 - CFG.gripSink)) / 2;
+  if (Math.abs(shift) > CFG.gripShiftMax) return null;
+  return { hold, shift };
+}
 // 絵の一部を、別の物の形で型を抜いて描き直す（びろーんとアーム・持った子の前後を、描く順番と逆にしたい所だけ）。
 // box＝背景の絵の px の範囲。content を描き、mask の不透明な所だけ残して、alpha で重ねる。2枚の canvas はその範囲の大きさだけ使う
 const maskA = document.createElement('canvas'), maskB = document.createElement('canvas');
@@ -1995,10 +2072,16 @@ function setPhase(p) {
       // 当たりの回で、つかめない所（びろーんの真ん中・下の方）に下りる時は、一番近いつかめる所（びろーんの縁の3か所・尻尾・ふつうの子）へ
       // 寄せながら下りる（11/9 本人「結構高確率でびろーんのぬいぐるみが取れない。必ず2回は取れてほしい。的を外した所に行くなら、取れる所にホーミングするように」。
       // 前は空振りにして、当たりを後の外れの回へ持ち越していた＝最後の回だと持ち越せずに消えた）
+      // 爪が体に届かない子はつかめない（11/10 夜・gripContact）。前は届かなくても爪先へ吸い寄せていた
+      if (CFG.gripContact && HF.on && game.target && !isFlat(game.target)) {
+        const a0 = aimFor(game.target);
+        if (!a0 || !gripContact(game.target, a0.x, a0.y, game.zTarget)) { game.target = null; game.exact = null; }
+      }
       game.homing = false;
       if (game.outcome === 'win' && !game.target) game.homing = homeToGrip(claw.cx, claw.cy);
       // 台車の行き先（11/9 午後）：ふつうの子は、開いた爪がびろーんの中に深く入らない所（横へずれた分は、持ち上げで子が爪の真下へ寄る）
       game.aim = aimFor(game.target);
+      game.grip = CFG.gripContact && HF.on && game.target && !isFlat(game.target) ? gripContact(game.target, game.aim.x, game.aim.y, game.zTarget) : null;
       // つかむ所が離れていても、下りきるまでに寄せ切る（寄せが残ると閉じたまま滑る）。びろーんは縁に沿って数cmだけ。寄せる時（homing）は少し速く。
       // 爪をびろーんから外すためにずらした時も、下りきるまでに着く（着かないと爪がびろーんの中に下りる）
       game.driftV = CFG.driftSpeed;
@@ -2010,6 +2093,7 @@ function setPhase(p) {
     }
     case 'grab':
       claw.damp = CFG.dampGround; claw.wx *= 0.4; claw.wy *= 0.4;
+      if (game.target && !isFlat(game.target)) game.target.armHold = game.grip ? game.grip.hold : game.target.armHold0;   // 届かない判定を通らない形（?aim=old の寄せ）は元の角度   // 爪先が体に当たった角度（滑り落ちる時の開きもここから）
       claw.armTarget = game.target ? game.target.armHold : CFG.armClosed;
       audio.bump(); setTimeout(() => audio.clack(), 260);
       // 爪が山に当たる：真下の子は押されて沈み、まわりも少し揺れる（びろーんの真ん中で空振りした時も、びろーんは押される）
@@ -2033,6 +2117,17 @@ function setPhase(p) {
       break;
     case 'lift':
       if (game.target) { setupRides(game.target); game.target.state = 'held'; game.target.attach = 0; game.target.liftDz0 = game.target.dz; claw.held = game.target; faceUI.grin(); }   // つかめた→右下の子がニヤッ
+      // 爪先が体に当たったまま持ち上げる（11/10 夜）：子と爪先の今のずれを持ち続ける＝爪先へ吸い寄せない。閉じた爪に押されて横へ寄る分（grip.shift）だけ、上げ始めの 0.3 秒で寄る
+      if (game.target) {
+        const t = game.target;
+        if (game.grip) {
+          const tipX = claw.x - CFG.padDz * Math.sin(claw.thx), tipY = claw.y - CFG.padDz * Math.sin(claw.thy), tipZ = claw.z + CFG.padDz * Math.cos(claw.thx) * Math.cos(claw.thy);
+          t.gripOff = { x: tipX - t.hold.x - t.dx - game.grip.shift, y: tipY - t.hold.y - t.dy, z: tipZ - t.hold.z - t.dz };
+          // 画面の上で爪先の下にある絵の点（寄る分 shift は、その分ずらした所）
+          const q = project(tipX - game.grip.shift, tipY, tipZ);
+          t.pinUV = toyPointUnder(t, q);
+        } else { t.gripOff = null; t.pinUV = null; }
+      }
       claw.damp = CFG.dampHeld; game.liftStartL = claw.L; audio.whir(); break;
     case 'slipping':
       if (CFG.slipOld) { audio.slip(); faceUI.normal(true); break; }   // 前の形：揺らしてから落とす（真顔はここで）
@@ -2051,7 +2146,11 @@ function setPhase(p) {
     case 'hold': audio.motorOff(); break;   // 上で一呼吸（ぶら下がった子が揺れて止まるのを見せる）
     case 'carry': claw.damp = CFG.dampHeld; guide(''); game.carryTo = carryTarget(claw.held); break;
     case 'release': claw.armTarget = CFG.armOpen; break;
-    case 'return': claw.armTarget = CFG.armClosed; claw.damp = CFG.dampFree; break;
+    case 'return':
+      claw.armTarget = CFG.armClosed; claw.damp = CFG.dampFree;
+      // 外れの回は、定位置（景品口の上）に戻ったら爪を一回開いて閉じる（11/10 夜・本人「普通のUFOキャッチャーもそういう動作をする」）。取れた回は release で開いている
+      game.openAtHome = prev !== 'release' && CFG.openAtHome ? { step: 0, t: 0 } : null;
+      break;
     case 'between': showMsg(zen(game.tryIndex + 1) + 'かいめ！', 'round', 900); game.lastInputAt = performance.now(); faceUI.normal(false); break;
     case 'result': {
       setButtons(false, false); guide(''); audio.motorOff();
@@ -2152,8 +2251,6 @@ function updateToys(dt) {
       // 上下も同じ 0.3 秒でなじませる（11/10）：狙いの丸の所に下りると、爪先がつかむ点（てっぺんから5cm下）と同じ高さとは限らない。
       // 前は爪先の高さへ一気に吸い付いた（つかむ点の真上に下りていたので段差が無かった）
       // t.slide＝爪の中を滑り下りた分（つかみそこねの回・11/10）。?slip=old の前の形は t.sag（最大 5cm ずり落ちる）
-      t.dz = lerp(t.liftDz0 != null ? t.liftDz0 : sz, tipZ - t.hold.z - t.sag * 0.05 - (t.slide || 0), k);
-      t.dx = lerp(sx, tipX - t.hold.x, k); t.dy = lerp(sy, tipY - t.hold.y, k);
       // ぶら下がった子の傾き（重心が爪の真下へ来る向き）。びろーんは平たく、つかむ点と重心の高さがほぼ同じ＝分母が小さくて 30° も出て筐体の外へはみ出した → 傾けない（10/30 検品）
       const hangTarget = isFlat(t) ? 0 : clamp(-Math.atan2(t.data.center[0] - t.hold.x, Math.max(0.03, t.hold.z - t.data.center[2])) * 0.8, -0.6, 0.6);
       t.hang = approach(t.hang, hangTarget, 1.5 * dt);
@@ -2161,6 +2258,14 @@ function updateToys(dt) {
       // 前はそのまま足していて、運び始めにアームと子が進む向きへ傾き、吊った子の重心が爪の真下から横へ逃げた（10/30 朝の検品）
       // t.tilt＝片方の爪から先に外れて傾いた分（つかむ点＝爪先のまわりに回る）。前の形（?slip=old）は t.sag で横に 14° 揺らしていた
       t.rot = lerp(t.restRot || 0, -(claw.thx + t.hang), k) + t.sag * Math.sin(game.phaseT * 28) * 0.25 + (t.tilt || 0);
+      // 爪先と子のずれ（11/10 夜・爪先が体に当たったままの位置で持つ）。絵はつかむ点のまわりに回るので、休んでいた時から回った分（dr）だけ
+      // ずれも回す＝爪先の所を軸に回って見える（検品：回さないと、振れる・運ぶ・傾いて抜ける時に爪先が子の表面を滑った）。dr は正＝時計回り（上の端が右へ）
+      const go = t.gripOff || { x: 0, y: 0, z: 0 }, dr = t.rot - (t.restRot || 0);
+      const gx = go.x * Math.cos(dr) + go.z * Math.sin(dr), gz = -go.x * Math.sin(dr) + go.z * Math.cos(dr);
+      t.dz = lerp(t.liftDz0 != null ? t.liftDz0 : sz, tipZ - t.hold.z - gz - t.sag * 0.05 - (t.slide || 0), k);
+      t.dx = lerp(sx, tipX - t.hold.x - gx, k); t.dy = lerp(sy, tipY - t.hold.y - go.y, k);
+      // 画面の上でも爪先に重ねる（滑り落ちる分 slide・前の形の sag は、爪先を下げて合わせる＝ずるっは残る）
+      if (t.pinUV) pinToTip(t, project(tipX, tipY, tipZ - t.sag * 0.05 - (t.slide || 0)), k);
       t.shadowA = clamp(1 - (t.dz - sz) / 0.25, 0, 1);
       // びろーん：持ち上げて4cmのあいだに、寝た絵からぶら下がった絵へ入れ替える。平たく柔らかい子は、つまんだ上の縁から縦に垂れる
       // （前は寝た姿のまま板のように浮いていた・10/30 朝の検品）
@@ -2374,7 +2479,14 @@ function update(dt) {
       acc = r; rumble = !r.arrived;
       if (!r.arrived) audio.motorOn(0.95); else audio.motorOff();
       const settled = !toys.some((t) => t.state === 'falling' || t.state === 'chute' || t.state === 'out' || (t.state === 'settle' && game.phaseT < 3));
-      if (r.arrived && claw.L <= claw.cableTop - CFG.raisedZ + 1e-6 && settled && game.phaseT > 0.8) {
+      const home = r.arrived && claw.L <= claw.cableTop - CFG.raisedZ + 1e-6;
+      const oh = game.openAtHome;
+      if (oh && home) {   // 開く → 開いたまま一呼吸 → 閉じる
+        if (oh.step === 0) { claw.armTarget = CFG.armOpen; oh.step = 1; }
+        else if (oh.step === 1 && claw.arm <= CFG.armOpen + 0.5) { oh.t += dt; if (oh.t >= CFG.openAtHomeSec) { claw.armTarget = CFG.armClosed; oh.step = 2; audio.clack(); } }
+        else if (oh.step === 2 && claw.arm >= CFG.armClosed - 0.5) game.openAtHome = null;
+      }
+      if (home && !game.openAtHome && settled && game.phaseT > 0.8) {
         game.tryIndex++; updateHud();
         setPhase(game.tryIndex < CFG.tries ? 'between' : 'result');
       }
@@ -3395,6 +3507,8 @@ window.__ufo = {
     fClaw: t.fClaw, fHeld: t.fHeld, dx: +t.dx.toFixed(3), dy: +t.dy.toFixed(3) })),   // びろーんの縁の上下（確かめ用）
   landing: (id) => { const t = toys.find((x) => x.id === id); return t ? landingFor(t) : null; },
   aim: () => game.aim,
+  // 持った子の、つかんだ時に爪先の下にあった絵の点と、今の爪先の画面の離れ（px・確かめ用 11/10 夜）
+  pinErr: () => { const t = claw.held; if (!t || !t.pinUV) return null; const tip = project(claw.x - CFG.padDz * Math.sin(claw.thx), claw.y - CFG.padDz * Math.sin(claw.thy), claw.z + CFG.padDz * Math.cos(claw.thx) * Math.cos(claw.thy) - t.sag * 0.05 - (t.slide || 0)); const m = toyScreenAt(t, t.dx, t.dz, t.pinUV); return Math.hypot(m.u - tip.u, m.v - tip.v); },
   biroons: () => toys.filter((t) => isFlat(t)).map((t) => ({ id: t.id, state: t.state, footprint: t.data.footprint, grips: (t.data.grips || []).map((g) => g.grab), dx: t.dx, dy: t.dy })),
   camHold: (a) => { camState.from = camState.to = a; camState.dur = 0; },   // 切り替えの途中で止めて撮る（確かめ用）
   force: (arr) => { game.forcedOutcome = arr; },   // 例: ['win','lose','win']（null で解除）
@@ -3413,7 +3527,8 @@ window.__ufo = {
   hf: () => ({ on: HF.on, step: HF.step, zmax: HF.zmax }),   // 本当の形の地図（11/10）
   // その場所の真下の表面がカメラから見えるか（隠している子の id・null は見える）と、下りた時の行き先・止まる高さ（確かめ用）
   probeAim: (x, y) => { const s = surfaceUnder(x, y), occ = hfOccluder(s.px, s.py, s.z + 0.002); const t = s.on && !isFlat(s.on) ? s.on : null, a = t ? exactAim(t, x, y) : null;
-    return { z: s.z, on: s.on ? s.on.id : null, occ: occ === undefined ? 'n/a' : (occ ? occ.id : null), target: a ? t.id : null, aim: a, zc: landingZ(a ? a.x : x, a ? a.y : y, a ? t : null) }; },
+    const zc = landingZ(a ? a.x : x, a ? a.y : y, a ? t : null);
+    return { z: s.z, on: s.on ? s.on.id : null, occ: occ === undefined ? 'n/a' : (occ ? occ.id : null), target: a ? t.id : null, aim: a, zc, grip: a ? gripContact(t, a.x, a.y, zc) : null }; },
   surfaceAt: (x, y) => { const r = surfaceUnder(x, y); return { z: r.z, on: r.on ? r.on.id : null, px: r.px, py: r.py, cands: toys.filter((t) => !isFlat(t) && (t.state === 'rest' || t.state === 'settle')).map((t) => ({ id: t.id, dome: domeZ(t, x, y), zb: t.data.zbottom, zt: t.data.ztop })).filter((c) => c.dome != null) }; },
   settings, CFG, decideOutcome: (i) => decideOutcome(i), makeSlots,
   // ルールの検算：n ゲーム回して取れた枚数の分布を返す（実際の判定関数を使う）
