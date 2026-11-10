@@ -8,6 +8,8 @@
 やること
   - move_NN.png → assets/move_NN.webp（透明つき。モニターの画面は穴＝ゲームは穴の下に電光パネルを描く）
   - assets/scene.json に camera_move（コマごとのカメラ：s・fx・cx・cy・m_cam）を足す。ほかの所は触らない
+  - 11/10（v13 の ext=80）：書き出しに絵の下の描き足しがあれば、正面の絵 front.png → front.webp と、いつもの絵の下の帯
+    bg_ext.png → bg_ext.webp も取り込む（scene.json の front_camera.ext・bg_ext）。いつもの絵 bg.webp は触らない
 コマの絵には、ぬいぐるみの並び・アーム・台車が描き込んである。並びがゲームの今の並び（assets/scene.json）と違う書き出しを
 取り込むと、動き出しと止まる所で山が入れ替わって見える＝ぬいぐるみの位置と2つのカメラを照らし合わせて、違ったら止める。
 """
@@ -77,7 +79,63 @@ for f in mv["frames"]:
     frames.append(g)
     print(out, im.size, "s=%.4f" % f["s"])
 G["camera_move"] = dict(n=mv["n"], pct=mv["pct"], ease=mv["ease"], size=mv["size"], frames=frames,
-                        source=os.path.basename(os.path.normpath(src)))
+                        source=os.path.basename(os.path.normpath(src)), ext=mv.get("ext", 0))
+
+# 11/10（ufo_export.py v13 の ext=80）：絵の下に描き足した行。4:3 や iPad で出る下の空きを、端の1行を伸ばさずに本当の絵で埋める
+# （本人「景品取り出し口がゲームスタート時とタイトルで角度変わるときに表示がバグってる」＝伸ばした行が取り出し口を横切っていた）。
+#  ・正面の絵 front.png（描き足した分ごと 1800×2080）→ assets/front.webp
+#  ・いつもの絵の下の帯 bg_ext.png（いつもの絵の最後の数行＋描き足した行）→ 描き足した行だけ assets/bg_ext.webp。いつもの絵 bg.webp は触らない。
+#    帯の中の筐体の外（透明）は、今の bg.webp の最後の行の色で埋める（今まで伸ばしていた色＝見た目を変えない）
+fc = S.get("front_camera") or {}
+if fc.get("ext") and os.path.exists(os.path.join(src, "front.png")):
+    im = Image.open(os.path.join(src, "front.png")).convert("RGBA")
+    if im.size[1] != S["image"]["height"] + fc["ext"]:
+        sys.exit("front.png の高さが %d（絵 %d＋描き足し %d のはず）" % (im.size[1], S["image"]["height"], fc["ext"]))
+    im.save(os.path.join(DEST, "front.webp"), "WEBP", quality=90, method=6)
+    G["front_camera"]["ext"] = fc["ext"]
+    print("front.webp", im.size, "ext", fc["ext"], "%.1f MB" % (os.path.getsize(os.path.join(DEST, "front.webp")) / 1e6))
+be = S.get("bg_ext")
+if be and os.path.exists(os.path.join(src, be["file"])):
+    band = Image.open(os.path.join(src, be["file"])).convert("RGBA")
+    ov, rows = be["overlap"], be["rows"]
+    if band.size != (S["image"]["width"], ov + rows):
+        sys.exit("bg_ext.png の大きさが %s（%d×%d のはず）" % (band.size, S["image"]["width"], ov + rows))
+    import numpy as np
+    bg = np.array(Image.open(os.path.join(DEST, G["files"]["bg"])).convert("RGBA")).astype(np.int16)
+    b = np.array(band).astype(np.int16)
+    # つなぎ目の確かめ：帯の上の数行（いつもの絵の最後の行と同じ所）と、今の bg.webp の最後の数行の違い（不透明な所だけ）
+    top, last = b[:ov], bg[-ov:]
+    m = (top[:, :, 3] > 250) & (last[:, :, 3] > 250)
+    seam = np.abs(top[:, :, :3] - last[:, :, :3]).max(axis=2)[m]
+    print("bg_ext seam: mean diff %.1f / 95%% %.0f (0-255, the bg.webp is lossy)" % (seam.mean(), np.percentile(seam, 95)))
+    if seam.mean() > 12:
+        sys.exit("止めた：帯の上の端が今の bg.webp と合わない（平均 %.1f）＝別の絵の書き出し" % seam.mean())
+    ext = b[ov:].copy()
+    clear = ext[:, :, 3] < 250
+    fill = np.repeat(bg[-1:, :, :], rows, axis=0)
+    ext[clear] = fill[clear]
+    Image.fromarray(ext.clip(0, 255).astype(np.uint8), "RGBA").save(os.path.join(DEST, "bg_ext.webp"), "WEBP", quality=90, method=6)
+    G["bg_ext"] = dict(file="bg_ext.webp", rows=rows)
+    print("bg_ext.webp", (ext.shape[1], ext.shape[0]), "filled from the bg's last row:", int(clear.sum()), "px")
+# 11/10（v13 の doorpatch=1）：いつもの絵の取り出し口のまわりを、1枚の枠で描き直した絵（bg.webp の枠は4本の箱の重なりで、角が暗い四角）。
+# ゲームは bg の上にこれを貼る。bg.webp は触らない
+bd = S.get("bg_door")
+if bd and os.path.exists(os.path.join(src, bd["file"])):
+    import numpy as np
+    pd = Image.open(os.path.join(src, bd["file"])).convert("RGBA")
+    x, y, w, h = bd["rect"]
+    if pd.size != (w, h):
+        sys.exit("bg_door.png の大きさが %s（%d×%d のはず）" % (pd.size, w, h))
+    cur = np.array(Image.open(os.path.join(DEST, G["files"]["bg"])).convert("RGBA")).astype(np.int16)[y:y + h, x:x + w]
+    p = np.array(pd).astype(np.int16)
+    ring = np.zeros((h, w), bool); ring[:6, :] = ring[-6:, :] = True; ring[:, :6] = ring[:, -6:] = True   # ふちの 6px（扉の外の胴）
+    edge = np.abs(p[:, :, :3] - cur[:, :, :3]).max(axis=2)[ring]
+    print("bg_door edge vs bg.webp: mean diff %.1f / 95%% %.0f" % (edge.mean(), np.percentile(edge, 95)))
+    if edge.mean() > 10:
+        sys.exit("止めた：bg_door のふちが今の bg.webp と合わない（平均 %.1f）" % edge.mean())
+    pd.save(os.path.join(DEST, "bg_door.webp"), "WEBP", quality=92, method=6)
+    G["bg_door"] = dict(file="bg_door.webp", rect=bd["rect"])
+    print("bg_door.webp", pd.size, "at", bd["rect"][:2])
 with open(os.path.join(DEST, "scene.json"), "w", encoding="utf-8") as fh:
     json.dump(G, fh, ensure_ascii=False, separators=(",", ":"))
 print("取り込み %d 枚・合計 %.1f MB" % (len(frames), total / 1e6))

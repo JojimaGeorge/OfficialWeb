@@ -343,6 +343,10 @@ async function load() {
     jobs.push(track(loadImage('assets/' + FCAM.file)).then((im) => { img.front = im; }));
   }
   if (scene.fg_chute) jobs.push(track(loadImage('assets/' + scene.fg_chute.file)).then((im) => { img.fg = im; }));
+  // いつもの絵の下に描き足した帯（11/10・4:3 や iPad で出る下の空きを、端の1行を伸ばさずに本当の絵で埋める）。読めなければ前と同じく伸ばす
+  if (scene.bg_ext && scene.bg_ext.file) jobs.push(track(loadImage('assets/' + scene.bg_ext.file)).then((im) => { img.bgExt = im; }).catch((e) => { console.warn('bg_ext', e); }));
+  // 取り出し口のまわりを1枚の枠で描き直した絵（11/10・bg の枠は4本の箱の重なりで角が暗い四角）。読めなければ bg のまま
+  if (scene.bg_door && scene.bg_door.file) jobs.push(track(loadImage('assets/' + scene.bg_door.file)).then((im) => { img.bgDoor = im; }).catch((e) => { console.warn('bg_door', e); }));
   // カメラが動く途中のコマ（11/9）：35 枚。動いている間は 1 コマ 2〜3 回しか描かない＝その場で画像を展開するとカクつく。
   // createImageBitmap で読み込んだ時に展開しておく（1 枚 810×900＝約 2.9MB・計 約 100MB）。読めなかったコマがあれば白く光る切り替えに戻る
   if (scene.camera_move && scene.camera_move.frames && scene.front_camera && CFG.camCut === 'move' && CFG.frontTitle) {
@@ -2882,9 +2886,11 @@ function drawMoveFrame(fr, a, withLed) {
   ctx.save();
   ctx.globalAlpha = a;
   if (withLed) drawMonitor(proj);
-  ctx.drawImage(im, 0, 0, W, H);
+  // コマは全体の 45% の大きさ。11/10 からは絵の下に 80 行（全体の大きさで）描き足してある＝横幅に合わせて広げれば、足した分が H の下に来る
+  const hIm = im.height * W / im.width;
+  ctx.drawImage(im, 0, 0, W, hIm);
   const bottom = (view.ch - view.oy) / view.k;
-  if (bottom > H + 0.5) ctx.drawImage(im, 0, im.height - 1, im.width, 1, 0, H - 0.5, W, bottom - H + 1);   // 4:3 の下の空き（いつもの絵と同じ）
+  if (bottom > hIm + 0.5) ctx.drawImage(im, 0, im.height - 1, im.width, 1, 0, hIm - 0.5, W, bottom - hIm + 1);   // 足した分でも足りない下の空きだけ、端の1行を伸ばす
   if (CFG.deco) {   // 正面の絵と同じ線（前板の前の面の上の縁）をこのコマのカメラで
     for (const [z0, col] of [[0.008, '#e2333f'], [-0.0016, '#2b4fb5']]) {
       const v0 = proj(0, -0.40, z0).v, v1 = proj(0, -0.40, z0 - 0.0052).v;
@@ -2899,9 +2905,9 @@ function drawFront(a, withLed) {
   ctx.save();
   ctx.globalAlpha = a;
   if (withLed !== false) drawMonitor(projectFront);
-  ctx.drawImage(img.front, 0, 0);
-  const bottom = (view.ch - view.oy) / view.k;
-  if (bottom > H + 0.5) ctx.drawImage(img.front, 0, H - 1, W, 1, 0, H - 0.5, W, bottom - H + 1);   // 4:3 の下の空き（いつもの絵と同じ）
+  ctx.drawImage(img.front, 0, 0);   // 11/10 からは絵の下に 80 行描き足してある（1800×2080）＝そのまま描けば H の下も埋まる
+  const bottom = (view.ch - view.oy) / view.k, hIm = img.front.height || H;
+  if (bottom > hIm + 0.5) ctx.drawImage(img.front, 0, hIm - 1, W, 1, 0, hIm - 0.5, W, bottom - hIm + 1);   // 足した分でも足りない下の空きだけ、端の1行を伸ばす
   if (CFG.deco) {   // いつもの絵の decoPinV と同じ線（前板の前の面の上の縁＝奥行き -0.40m・高さ 0.008m から下へ 5.2mm と、9.6mm 下から 5.2mm）
     for (const [z0, col] of [[0.008, '#e2333f'], [-0.0016, '#2b4fb5']]) {
       const v0 = projectFront(0, -0.40, z0).v, v1 = projectFront(0, -0.40, z0 - 0.0052).v;
@@ -2914,9 +2920,14 @@ function drawFront(a, withLed) {
 function drawScene() {
   drawMonitor(project);   // 背景の絵のモニターの画面は穴＝その下に電光パネル
   ctx.drawImage(img.bg, 0, 0);
-  {   // 4:3 で出る下の空き：胴体の端の1行を画面の下端まで伸ばす（筐体が床まで続いて見える）
+  if (img.bgDoor) { const r = scene.bg_door.rect; ctx.drawImage(img.bgDoor, r[0], r[1]); }   // 取り出し口の枠（1枚の枠で描き直した所）
+  {   // 4:3 で出る下の空き（iPad で約 71 行）。前は胴体の端の1行を画面の下端まで伸ばしていたが、その行は取り出し口を横切っていて、枠のピンクや扉の
+    // 暗い色が下へ伸びた（11/10 本人「景品取り出し口がゲームスタート時とタイトルで角度変わるときに表示がバグってる」）。
+    // 今は Blender で絵の下に描き足した帯（assets/bg_ext.webp・80 行）を貼り、それでも足りない所だけ端の1行を伸ばす
     const W = scene.image.width, H = scene.image.height, bottom = (view.ch - view.oy) / view.k;
-    if (bottom > H + 0.5) ctx.drawImage(img.bg, 0, H - 1, W, 1, 0, H - 0.5, W, bottom - H + 1);
+    let y = H, src = img.bg;
+    if (img.bgExt && bottom > H + 0.5) { ctx.drawImage(img.bgExt, 0, H); y = H + img.bgExt.height; src = img.bgExt; }
+    if (bottom > y + 0.5) ctx.drawImage(src, 0, src.height - 1, W, 1, 0, y - 0.5, W, bottom - y + 1);
   }
   if (CFG.deco && img.sign) {
     // 80〜90年代の飾り：ガラスの下の前板に赤と青のライン（上の梁の白い看板は draw() が最後に重ねる。梁の電球は看板の裏になるので描かない。操作盤の上の電球は残る）
