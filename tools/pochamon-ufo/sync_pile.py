@@ -146,6 +146,38 @@ S["synced"] = time.strftime("%Y-%m-%d %H:%M:%S")
 S["source"] = os.path.abspath(src)
 S["synced_claw"] = OLD.get("synced_claw")
 S["source_claw"] = OLD.get("source_claw")
+
+
+# 11/10：並びが前と同じか（並び順・数・種類・外形の箱・てっぺん・つかむ点を 0.5mm で。sync_hfield.py と同じ照らし合わせ）
+def same_pile(a, b):
+    if a.get("order") != b.get("order") or len(a["toys"]) != len(b["toys"]):
+        return False
+    for p, q in zip(a["toys"], b["toys"]):
+        if p["kind"] != q["kind"]:
+            return False
+        d = max([abs(x - y) for u, v in zip(p["bbox"], q["bbox"]) for x, y in zip(u, v)] +
+                [abs(p["ztop"] - q["ztop"])] + [abs(x - y) for x, y in zip(p["grab"], q["grab"])])
+        if d > 0.0005:
+            return False
+    return True
+
+
+# 取り込み直しで scene.json が丸ごと入れ替わる時に、前の取り込みの分を黙って落とさない（11/10 検品）：
+#  ・取り出し口の正面を向いた絵（out_pose・sync_outpose.py）はカメラだけで決まる＝カメラが同じ（上で確かめた）なら前のまま使える
+#  ・カメラが動く途中のコマ（camera_move・sync_move.py）と高さの地図（hfield.json・sync_hfield.py）は並びごとに作る＝並びが同じ時だけ前のまま
+pile_same = same_pile(OLD, S)
+if not S.get("out_pose") and OLD.get("out_pose"):
+    S["out_pose"] = OLD["out_pose"]
+    print("out_pose: kept from the current assets (same camera)")
+if not S.get("camera_move") and OLD.get("camera_move"):
+    if pile_same:
+        S["camera_move"] = OLD["camera_move"]
+        print("camera_move: kept from the current assets (same pile)")
+    else:
+        S.pop("camera_move", None)
+        print("WARNING: the pile changed — camera_move dropped (the game falls back to the white flash). Re-run ufo_export.py with move=36,45 moveclaw=0.7 and sync_move.py")
+if not pile_same:
+    print("WARNING: the pile changed — assets/hfield.json is for the old pile. Re-run ufo_export.py with hfield=1 and sync_hfield.py")
 with open(os.path.join(DEST, "scene.json"), "w", encoding="utf-8") as fh:
     json.dump(S, fh, ensure_ascii=False, separators=(",", ":"))
 kinds = {}

@@ -301,8 +301,7 @@ function drawAt(t) {
   clear(); stk.length = 0;
   const since = t - tDone();
   twinkle(t);
-  confetti(t, since);
-  fireworks(since);
+  if (!n0()) { confetti(t, since); fireworks(since); }   // 0 枚（「ざんねん…」）の時はお祝いをしない（11/10 検品）
   marquee(t, n0() ? -1 : since);
   title(t, since);
   if (n0()) { if (t > T_SLOTS) textC('ざんねん…', Y_STK - 7, [200, 190, 230], { scale: 2 }); }

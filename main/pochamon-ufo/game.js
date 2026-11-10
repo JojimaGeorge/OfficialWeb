@@ -61,6 +61,7 @@ const CFG = {
   slipLiftMin: 0.5, slipLiftMax: 0.9,   // 持ち上げの途中で抜ける時、持ち上げのどの辺で滑り始めるか
   slipTopMin: 0.1, slipTopMax: 0.35,    // 上で止まってから滑り始めるまで（秒。止まる間は holdSec）
   slipDur: 0.62,        // 滑り始めてから抜けるまで（秒）：ずるっ（0〜0.16）・引っかかる（〜0.32）・ずるずるっ（〜0.62）
+  slipTailDur: 0.34,    // 尻尾（びろーんの grip 3）で滑り始めてから抜けるまで（秒）。子はその場に残り、アームだけ上がって爪から抜ける
   slipDist: 0.034,      // 抜けるまでに爪の中を滑り下りる距離（m）
   slipTilt: 0.26,       // 片方の爪から先に外れて傾く角度（ラジアン・最大。子ごとに 0.7〜1 倍）
   slipArmOpen: 6,       // 滑り下りる子に押されて爪が開く角度（度）
@@ -2035,9 +2036,12 @@ function setPhase(p) {
         // 11/10：揺らさずに滑り抜ける。片方の爪から先に外れる向き（dir）と傾きの大きさは回ごとに変える。
         // 持ち上げの途中なら、アームは同じ速さで上がり続ける（本物はモーターを止めない＝子だけが爪の中を滑る）
         const t = claw.held;
+        // 尻尾（びろーんの grip 3）は細くて、持ち上げ始めてすぐ抜ける：子は滑り始めた高さに残り、上がっていくアームの分だけ爪の中を滑り下りて
+        // すっぽ抜ける（tail）。前は他の子と同じ 0.62 秒の間アームと一緒に上がり、寝た姿の板のまま 13cm 持ち上がってから落ちた（11/10 検品）
         game.slip = { dir: Math.random() < 0.5 ? -1 : 1, tilt: CFG.slipTilt * (0.7 + Math.random() * 0.3),
-                      rise: game.slipMode === 'lift', arm0: t ? t.armHold : CFG.armHold, rub: 0 };
-        audio.rub(0.16);   // ずるっ
+                      rise: game.slipMode === 'lift', arm0: t ? t.armHold : CFG.armHold, rub: 0,
+                      tail: !!(t && t.grip === 3), L0: claw.L };
+        audio.rub(game.slip.tail ? 0.24 : 0.16);   // ずるっ
       }
       break;
     case 'hold': audio.motorOff(); break;   // 上で一呼吸（ぶら下がった子が揺れて止まるのを見せる）
@@ -2061,7 +2065,7 @@ function setPhase(p) {
       ui.resultBtnTv.classList.remove('ready');
       const tv = CFG.resultTv && window.PochaResult && window.PochaResult.show(ui.resultLed, game.stickers, img.stickers, {
         onReveal: () => audio.prize(),
-        onDone: (late) => { if (!late) audio.fanfare(); ui.resultBtnTv.classList.add('ready'); },
+        onDone: (late) => { if (!late) { if (game.got > 0) audio.fanfare(); else audio.miss(); } ui.resultBtnTv.classList.add('ready'); },   // 0 枚はファンファーレにしない
       });
       ui.result.classList.toggle('led', !!tv);
       if (tv && window.PochaLED && window.PochaLED.pause) window.PochaLED.pause(true);   // 背面のパネルはテレビの裏＝描き直しを止める（重さをふだんと同じに）
@@ -2284,29 +2288,32 @@ function update(dt) {
     case 'slipping': {
       if (!CFG.slipOld) {
         // 11/10：ずるっ（0〜0.16 秒で 3 割）→ 引っかかる（〜0.32 秒・止まる）→ ずるずるっ（〜slipDur・加速しながら残り 7 割）→ 抜ける
-        const S = game.slip, T = game.phaseT, D = CFG.slipDur, t = claw.held;
+        const S = game.slip, T = game.phaseT, D = S.tail ? CFG.slipTailDur : CFG.slipDur, t = claw.held;
         const L0 = claw.cableTop - CFG.raisedZ;
         if (S.rise && claw.L > L0) changeCable(-Math.min(CFG.liftSpeed * settings.speed * dt, claw.L - L0));   // アームは同じ速さで上がり続ける
         acc = stepCarriage(dt, 0, 0, spd);
         if (!t) { setPhase('return'); break; }
-        const T1 = D * 0.26, T2 = D * 0.52;
+        const T1 = D * 0.26, T2 = S.tail ? 0 : D * 0.52;   // 尻尾は引っかからずに一気に抜ける
         let f;   // 滑った割合（0〜1）
-        if (T < T1) { const u = T / T1; f = 0.3 * (1 - (1 - u) * (1 - u)); }
+        if (S.tail) { const u = Math.min(1, T / D); f = u * u; }
+        else if (T < T1) { const u = T / T1; f = 0.3 * (1 - (1 - u) * (1 - u)); }
         else if (T < T2) f = 0.3;
         else { const u = Math.min(1, (T - T2) / (D - T2)); f = 0.3 + 0.7 * u * u; if (!S.rub) { S.rub = 1; audio.rub(0.22); } }   // ずるずるっ
-        t.slide = CFG.slipDist * f;
-        // 傾き：はじめの「ずるっ」ではほとんど傾かず、2回目で片方の爪から外れて一気に傾く（つかむ点＝爪先のまわりに回る）
-        t.tilt = S.dir * S.tilt * f * f;
+        // 尻尾：上がったアームの分（滑り始めてからケーブルが縮んだ分）だけ下へ＝子はその場に残る。ほかの子：爪の中を slipDist まで滑る
+        t.slide = S.tail ? (S.L0 - claw.L) + CFG.slipDist * 0.3 * f : CFG.slipDist * f;
+        // 傾き：はじめの「ずるっ」ではほとんど傾かず、2回目で片方の爪から外れて一気に傾く（つかむ点＝爪先のまわりに回る）。尻尾は小さく
+        t.tilt = S.dir * S.tilt * f * f * (S.tail ? 0.3 : 1);
         claw.armTarget = S.arm0 - CFG.slipArmOpen * f;   // 滑り下りる子に押されて爪が少し開く
         if (T >= D) {
-          // ポロッ：抜けた子は、その時の上下の速さ（アームと一緒に上がる分 − 爪の中を滑る分）と傾く勢いのまま落ちる
-          const vSlide = CFG.slipDist * 0.7 * 2 / (D - T2);   // ずるずるっの終わりの滑る速さ（m/秒）
-          const vUp = S.rise && claw.L > L0 + 1e-4 ? CFG.liftSpeed * settings.speed : 0;
+          // ポロッ：抜けた子は、その時の上下の速さ（アームと一緒に上がる分 − 爪の中を滑る分）と傾く勢いのまま落ちる。
+          // 尻尾の子はその場に残っていた＝上下の速さは、最後に少し滑り下りた分だけ
+          const vSlide = S.tail ? CFG.slipDist * 0.3 * 2 / D : CFG.slipDist * 0.7 * 2 / (D - T2);   // 終わりの滑る速さ（m/秒）
+          const vUp = !S.tail && S.rise && claw.L > L0 + 1e-4 ? CFG.liftSpeed * settings.speed : 0;
           const rs = (t.reactors || []).filter((a) => a.state === 'rest' || a.state === 'settle');
           t.landDz = rs.length ? Math.min(0.05, rs.reduce((s, a) => s + Math.abs(restTarget(a).dz), 0) / rs.length * 0.5) : 0;
           t.landRot = rs.length ? (Math.random() - 0.5) * 0.24 : 0;
           t.state = 'falling'; t.vz = vUp - vSlide; t.fallFrom = Math.max(0.01, t.dz); t.fallDx = t.dx; t.fallDy = t.dy; t.fallRot = t.rot;
-          t.fallRotV = S.dir * S.tilt * 2 * 2 / (D - T2) * 0.35;   // 傾いていた勢いの 3 割ちょっと
+          t.fallRotV = S.dir * S.tilt * 2 * 2 / (D - T2) * 0.35 * (S.tail ? 0.3 : 1);   // 傾いていた勢いの 3 割ちょっと
           t.slide = 0; t.tilt = 0; t.sag = 0; t.landedMsg = false; t.softLand = true;
           claw.held = null; claw.armTarget = CFG.armClosed; claw.damp = CFG.dampFree;
           claw.bobV = (claw.bobV || 0) + CFG.clawBob;   // 軽くなった爪がケーブルのばねで跳ね上がる
