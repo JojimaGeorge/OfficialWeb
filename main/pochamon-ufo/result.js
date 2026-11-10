@@ -214,7 +214,8 @@ function parade(t) {
     const name = PARADE[k], [w, h] = spriteSize(name);
     const x = Math.round(((k * gap + t * 12) % total + total) % total) - 24;
     if (x > COLS || x + w < 0) continue;
-    const hop = name === 'biroon' ? Math.round(Math.sin(t * 2.5 + k) * 2) : -Math.round(Math.abs(Math.sin((t * 2.6 + k * 0.7) * Math.PI)) * 2);
+    // びろーんはふわふわ上下（上へだけ：11/10 に真四角 18 粒に描き直して背が 4 粒伸び、下へ動くと尻尾が縁の電飾に触れた）
+    const hop = name === 'biroon' ? -Math.round((Math.sin(t * 2.5 + k) + 1) * 1.2) : -Math.round(Math.abs(Math.sin((t * 2.6 + k * 0.7) * Math.PI)) * 2);
     const blink = name === 'pocha' && ((t + k * 0.9) % 3.3) < 0.15;
     sprite(blink ? 'pocha_blink' : name, x, ROWS - 3 - h + hop);
   }
