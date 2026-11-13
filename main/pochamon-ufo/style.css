@@ -24,7 +24,7 @@
 html, body {
   margin: 0; padding: 0; width: 100%; height: 100%;
   overflow: hidden; overscroll-behavior: none;
-  background: #4a3f66;
+  background: #3e4ea0;   /* 絵が出る前の地＝群青の壁の中ほど（11/14 まで紫 #4a3f66） */
   font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic', sans-serif;
   color: var(--ink);
   -webkit-user-select: none; user-select: none;
@@ -33,9 +33,10 @@ html, body {
   touch-action: none;
 }
 body {
-  /* 筐体のまわり＝ゲームセンターの店内（2026-10-30 本人「背景が寂しい」）：紫の壁にほかの台の灯りのぼけ、床はカーペット。
+  /* 筐体のまわり＝ゲームセンターの店内（2026-10-30 本人「背景が寂しい」）：壁にほかの台の灯りのぼけ、下の帯は紫の地に宇宙の柄。
+     壁は 11/14 に紫から群青へ（本人「目立つように」→ 黄色・青系・ピンクの質感を見て「いったん群青で」）。
      1枚の絵（tools/pochamon-ufo/make_room.py → assets/room.webp）。CSS の全画面の重ね塗りで作ると WebKit で毎コマ重くなった */
-  background: #2f2858 url('assets/room.webp') center bottom / cover no-repeat;
+  background: #28346e url('assets/room.webp') center bottom / cover no-repeat;
 }
 /* 高さはゲームが測った画面の高さ（game.js の appSize）。iPad のホーム画面のアプリで 100% が画面より短くなり、下に帯が残った（11/10） */
 html, body { height: var(--app-h, 100%); }
