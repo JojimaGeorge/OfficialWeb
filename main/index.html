@@ -1181,8 +1181,9 @@ html{color-scheme:only light;}
     .news-feature img {
       display: block;
       width: 100%;
-      aspect-ratio: 4 / 3;
+      aspect-ratio: 4 / 5;   /* 載せる画像（お品書き）が縦長なので縦長の枠に。9:16 の絵は上を基準に収める（2026-11-14 本人） */
       object-fit: cover;
+      object-position: 50% 0;
       transition: transform 0.6s var(--ease);
     }
 
@@ -1754,6 +1755,18 @@ html{color-scheme:only light;}
       .news-grid {
         grid-template-columns: 1fr;
         gap: 48px;
+      }
+      /* 1列の時は縦長の画像を横いっぱいにすると縦に長すぎるので、画像を左・文字を右に並べる */
+      .news-feature {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+        grid-template-rows: auto 1fr;   /* 画像の高さのぶんは下の行（題）で受けて、札と題の間を空けない */
+        column-gap: clamp(16px, 4vw, 32px);
+        align-items: start;
+      }
+      .news-feature-imgwrap {
+        grid-row: 1 / span 2;
+        margin-bottom: 0;
       }
 
       .contact-sub-grid {
@@ -2390,7 +2403,7 @@ html{color-scheme:only light;}
           <!-- 最新1件: feature -->
           <a href="news.html#news21" class="news-feature ink-guard">
             <div class="news-feature-imgwrap">
-              <img src="image/designfes64.webp" alt="デザインフェスタ64 ぽちゃもん お品書き" style="object-position: 50% 0;">
+              <img src="image/designfes64.webp" alt="デザインフェスタ64 ぽちゃもん お品書き">
             </div>
             <div>
               <span class="news-tag">Exhibition</span>
