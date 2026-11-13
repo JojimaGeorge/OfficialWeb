@@ -124,8 +124,9 @@ const PAGE_LIB = () => {
   await page.evaluate(({ W, H }) => {
     const sign = document.getElementById('sign');
     // 2026-10-30 本人「看板も公式のロゴに。★POCHAMON★と赤いぽちゃもんは取っていい」＝公式ロゴ＋UFOキャッチャーの1行（上の段が空いた分、看板の真ん中に大きめに）
+    // 2026-11-13 本人「ゲームはぽちゃもんキャッチャーに」＝UFOキャッチャーはセガの登録商標。看板の文字を「キャッチャー」だけにして、ロゴと合わせて「ぽちゃもん キャッチャー」と読ませる
     const fs = H * 0.46;
-    const pochi = mkLogoSvgPouch(window.__logoSvg, H * 0.4, fs), logo = mkLogo('UFOキャッチャー', 'Oshigo', fs, 'pouch');
+    const pochi = mkLogoSvgPouch(window.__logoSvg, H * 0.4, fs), logo = mkLogo('キャッチャー', 'Oshigo', fs, 'pouch');
     const lines = '<div class="lines"><i></i><i></i><i></i></div>';
     const row2 = `<div class="row2" style="top:${H * 0.08}px;height:${H * 0.74}px;padding:0 ${W * 0.03}px">${lines}${pochi.html}${logo.html}${lines}</div>`;
     const pin = `<div class="pin" style="top:${H * 0.86}px"><i style="background:#e2333f"></i><i style="background:#2b4fb5"></i></div>`;

@@ -1,7 +1,7 @@
 {
-  "name": "ぽちゃもん UFOキャッチャー",
-  "short_name": "ぽちゃもんUFO",
-  "description": "ぽちゃもんのぬいぐるみをUFOキャッチャーでつかまえよう！",
+  "name": "ぽちゃもん キャッチャー",
+  "short_name": "ぽちゃもんキャッチャー",
+  "description": "ぽちゃもんのぬいぐるみをクレーンでつかまえよう！",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
