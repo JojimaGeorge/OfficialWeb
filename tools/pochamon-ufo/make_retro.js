@@ -16,6 +16,7 @@ const OUT = path.join(__dirname, '..', '..', 'main', 'pochamon-ufo', 'assets');
 const TMP = path.join(__dirname, 'shots', 'retro_bake');
 fs.mkdirSync(TMP, { recursive: true });
 const SIGN = { w: 1800, h: 250 };
+const FIT = { k: +(process.env.FIT_K || 0.906), ls: +(process.env.FIT_LS || -0.17), small: +(process.env.FIT_SMALL || 0.72), gap: +(process.env.FIT_GAP || 8) };   // 看板の「キャッチャー」：字の大きさ（ロゴ基準の倍率）・字の間（字の大きさ比）・小さい字の倍率・ロゴとの間（px）
 // ぽちゃもんのロゴ（公式サイトと同じ 1色の SVG）。タイトルではピンクに塗り替えて、ひらがなの代わりに置く（2026-10-30 本人「ぽちゃもんはロゴを使って・同じピンクで・ひらがなより大きめに」）
 const LOGO_SVG = fs.readFileSync(path.join(__dirname, '..', '..', 'pochamon', 'assets', 'img', 'logo.svg'), 'utf8');   // 梁の前面（背景の絵の y=0〜約248）。下の銀のレールは隠さない
 
@@ -31,15 +32,19 @@ const PAGE_LIB = () => {
   };
   // 字の SVG。style：pouch（ピンク＋紺のふち＋内側の白い線）／red（同じ作りの赤）／neon（二重線のネオン）。ls＝字の間隔（px）
   let uid = 0;
-  window.mkLogo = (text, font, size, style, ls) => {
+  // small＝小さい字（ャ・ッ など）だけ字の大きさを small 倍に（公式ロゴの「ゃ」に比べて書体の小さい字が大きすぎるため・11/13）
+  // ref＝ふちと白い線の太さの基準（横に並べるロゴと揃える。省略時は size）
+  window.mkLogo = (text, font, size, style, ls, small, ref) => {
+    const markup = small ? [...text].map((c) => 'ァィゥェォャュョッ'.includes(c) ? `<tspan font-size="${size * small}">${c}</tspan>` : c).join('') : text;
+    const sz = ref || size;
     const id = 'L' + (uid++);
     const lsAttr = ls ? `letter-spacing="${ls}"` : '';
     const s0 = document.createElementNS(NS, 'svg'); s0.setAttribute('style', 'position:absolute;left:-9999px;visibility:hidden');
-    const t0 = document.createElementNS(NS, 'text'); t0.setAttribute('font-family', font); t0.setAttribute('font-size', size); if (ls) t0.setAttribute('letter-spacing', ls); t0.textContent = text;
+    const t0 = document.createElementNS(NS, 'text'); t0.setAttribute('font-family', font); t0.setAttribute('font-size', size); if (ls) t0.setAttribute('letter-spacing', ls); t0.innerHTML = markup;
     s0.appendChild(t0); document.body.appendChild(s0); const b = t0.getBBox(); s0.remove();
     const out = size * (style === 'neon' || style === 'glow' ? 0.2 : 0.1);
     const w = b.width - (ls || 0) + out * 2, h = b.height + out * 2, x = out - b.x, y = out - b.y;
-    const t = (attrs) => `<text x="${x}" y="${y}" font-family="${font}" font-size="${size}" ${lsAttr} ${attrs}>${text}</text>`;
+    const t = (attrs) => `<text x="${x}" y="${y}" font-family="${font}" font-size="${size}" ${lsAttr} ${attrs}>${markup}</text>`;
     let body;
     if (style === 'glow') {   // 塗りつぶしのピンクに、ほのかな光（見本 T1 の「ぽちゃもん」）
       body = `<defs><filter id="${id}f" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur stdDeviation="${size * 0.09}" result="b"/><feFlood flood-color="#ff5fae" flood-opacity=".75"/><feComposite in2="b" operator="in" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
@@ -52,9 +57,9 @@ const PAGE_LIB = () => {
       const g = style === 'red' ? ['#ff6a6f', '#d8242f'] : ['#ffa3cf', '#ef5299'];
       const edge = style === 'red' ? '#7a1020' : '#1d2a6b';
       body = `<defs><clipPath id="${id}c">${t('')}</clipPath><linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${g[0]}"/><stop offset="1" stop-color="${g[1]}"/></linearGradient></defs>
-        ${t(`fill="${edge}" stroke="${edge}" stroke-width="${size * 0.13}" stroke-linejoin="round"`)}
+        ${t(`fill="${edge}" stroke="${edge}" stroke-width="${sz * 0.13}" stroke-linejoin="round"`)}
         ${t(`fill="url(#${id}g)"`)}
-        <g clip-path="url(#${id}c)">${t(`fill="none" stroke="#fff" stroke-width="${size * 0.105}" stroke-linejoin="round"`)}${t(`fill="none" stroke="url(#${id}g)" stroke-width="${size * 0.06}" stroke-linejoin="round"`)}</g>`;
+        <g clip-path="url(#${id}c)">${t(`fill="none" stroke="#fff" stroke-width="${sz * 0.105}" stroke-linejoin="round"`)}${t(`fill="none" stroke="url(#${id}g)" stroke-width="${sz * 0.06}" stroke-linejoin="round"`)}</g>`;
     }
     return { html: `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;overflow:visible">${body}</svg>`, w, h };
   };
@@ -108,7 +113,7 @@ const PAGE_LIB = () => {
     #sign { width: ${SIGN.w}px; height: ${SIGN.h}px; box-sizing: border-box; overflow: hidden;
       background: linear-gradient(180deg, #ffffff 0%, #fff8fb 72%, #f3dde7 100%); border-top: 8px solid #f7a3c3; }
     #sign .row1 { position: absolute; left: 0; right: 0; display: flex; justify-content: center; }
-    #sign .row2 { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 22px; }
+    #sign .row2 { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: ${FIT.gap}px; }
     #sign .lines { flex: 1; height: 34px; display: flex; flex-direction: column; justify-content: space-between; }
     #sign .lines i { display: block; height: 5px; background: #e2333f; border-radius: 3px; }
     #sign .pin { position: absolute; left: 0; right: 0; }
@@ -121,17 +126,18 @@ const PAGE_LIB = () => {
   if (!ok) throw new Error('書体が読めていない');
 
   // 1) 看板
-  await page.evaluate(({ W, H }) => {
+  await page.evaluate(({ W, H, FIT }) => {
     const sign = document.getElementById('sign');
     // 2026-10-30 本人「看板も公式のロゴに。★POCHAMON★と赤いぽちゃもんは取っていい」＝公式ロゴ＋UFOキャッチャーの1行（上の段が空いた分、看板の真ん中に大きめに）
     // 2026-11-13 本人「ゲームはぽちゃもんキャッチャーに」＝UFOキャッチャーはセガの登録商標。看板の文字を「キャッチャー」だけにして、ロゴと合わせて「ぽちゃもん キャッチャー」と読ませる
     const fs = H * 0.46;
-    const pochi = mkLogoSvgPouch(window.__logoSvg, H * 0.4, fs), logo = mkLogo('キャッチャー', 'Oshigo', fs, 'pouch');
+    // 11/13 本人「ぽちゃもんとキャッチャーの文字の大きさ・字の間を揃えて」＝ロゴの字に合わせて、大きい字の高さ・小さい字の割合・字の間を測って詰めた（FIT）
+    const pochi = mkLogoSvgPouch(window.__logoSvg, H * 0.4, fs), logo = mkLogo('キャッチャー', 'Oshigo', fs * FIT.k, 'pouch', fs * FIT.ls, FIT.small, fs);
     const lines = '<div class="lines"><i></i><i></i><i></i></div>';
     const row2 = `<div class="row2" style="top:${H * 0.08}px;height:${H * 0.74}px;padding:0 ${W * 0.03}px">${lines}${pochi.html}${logo.html}${lines}</div>`;
     const pin = `<div class="pin" style="top:${H * 0.86}px"><i style="background:#e2333f"></i><i style="background:#2b4fb5"></i></div>`;
     sign.innerHTML = row2 + pin;
-  }, { W: SIGN.w, H: SIGN.h });
+  }, { W: SIGN.w, H: SIGN.h, FIT });
   await page.waitForTimeout(200);
   const shots = {};
   shots.retro_sign = path.join(TMP, 'retro_sign.png');
