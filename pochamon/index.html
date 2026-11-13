@@ -560,7 +560,7 @@ body.theme-pink  { --star-w:#ffffff; --star-b:#ffc8da; --star-y:#fff1c2; }
 .menuFan__cards{ display:flex; justify-content:center; align-items:flex-end; gap:0; }
 .menuCard{
   appearance:none; border:none; padding:8px; background:#fff; border-radius:16px; cursor:pointer;
-  width:min(22vw,210px); aspect-ratio:9/16; flex:0 0 auto;   /* デザフェス64のお品書きは縦長9:16で4枚 */
+  width:min(22vw,210px); aspect-ratio:4/5; flex:0 0 auto;   /* お品書きは4:5（X用）で4枚 */
   box-shadow:0 8px 0 rgba(0,0,0,.15), 0 16px 30px rgba(0,40,80,.18);
   position:relative;
   transition:box-shadow .25s, translate .35s var(--ease-puni), rotate .35s var(--ease-puni);
@@ -1110,10 +1110,10 @@ footer{
     <div class="menuFan reveal" id="menuFan">
       <p class="menuFan__title">デザインフェスタ64 の おしながき</p>
       <div class="menuFan__cards">
-        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-1.webp" data-name="おしながき ①" data-cap="めじるしアクキー 全5種 NEW"><img src="assets/img/oshinagaki-df64-1.webp" alt="お品書き1：めじるしアクキー" loading="lazy" width="1200" height="2134"></button>
-        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-2.webp" data-name="おしながき ②" data-cap="耐水ステッカー（新作4種）"><img src="assets/img/oshinagaki-df64-2.webp" alt="お品書き2：耐水ステッカー" loading="lazy" width="1200" height="2134"></button>
-        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-3.webp" data-name="おしながき ③" data-cap="メガネ拭き NEW"><img src="assets/img/oshinagaki-df64-3.webp" alt="お品書き3：メガネ拭き" loading="lazy" width="1200" height="2134"></button>
-        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-4.webp" data-name="おしながき ④" data-cap="ぽちゃもん キャッチャー・ほかにもあるよ"><img src="assets/img/oshinagaki-df64-4.webp" alt="お品書き4：ぽちゃもん キャッチャーと そのほかのグッズ" loading="lazy" width="1200" height="2134"></button>
+        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-1.webp?v=2" data-name="おしながき ①" data-cap="めじるしアクキー 全5種 NEW"><img src="assets/img/oshinagaki-df64-1.webp?v=2" alt="お品書き1：めじるしアクキー" loading="lazy" width="1200" height="1500"></button>
+        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-2.webp?v=2" data-name="おしながき ②" data-cap="耐水ステッカー（新作4種）"><img src="assets/img/oshinagaki-df64-2.webp?v=2" alt="お品書き2：耐水ステッカー" loading="lazy" width="1200" height="1500"></button>
+        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-3.webp?v=2" data-name="おしながき ③" data-cap="メガネ拭き NEW"><img src="assets/img/oshinagaki-df64-3.webp?v=2" alt="お品書き3：メガネ拭き" loading="lazy" width="1200" height="1500"></button>
+        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-4.webp?v=2" data-name="おしながき ④" data-cap="ぽちゃもん キャッチャー・ほかにもあるよ"><img src="assets/img/oshinagaki-df64-4.webp?v=2" alt="お品書き4：ぽちゃもん キャッチャーと そのほかのグッズ" loading="lazy" width="1200" height="1500"></button>
       </div>
       <a class="menuFan__link" href="https://x.com/jojima_george/status/2120124327760629938" target="_blank" rel="noopener noreferrer">X で おしながきを見る</a>
     </div>
