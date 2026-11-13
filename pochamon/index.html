@@ -560,7 +560,7 @@ body.theme-pink  { --star-w:#ffffff; --star-b:#ffc8da; --star-y:#fff1c2; }
 .menuFan__cards{ display:flex; justify-content:center; align-items:flex-end; gap:0; }
 .menuCard{
   appearance:none; border:none; padding:8px; background:#fff; border-radius:16px; cursor:pointer;
-  width:min(30vw,250px); aspect-ratio:4/5; flex:0 0 auto;
+  width:min(22vw,210px); aspect-ratio:9/16; flex:0 0 auto;   /* デザフェス64のお品書きは縦長9:16で4枚 */
   box-shadow:0 8px 0 rgba(0,0,0,.15), 0 16px 30px rgba(0,40,80,.18);
   position:relative;
   transition:box-shadow .25s, translate .35s var(--ease-puni), rotate .35s var(--ease-puni);
@@ -570,9 +570,10 @@ body.theme-pink  { --star-w:#ffffff; --star-b:#ffc8da; --star-y:#fff1c2; }
   transform:translate(calc(var(--sx,0px) * .5), calc(var(--sy,0px) * .5)); transition:transform .35s var(--ease-puni);
 }
 .menuCard .glare{ z-index:2; }
-.menuCard:nth-child(1){ rotate:-8deg; translate:26px 12px; z-index:1; }
-.menuCard:nth-child(2){ z-index:2; translate:0 -10px; }
-.menuCard:nth-child(3){ rotate:8deg; translate:-26px 12px; z-index:1; }
+.menuCard:nth-child(1){ rotate:-9deg; translate:30px 16px; z-index:1; }
+.menuCard:nth-child(2){ rotate:-3deg; translate:10px -6px; z-index:2; }
+.menuCard:nth-child(3){ rotate:3deg; translate:-10px -6px; z-index:2; }
+.menuCard:nth-child(4){ rotate:9deg; translate:-30px 16px; z-index:1; }
 .menuCard:hover{ z-index:3; rotate:0deg; translate:0 -22px; box-shadow:0 14px 0 rgba(0,0,0,.15), 0 26px 40px rgba(0,40,80,.24); }
 .menuFan__link{
   display:inline-block; margin-top:30px; background:#1c2340; color:#fff; text-decoration:none; font-weight:700; font-size:14px;
@@ -717,12 +718,26 @@ body.theme-pink  { --star-w:#ffffff; --star-b:#ffc8da; --star-y:#fff1c2; }
 
 /* 全画面の覆い（カードをタップで大きく）。canvas を .cardStage からここへ移し替えて見せる＝描画エンジンは作り直さない。
    canvas は touch-action:none ＝ 全画面の間は縦の指の動きもカードが受け取る（ページのスクロールは要らない） */
+/* 高さは inset:0（＝レイアウトビューポート＝ブラウザのバーの裏まで含む全体）ではなく「今見えている範囲」に合わせる。
+   Xやインスタのアプリ内ブラウザは画面の下2割ほどをUIで覆うので、inset:0 だと下端の「とじる」帯が裏に隠れて出口がなくなる。
+   CSS だけの保険が 100dvh、確実に合わせるのは JS（visualViewport）側で top/height を上書きする（fitFullToViewport） */
 .cardFull{
-  position:fixed; inset:0; z-index:110;
+  position:fixed; top:0; left:0; width:100%; z-index:110;
+  height:100vh; height:100dvh;
   background:rgba(14,22,48,.5);   /* 後ろのページが透けて見える程度（.86→.5・2026-09-03 じょじを指示「透明感を」） */
   display:none; flex-direction:column; align-items:center; justify-content:center;
   padding:max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
   opacity:0; transition:opacity .28s ease; touch-action:none;
+}
+/* 画面の上端はどのブラウザでも必ず見えるので、閉じる手段をここにも置く（下の帯が隠れても詰まない） */
+.cardFull__x{
+  position:absolute; z-index:2;
+  top:calc(8px + env(safe-area-inset-top)); right:10px;
+  width:40px; height:40px; padding:0; border:none; border-radius:999px;
+  background:rgba(255,255,255,.94); color:var(--ink);
+  font-family:var(--font-body); font-weight:700; font-size:17px; line-height:1;
+  cursor:pointer; box-shadow:0 3px 0 rgba(0,0,0,.18);
+  display:flex; align-items:center; justify-content:center;
 }
 .cardFull.open{ display:flex; }
 .cardFull.in{ opacity:1; }
@@ -743,9 +758,9 @@ body.theme-pink  { --star-w:#ffffff; --star-b:#ffc8da; --star-y:#fff1c2; }
   flex:0 0 auto; align-self:stretch; text-align:center;
   color:#fff; font-weight:700; font-size:12.5px; line-height:1.8;
   margin:calc(-1 * max(14px, env(safe-area-inset-top))) -14px 0;
-  padding:calc(14px + env(safe-area-inset-top)) 12px 30px;
+  padding:calc(14px + env(safe-area-inset-top)) 58px 30px;   /* 左右58px＝右上の ✕ に文字がかぶらない幅（中央寄せを保つため左右そろえる） */
   /* 文字が乗っている範囲は濃さを保ち、その下（余白のぶん）だけ薄れる。境目が線に見えないよう3段で落とす */
-  background:linear-gradient(to bottom, rgba(10,16,36,.88) 0%, rgba(10,16,36,.85) 58%, rgba(10,16,36,.5) 76%, rgba(10,16,36,0) 100%);
+  background:linear-gradient(to bottom, rgba(10,16,36,.88) 0%, rgba(10,16,36,.86) 73%, rgba(10,16,36,.45) 88%, rgba(10,16,36,0) 100%);
   text-shadow:0 1px 4px rgba(10,16,36,.85);
 }
 .cardFull__hint span{ display:inline-block; }                                   /* 折り返しは項目の切れ目でだけ起こす（語の途中で切れない） */
@@ -1087,18 +1102,20 @@ footer{
     <h2 class="sec-title reveal">おしらせ</h2>
     <p class="sec-lead reveal">ぽちゃもんのさいしんじょうほう。</p>
     <div class="newsList">
-      <div class="newsItem newsItem--hot reveal"><span class="date">2026.08.23</span><span class="tag tag--event">イベント</span><span><b>COMITIA157</b> に しゅってん！ 東京ビッグサイト 西4ホール <b>【し08a】</b>／ 8月23日(日) 11:00〜16:00</span></div>
+      <div class="newsItem newsItem--hot reveal"><span class="date">2026.11.14</span><span class="tag tag--event">イベント</span><span><b>デザインフェスタ64</b> に しゅってん！ 東京ビッグサイト 西1階 <b style="white-space:nowrap">【B-143】</b>／ 11月14日(土)・15日(日) 10:00〜18:00</span></div>
+      <div class="newsItem reveal"><span class="date">2026.08.23</span><span class="tag tag--event">イベント</span><span><b>COMITIA157</b> に しゅってん！ 東京ビッグサイト 西4ホール <b>【し08a】</b>／ 8月23日(日) 11:00〜16:00</span></div>
       <div class="newsItem reveal"><span class="date">2026.07.07</span><span class="tag">サイト</span><span>ぽちゃもん公式サイトをつくりはじめました🐾</span></div>
     </div>
 
     <div class="menuFan reveal" id="menuFan">
-      <p class="menuFan__title">COMITIA157 の おしながき</p>
+      <p class="menuFan__title">デザインフェスタ64 の おしながき</p>
       <div class="menuFan__cards">
-        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-1.webp" data-name="おしながき ①" data-cap="防水ステッカー・うきわもっきゅ NEW"><img src="assets/img/oshinagaki-1.webp" alt="お品書き1：防水ステッカー" loading="lazy" width="1200" height="1500"></button>
-        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-2.webp" data-name="おしながき ②" data-cap="フレークシール付きミニゲーム・箔押しフォトプリント"><img src="assets/img/oshinagaki-2.webp" alt="お品書き2：ミニゲーム・フォトプリント" loading="lazy" width="1200" height="1500"></button>
-        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-3.webp" data-name="おしながき ③" data-cap="キャンディバッグ・マグネットステッカー"><img src="assets/img/oshinagaki-3.webp" alt="お品書き3：キャンディバッグ・マグネットステッカー" loading="lazy" width="1200" height="1500"></button>
+        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-1.webp" data-name="おしながき ①" data-cap="めじるしアクキー 全5種 NEW"><img src="assets/img/oshinagaki-df64-1.webp" alt="お品書き1：めじるしアクキー" loading="lazy" width="1200" height="2134"></button>
+        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-2.webp" data-name="おしながき ②" data-cap="耐水ステッカー（新作4種）"><img src="assets/img/oshinagaki-df64-2.webp" alt="お品書き2：耐水ステッカー" loading="lazy" width="1200" height="2134"></button>
+        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-3.webp" data-name="おしながき ③" data-cap="メガネ拭き NEW"><img src="assets/img/oshinagaki-df64-3.webp" alt="お品書き3：メガネ拭き" loading="lazy" width="1200" height="2134"></button>
+        <button class="menuCard" type="button" data-src="assets/img/oshinagaki-df64-4.webp" data-name="おしながき ④" data-cap="ぽちゃもん キャッチャー・ほかにもあるよ"><img src="assets/img/oshinagaki-df64-4.webp" alt="お品書き4：ぽちゃもん キャッチャーと そのほかのグッズ" loading="lazy" width="1200" height="2134"></button>
       </div>
-      <a class="menuFan__link" href="https://x.com/jojima_george/status/2090412858463101305" target="_blank" rel="noopener noreferrer">X で おしながきを見る</a>
+      <a class="menuFan__link" href="https://x.com/jojima_george/status/2120124327760629938" target="_blank" rel="noopener noreferrer">X で おしながきを見る</a>
     </div>
   </div>
 </section>
@@ -1221,7 +1238,7 @@ footer{
         <div class="desc">てのひらサイズの きの がくつき。もようの ちょうちょは きんの はくで、ひかりに あたると きらっと ひかるよ。</div>
       </div>
     </div>
-    <p class="goods-note reveal">いまは デザフェス・コミティアの かいじょうだけで はんばいしてるよ🐾<br>つぎの しゅってんは <b>COMITIA157</b>（8/23・西4ホール し08a）。おしながきは「おしらせ」を みてね。<br><span style="opacity:.85;font-size:.92em">オンラインショップは まだ じゅんびちゅう。「ほしい！」の こえが あつまったら、はじめるかも。</span></p>
+    <p class="goods-note reveal">いまは デザフェス・コミティアの かいじょうだけで はんばいしてるよ🐾<br>つぎの しゅってんは <b>デザインフェスタ64</b>（11/14・15・西1階 B-143）。おしながきは「おしらせ」を みてね。<br><span style="opacity:.85;font-size:.92em">オンラインショップは まだ じゅんびちゅう。「ほしい！」の こえが あつまったら、はじめるかも。</span></p>
   </div>
 </section>
 
@@ -1288,7 +1305,8 @@ footer{
 
 <!-- 3Dカードの全画面（カードをタップで開く。canvas は .cardStage からここへ移し替え、閉じたら戻す） -->
 <div class="cardFull" id="cardFull" role="dialog" aria-modal="true" aria-label="ぽちゃもんカードを おおきく見る">
-  <div class="cardFull__hint"><span>ドラッグで かたむく</span><span>ながおしで かくだい</span><span>ダブルタップで もどす</span></div>
+  <button class="cardFull__x" id="cardFullX" type="button" aria-label="とじる">✕</button>
+  <div class="cardFull__hint"><span>ドラッグで かたむく</span><span>ながおしで かくだい</span><span>カードの そとを タップで とじる</span></div>
   <div class="cardFull__stage" id="cardFullStage"></div>
   <div class="cardFull__bar">
     <button class="gyroBtn" id="gyroBtnFull" type="button">スマホの かたむきで うごかす</button>
@@ -2175,7 +2193,8 @@ else{
     for(const stage of stages){
       if(!stage.querySelector("canvas")) continue;
       const spec=E.FULLART.find(c=>c.id===stage.dataset.card);
-      const m=E.mountCard(stage.querySelector("canvas"),{fill:.88, onTap:()=>openFull(stage, m)});   // タップ＝全画面へ
+      // タップ＝全画面へ（全画面の中で閉じる操作は覆いの側で別に見る。3D側のタップ判定は「かたむける操作と区別する」ための厳しい条件なので流用できない）
+      const m=E.mountCard(stage.querySelector("canvas"),{fill:.88, onTap:()=>openFull(stage, m)});
       try{ await m.load(spec); }catch(err){ console.warn(err); m.dispose(); showFallback(stage); }
     }
     // 傾きセンサーのボタンはセクション内と全画面の2か所。状態は1つ（どちらを押しても同じ）
@@ -2195,6 +2214,23 @@ else{
   const full=document.getElementById("cardFull"), fullStage=document.getElementById("cardFullStage");
   let fullOpen=null;   // {stage, canvas, mount}
   const center=r=>({x:r.left+r.width/2, y:r.top+r.height/2});
+
+  // 覆いを「今見えている範囲」に合わせる。position:fixed の基準はブラウザのバーの裏まで含んだ枠なので、
+  // アプリ内ブラウザ（X・インスタ等）だと下端の帯がUIの裏に隠れて「とじる」が押せなくなる。
+  // visualViewport は見えている範囲そのものを返すので、その高さ・ずれを直接あてる。
+  const vv=window.visualViewport;
+  function fitFullToViewport(){
+    if(!fullOpen) return;
+    if(vv){
+      full.style.top=(vv.offsetTop||0)+"px";
+      full.style.left=(vv.offsetLeft||0)+"px";
+      full.style.width=vv.width+"px";
+      full.style.height=vv.height+"px";
+    }
+    fullOpen.mount.refit();
+  }
+  if(vv){ vv.addEventListener("resize",fitFullToViewport); vv.addEventListener("scroll",fitFullToViewport); }
+
   function openFull(stage, mount){
     if(fullOpen) return;                                   // 全画面の中でタップしても何も起きない
     const canvas=stage.querySelector("canvas"); if(!canvas) return;
@@ -2203,7 +2239,7 @@ else{
     fullStage.appendChild(canvas);
     full.classList.add("open");
     document.documentElement.classList.add("cardFull-lock");
-    mount.refit();
+    fitFullToViewport();   // 見えている範囲に覆いを合わせてから（＝この中で refit）大きさを測る
     // 元の枠の位置・大きさから「ふくらむ」（先に最終位置へ置き、差分だけ transform で戻してから 0 へ動かす）
     const to=canvas.getBoundingClientRect(), a=center(from), b=center(to);
     const s=Math.min(from.width/to.width, from.height/to.height);
@@ -2213,6 +2249,7 @@ else{
     canvas.classList.add("flip");
     canvas.style.transform="";
     requestAnimationFrame(()=>full.classList.add("in"));
+    openedAt=performance.now();
     // スマホの「戻る」で全画面だけ閉じるため、開く時に履歴を1段積む（ライトボックスと同じ仕掛け）
     if(!(history.state && history.state.cf)) history.pushState({cf:1}, "");
   }
@@ -2227,6 +2264,7 @@ else{
     canvas.style.transform=`translate(${a.x-b.x}px,${a.y-b.y}px) scale(${s})`;
     setTimeout(()=>{
       full.classList.remove("open");
+      full.style.top=full.style.left=full.style.width=full.style.height="";   // 見えている範囲に合わせた指定を戻す
       canvas.classList.remove("flip"); canvas.style.transform="";
       stage.appendChild(canvas);
       mount.refit();
@@ -2235,7 +2273,25 @@ else{
     if(!viaHistory && history.state && history.state.cf) history.back();   // 自分で積んだ1段を消す（ページは戻らない）
   }
   document.getElementById("cardFullClose").addEventListener("click",()=>closeFull());
-  full.addEventListener("click",e=>{ if(e.target===full) closeFull(); });          // 暗い背景をタップ → 閉じる
+  document.getElementById("cardFullX").addEventListener("click",()=>closeFull());
+
+  // カードの外をタップ → とじる。
+  // 3Dカード側のタップ判定（8px以内・380ms以内）は「かたむける操作と区別する」ための厳しい条件で、
+  // 指のブレやゆっくりした押しでは通らない（実測：1pxブレでもう通らない）。閉じる操作はここで別に、
+  // 「大きく動かさずに離した」だけを条件にする（押している長さは見ない）。
+  let downPt=null, openedAt=0;
+  const forget=()=>{ downPt=null; };
+  full.addEventListener("pointerdown",e=>{ downPt={x:e.clientX, y:e.clientY}; });
+  full.addEventListener("pointercancel",forget);
+  full.addEventListener("pointerup",e=>{
+    const p=downPt; downPt=null;
+    if(!fullOpen || !p) return;
+    if(performance.now()-openedAt < 500) return;                                  // 開いた直後の指離しでは閉じない
+    if(Math.abs(e.clientX-p.x)+Math.abs(e.clientY-p.y) > 40) return;              // かたむける操作は閉じない（かたむけのドラッグは100px超・指のブレは実測30px程度まで）
+    if(e.target.closest("button")) return;                                        // ボタンは自前の処理
+    if(e.target.closest(".cardFull__stage") && fullOpen.mount.hitCard(e)) return;  // カードの面の上は閉じない
+    closeFull();
+  });
   document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeFull(); });
   addEventListener("popstate",()=>{ if(fullOpen) closeFull(true); });                // 戻るボタン → 全画面だけ閉じる
 

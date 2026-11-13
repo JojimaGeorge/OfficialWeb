@@ -150,6 +150,21 @@ export function mountCard(canvas, opts = {}) {
       st.lightT.set(clamp(hit.x / (CARD_W / 2), -1.4, 1.4), clamp(hit.y / (CARD_H / 2), -1.4, 1.4));
     }
   }
+  // 指の位置がカードの面の上か（全画面の「カードの外をタップ＝とじる」の判定に使う）。
+  // updateLight と同じ「カードの平面へ光線を飛ばす」計算で、当たった点をカード内の座標に直して札のサイズと比べる
+  function hitCard(e) {
+    if (!card) return false;
+    const p = local(e);
+    ndc.set((p.x / p.w) * 2 - 1, -(p.y / p.h) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    tmpN.set(0, 0, 1).applyQuaternion(card.group.quaternion);
+    card.group.getWorldPosition(tmpP);
+    plane.setFromNormalAndCoplanarPoint(tmpN, tmpP);
+    if (!ray.ray.intersectPlane(plane, hit)) return false;
+    card.group.worldToLocal(hit);
+    return Math.abs(hit.x) <= CARD_W / 2 && Math.abs(hit.y) <= CARD_H / 2;
+  }
+
   let last = { x: 0, y: 0 }, moved = 0, holdTimer = 0, downAt = 0, dived = false;
   const HOLD_MS = 380;   // これより長く押すと「カードの中へ」。それより短く・動かさずに離したら「タップ」
   const onMove = (e) => {
@@ -175,7 +190,8 @@ export function mountCard(canvas, opts = {}) {
     canvas.setPointerCapture(e.pointerId);
     st.dragging = true; moved = 0; last = { x: e.clientX, y: e.clientY }; downAt = performance.now(); dived = false;
     canvas.classList.add('dragging');
-    holdTimer = setTimeout(() => { if (moved < 8) { st.diveT = 1; dived = true; } }, HOLD_MS);   // 長押しでカードの中へ
+    // 長押しでカードの中へ。ただし押した場所がカードの面の上の時だけ（外の長押しは「全画面をとじる」操作とぶつかる）
+    if (hitCard(e)) holdTimer = setTimeout(() => { if (moved < 8) { st.diveT = 1; dived = true; } }, HOLD_MS);
   };
   const release = (e) => {
     const wasDragging = st.dragging;
@@ -246,5 +262,5 @@ export function mountCard(canvas, opts = {}) {
   }
   // 置き場が変わった時（全画面の覆いへ移した時など）に、canvas の今の大きさで撮り直す
   function refit() { W = H = 0; resize(); }
-  return { load, dispose, refit, get card() { return card; } };
+  return { load, dispose, refit, hitCard, get card() { return card; } };
 }
